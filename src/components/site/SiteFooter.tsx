@@ -1,17 +1,18 @@
 import { Link } from "@tanstack/react-router";
+import { CometXLogo } from "./CometXLogo";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function SiteFooter() {
+  const { language } = useLanguage();
+  const cs = language === "cs";
   return (
     <footer className="mt-24 bg-ink text-ink-foreground">
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
         <div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
-            <Link to="/" aria-label="CometX - Come and Meet Expats">
-              <img src="/cometx-official-logo.png" alt="CometX - Come and Meet Expats" className="h-36 w-auto object-contain" />
-            </Link>
+            <CometXLogo footer />
             <p className="mt-4 max-w-sm text-sm text-ink-foreground/65">
-              A Swiss nonprofit connecting Czech and Slovak expats through education, culture and a
-              professional network with a touch of homeland.
+              {cs ? "Švýcarská nezisková organizace propojující české a slovenské expaty prostřednictvím vzdělávání, kultury a profesní sítě s dotekem domova." : "A Swiss nonprofit connecting Czech and Slovak expats through education, culture and a professional network with a touch of homeland."}
             </p>
             <address className="mt-5 not-italic text-xs leading-6 text-ink-foreground/55">
               CHE-424.450.235<br />
@@ -21,26 +22,26 @@ export function SiteFooter() {
           </div>
 
           <FooterColumn
-            title="Community"
+            title={cs ? "Komunita" : "Community"}
             links={[
-              { to: "/events", label: "Events" },
-              { to: "/community", label: "Stories" },
-              { to: "/membership", label: "Membership" },
+              { to: "/events", label: cs ? "Akce" : "Events" },
+              { to: "/community", label: cs ? "Příběhy" : "Stories" },
+              { to: "/membership", label: cs ? "Členství" : "Membership" },
             ]}
           />
           <FooterColumn
-            title="Organisation"
+            title={cs ? "Organizace" : "Organisation"}
             links={[
-              { to: "/about", label: "About" },
-              { to: "/partners", label: "Partners" },
+              { to: "/about", label: cs ? "O nás" : "About" },
+              { to: "/partners", label: cs ? "Partneři" : "Partners" },
             ]}
           />
           <FooterColumn
-            title="Account"
+            title={cs ? "Účet" : "Account"}
             links={[
-              { to: "/login", label: "Log in" },
-              { to: "/register", label: "Create account" },
-              { to: "/account", label: "My CometX" },
+              { to: "/login", label: cs ? "Přihlásit" : "Log in" },
+              { to: "/register", label: cs ? "Vytvořit účet" : "Create account" },
+              { to: "/account", label: cs ? "Můj CometX" : "My CometX" },
             ]}
           />
         </div>

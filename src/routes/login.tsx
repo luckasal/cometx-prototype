@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { safeReturnPath } from "@/lib/navigation";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 
@@ -29,6 +30,8 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { language } = useLanguage();
+  const cs = language === "cs";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,11 +48,11 @@ function LoginPage() {
 
   return (
     <div className="mx-auto grid max-w-md px-5 py-20 lg:py-28">
-      <p className="eyebrow text-muted-foreground">Members</p>
-      <h1 className="display-lg mt-3">Log in</h1>
+      <p className="eyebrow text-muted-foreground">{cs ? "Členové" : "Members"}</p>
+      <h1 className="display-lg mt-3">{cs ? "Přihlášení" : "Log in"}</h1>
       <form onSubmit={onSubmit} className="mt-10 space-y-5">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">E-mail</Label>
           <Input
             id="email"
             type="email"
@@ -60,7 +63,7 @@ function LoginPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{cs ? "Heslo" : "Password"}</Label>
           <Input
             id="password"
             type="password"
@@ -71,25 +74,25 @@ function LoginPage() {
           />
         </div>
         <Button type="submit" variant="ink" size="lg" className="w-full" disabled={loading}>
-          {loading ? "Logging in..." : "Log in"}
+          {loading ? (cs ? "Přihlašuji..." : "Logging in...") : (cs ? "Přihlásit" : "Log in")}
         </Button>
       </form>
       <p className="mt-6 text-sm text-muted-foreground">
-        No account yet?{" "}
+        {cs ? "Ještě nemáte účet?" : "No account yet?"}{" "}
         <Link
           to="/register"
           search={redirect ? { redirect } : {}}
           className="underline underline-offset-4"
         >
-          Create one
+          {cs ? "Vytvořit účet" : "Create one"}
         </Link>
-        {" - or "}
+        {cs ? " – nebo " : " - or "}
         <button
           type="button"
           className="underline underline-offset-4"
           onClick={() => navigate({ to: "/membership" })}
         >
-          see membership
+          {cs ? "prohlédnout členství" : "see membership"}
         </button>
         .
       </p>

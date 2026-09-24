@@ -1,26 +1,29 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Languages, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CometXLogo } from "./CometXLogo";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const NAV = [
-  { to: "/events", label: "Events" },
-  { to: "/membership", label: "Membership" },
-  { to: "/community", label: "Community" },
-  { to: "/partners", label: "Partners" },
-  { to: "/about", label: "About" },
-];
+  { to: "/events", en: "Events", cs: "Akce" },
+  { to: "/membership", en: "Membership", cs: "Členství" },
+  { to: "/community", en: "Community", cs: "Komunita" },
+  { to: "/partners", en: "Partners", cs: "Partneři" },
+  { to: "/about", en: "About", cs: "O nás" },
+] as const;
 
 export function SiteHeader() {
   const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
+  const { language, toggleLanguage } = useLanguage();
+  const cs = language === "cs";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/70 bg-background/90 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-ink-foreground/10 bg-ink/95 text-ink-foreground backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-5 lg:px-8">
         <CometXLogo />
 
@@ -30,30 +33,33 @@ export function SiteHeader() {
               key={item.to}
               to={item.to}
               className={cn(
-                "text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
-                pathname.startsWith(item.to) && "text-foreground",
+                "text-sm font-medium text-ink-foreground/70 transition-colors hover:text-accent",
+                pathname.startsWith(item.to) && "text-accent",
               )}
             >
-              {item.label}
+              {item[language]}
             </Link>
           ))}
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
+          <button type="button" onClick={toggleLanguage} className="inline-flex items-center gap-1.5 border border-ink-foreground/25 px-2.5 py-1.5 text-xs font-bold hover:border-accent hover:text-accent" aria-label={cs ? "Switch to English" : "Přepnout do češtiny"}>
+            <Languages className="size-3.5" /> {cs ? "EN" : "CZ"}
+          </button>
           {!loading && user ? (
             <Button asChild variant="ink" size="sm">
-              <Link to="/account">My CometX</Link>
+              <Link to="/account">{cs ? "Můj CometX" : "My CometX"}</Link>
             </Button>
           ) : (
             <>
               <Link
                 to="/login"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground"
+                className="text-sm font-medium text-ink-foreground/70 hover:text-accent"
               >
-                Log in
+                {cs ? "Přihlásit" : "Log in"}
               </Link>
               <Button asChild variant="signal" size="sm">
-                <Link to="/membership">Join CometX</Link>
+                <Link to="/membership">{cs ? "Přidat se" : "Join CometX"}</Link>
               </Button>
             </>
           )}
@@ -61,8 +67,8 @@ export function SiteHeader() {
 
         <button
           type="button"
-          className="md:hidden"
-          aria-label="Toggle menu"
+          className="text-ink-foreground md:hidden"
+          aria-label={cs ? "Otevřít menu" : "Toggle menu"}
           onClick={() => setOpen((v) => !v)}
         >
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -70,7 +76,7 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div className="border-t border-border bg-background md:hidden">
+        <div className="border-t border-ink-foreground/15 bg-ink text-ink-foreground md:hidden">
           <div className="flex flex-col px-5 py-4">
             {NAV.map((item) => (
               <Link
@@ -79,7 +85,7 @@ export function SiteHeader() {
                 onClick={() => setOpen(false)}
                 className="py-2.5 text-sm font-medium"
               >
-                {item.label}
+                {item[language]}
               </Link>
             ))}
             <Link
@@ -87,8 +93,9 @@ export function SiteHeader() {
               onClick={() => setOpen(false)}
               className="py-2.5 text-sm font-medium"
             >
-              {user ? "My CometX" : "Log in"}
+              {user ? (cs ? "Můj CometX" : "My CometX") : (cs ? "Přihlásit" : "Log in")}
             </Link>
+            <button type="button" onClick={toggleLanguage} className="mt-2 inline-flex items-center gap-2 border-t border-ink-foreground/15 py-3 text-left text-sm font-bold text-accent"><Languages className="size-4" />{cs ? "English" : "Česky"}</button>
           </div>
         </div>
       )}

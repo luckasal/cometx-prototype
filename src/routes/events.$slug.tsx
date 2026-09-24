@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { useState } from "react";
 import { ArrowRight, CalendarDays, CheckCircle2, Languages, MapPin, Sparkles, Users } from "lucide-react";
 import { getEventDetail, reserveFreePlace } from "@/lib/events.functions";
 import { formatMoney } from "@/lib/pricing";
@@ -16,6 +15,7 @@ import {
   StatusPill,
 } from "@/components/site/Bits";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Route = createFileRoute("/events/$slug")({
   head: ({ params }) => ({
@@ -37,7 +37,7 @@ export const Route = createFileRoute("/events/$slug")({
 
 function EventDetailPage() {
   const { slug } = Route.useParams();
-  const [symposiumLanguage, setSymposiumLanguage] = useState<"cs" | "en">("cs");
+  const { language, toggleLanguage } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -93,7 +93,7 @@ function EventDetailPage() {
     : new Date(event.startDate);
 
   if (isSymposium2026) {
-    const cs = symposiumLanguage === "cs";
+    const cs = language === "cs";
     const copy = cs
       ? {
           edition: "6. ročník · proběhl 11. září 2026",
@@ -174,7 +174,7 @@ function EventDetailPage() {
               <StatusPill tone="signal">{copy.edition}</StatusPill>
               <button
                 type="button"
-                onClick={() => setSymposiumLanguage(cs ? "en" : "cs")}
+                onClick={toggleLanguage}
                 className="inline-flex items-center gap-2 border border-ink-foreground/30 px-4 py-2 text-sm font-semibold hover:bg-ink-foreground/10"
               >
                 <Languages className="size-4" /> {cs ? "English" : "Česky"}

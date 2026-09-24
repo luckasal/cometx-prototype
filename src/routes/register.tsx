@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { safeReturnPath } from "@/lib/navigation";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 
@@ -34,6 +35,8 @@ function RegisterPage() {
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
+  const { language } = useLanguage();
+  const cs = language === "cs";
 
   function set(key: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -70,19 +73,19 @@ function RegisterPage() {
 
   return (
     <div className="mx-auto grid max-w-md px-5 py-20 lg:py-28">
-      <p className="eyebrow text-muted-foreground">Join</p>
-      <h1 className="display-lg mt-3">Create an account</h1>
+      <p className="eyebrow text-muted-foreground">{cs ? "Přidejte se" : "Join"}</p>
+      <h1 className="display-lg mt-3">{cs ? "Vytvořit účet" : "Create an account"}</h1>
       <p className="mt-4 text-sm text-muted-foreground">
-        An account is free. Membership is optional and can be added afterwards.
+        {cs ? "Účet je zdarma. Členství je volitelné a můžete si ho přidat později." : "An account is free. Membership is optional and can be added afterwards."}
       </p>
-      {confirmationSent ? <p role="status" className="mt-8 rounded-lg border border-border p-5">Check your email to confirm your account, then return to log in.</p> : <form onSubmit={onSubmit} className="mt-10 space-y-5">
+      {confirmationSent ? <p role="status" className="mt-8 rounded-lg border border-border p-5">{cs ? "Potvrďte účet v e-mailu a poté se vraťte k přihlášení." : "Check your email to confirm your account, then return to log in."}</p> : <form onSubmit={onSubmit} className="mt-10 space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="firstName">First name</Label>
+            <Label htmlFor="firstName">{cs ? "Jméno" : "First name"}</Label>
             <Input id="firstName" required value={form.firstName} onChange={set("firstName")} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName">Last name</Label>
+            <Label htmlFor="lastName">{cs ? "Příjmení" : "Last name"}</Label>
             <Input id="lastName" required value={form.lastName} onChange={set("lastName")} />
           </div>
         </div>
@@ -98,7 +101,7 @@ function RegisterPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{cs ? "Heslo" : "Password"}</Label>
           <Input
             id="password"
             type="password"
@@ -109,13 +112,13 @@ function RegisterPage() {
           />
         </div>
         <Button type="submit" variant="signal" size="lg" className="w-full" disabled={loading}>
-          {loading ? "Creating account..." : "Create account"}
+          {loading ? (cs ? "Vytvářím účet..." : "Creating account...") : (cs ? "Vytvořit účet" : "Create account")}
         </Button>
       </form>}
       <p className="mt-6 text-sm text-muted-foreground">
-        Already have an account?{" "}
+        {cs ? "Už máte účet?" : "Already have an account?"}{" "}
         <Link to="/login" search={redirect ? { redirect } : {}} className="underline underline-offset-4">
-          Log in
+          {cs ? "Přihlásit" : "Log in"}
         </Link>
       </p>
     </div>

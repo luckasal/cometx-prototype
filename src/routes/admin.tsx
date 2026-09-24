@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getAccountOverview } from "@/lib/membership.functions";
 import { useAuth } from "@/hooks/useAuth";
 import { ErrorBlock, LoadingBlock } from "@/components/site/Bits";
+import { CometXLogo } from "@/components/site/CometXLogo";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -71,9 +72,7 @@ function AdminLayout() {
     <div className="flex min-h-screen bg-paper">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-ink text-ink-foreground lg:flex">
         <div className="border-b border-ink-foreground/15 px-6 py-5">
-          <Link to="/" className="font-display text-lg font-extrabold tracking-tight">
-            Comet<span className="text-accent">X</span>
-          </Link>
+          <CometXLogo />
           <p className="eyebrow mt-1 text-ink-foreground/50">Back office</p>
         </div>
         <nav className="flex-1 space-y-1 p-3">

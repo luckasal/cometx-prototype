@@ -16,6 +16,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Toaster } from "@/components/ui/sonner";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 function NotFoundComponent() {
   return (
@@ -128,17 +129,19 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <div className="flex min-h-screen flex-col">
-          {!isAdmin && <SiteHeader />}
-          <main className="flex-1">
-            {/* Required: nested routes render here. */}
-            <Outlet />
-          </main>
-          {!isAdmin && <SiteFooter />}
-        </div>
-        <Toaster position="top-center" />
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <div className="flex min-h-screen flex-col">
+            {!isAdmin && <SiteHeader />}
+            <main className="flex-1">
+              {/* Required: nested routes render here. */}
+              <Outlet />
+            </main>
+            {!isAdmin && <SiteFooter />}
+          </div>
+          <Toaster position="top-center" />
+        </AuthProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }
