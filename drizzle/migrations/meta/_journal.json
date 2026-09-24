@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790087591048,
+      "tag": "0000_cometx_core_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790087675051,
+      "tag": "0001_cometx_gating_and_seed",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790164800000,
+      "tag": "0002_registration_integrity",
+      "breakpoints": false
+    }
+  ]
+}
