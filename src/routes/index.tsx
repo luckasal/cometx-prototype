@@ -15,6 +15,7 @@ import {
 } from "@/components/site/Bits";
 import { formatMoney } from "@/lib/pricing";
 import heroImage from "@/assets/hero-symposium.jpg";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -39,6 +40,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const { language } = useLanguage();
+  const cs = language === "cs";
   const fetchHome = useServerFn(getHomeData);
   const { data, isLoading, error } = useQuery({ queryKey: ["home"], queryFn: () => fetchHome() });
 
@@ -55,32 +58,31 @@ function Home() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink via-ink/85 to-ink/40" />
         <div className="relative mx-auto grid max-w-7xl gap-12 px-5 py-20 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:px-8 lg:py-32">
           <div>
-            <p className="eyebrow text-accent">Networking &middot; Community &middot; Debates &middot; Conferences</p>
+            <p className="eyebrow text-accent">{cs ? "Networking · Komunita · Debaty · Konference" : "Networking · Community · Debates · Conferences"}</p>
             <h1 className="display-xl mt-6">
-              Your professional network with a touch of homeland
+              {cs ? "Vaše profesní síť s dotekem domova" : "Your professional network with a touch of homeland"}
             </h1>
             <p className="mt-8 max-w-xl text-lg text-ink-foreground/70">
-              CometX is a Swiss nonprofit creating educational and social events for Czech and Slovak
-              expats. We connect academia with industry and build bridges of knowledge, talent and ideas.
+              {cs ? "CometX je švýcarská nezisková organizace pořádající vzdělávací a společenské akce pro české a slovenské krajany. Propojujeme akademickou sféru s průmyslem a stavíme mosty mezi znalostmi, talenty a nápady." : "CometX is a Swiss nonprofit creating educational and social events for Czech and Slovak expats. We connect academia with industry and build bridges of knowledge, talent and ideas."}
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
               <Button asChild variant="signal" size="xl">
-                <Link to="/membership">Join CometX</Link>
+                <Link to="/membership">{cs ? "Přidejte se ke CometX" : "Join CometX"}</Link>
               </Button>
               <Button asChild variant="outlineLight" size="xl">
-                <Link to="/events">See upcoming events</Link>
+                <Link to="/events">{cs ? "Nadcházející akce" : "See upcoming events"}</Link>
               </Button>
               <Button asChild variant="outlineLight" size="xl">
-                <Link to="/demo">Try the interactive demo</Link>
+                <Link to="/demo">{cs ? "Vyzkoušet demo" : "Try the interactive demo"}</Link>
               </Button>
             </div>
           </div>
 
           <dl className="grid grid-cols-3 gap-6 border-t border-ink-foreground/15 pt-8 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0">
             {[
-              ["Since 2021", "a Swiss nonprofit"],
-              ["200+", "symposium guests"],
-              ["4", "event formats"],
+              [cs ? "Od roku 2021" : "Since 2021", cs ? "švýcarská neziskovka" : "a Swiss nonprofit"],
+              ["200+", cs ? "hostů sympozia" : "symposium guests"],
+              ["4", cs ? "formáty akcí" : "event formats"],
             ].map(([value, label]) => (
               <div key={label}>
                 <dt className="font-display text-3xl font-extrabold text-accent">{value}</dt>
@@ -94,7 +96,7 @@ function Home() {
 
       {isLoading && (
         <Section>
-          <LoadingBlock label="Loading the community" />
+          <LoadingBlock label={cs ? "Načítáme komunitu" : "Loading the community"} />
         </Section>
       )}
       {error && (
@@ -119,11 +121,11 @@ function Home() {
                   )}
                 </div>
                 <div className="flex flex-col justify-center p-8 lg:p-12">
-                  <StatusPill tone="signal">Flagship event</StatusPill>
+                  <StatusPill tone="signal">{cs ? "Hlavní akce" : "Flagship event"}</StatusPill>
                   <h2 className="display-lg mt-5">{data.featured.title}</h2>
                    <p className="mt-4 text-muted-foreground">{data.featured.short_description}</p>
                   <p className="mt-6 text-sm text-muted-foreground">
-                    {new Date(data.featured.start_date).toLocaleDateString("en-GB", {
+                    {new Date(data.featured.start_date).toLocaleDateString(cs ? "cs-CZ" : "en-GB", {
                       day: "numeric",
                       month: "long",
                       year: "numeric",
@@ -133,7 +135,7 @@ function Home() {
                   <div className="mt-8">
                     <Button asChild variant="ink" size="lg">
                       <Link to="/events/$slug" params={{ slug: data.featured.slug }}>
-                        Tickets and programme <ArrowRight className="size-4" />
+                        {cs ? "Vstupenky a program" : "Tickets and programme"} <ArrowRight className="size-4" />
                       </Link>
                     </Button>
                   </div>
@@ -145,16 +147,16 @@ function Home() {
           {/* UPCOMING */}
           <Section className="pt-0">
             <SectionHeading
-              eyebrow="Calendar"
-              title="Upcoming events"
+              eyebrow={cs ? "Kalendář" : "Calendar"}
+              title={cs ? "Nadcházející akce" : "Upcoming events"}
               action={
                 <Link to="/events" className="text-sm font-medium underline underline-offset-4">
-                  All events
+                  {cs ? "Všechny akce" : "All events"}
                 </Link>
               }
             />
             {data.upcoming.length === 0 ? (
-              <EmptyBlock title="No events scheduled yet" hint="Check back shortly." />
+              <EmptyBlock title={cs ? "Zatím nejsou naplánované žádné akce" : "No events scheduled yet"} hint={cs ? "Brzy se vraťte." : "Check back shortly."} />
             ) : (
               <div className="grid gap-6 md:grid-cols-3">
                 {data.upcoming.map((event) => (
@@ -167,20 +169,20 @@ function Home() {
           {/* WHAT COMETX IS */}
           <section className="border-y border-border bg-paper">
             <div className="mx-auto grid max-w-7xl gap-12 px-5 py-20 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">
-               <h2 className="display-lg">The CometX mission</h2>
+               <h2 className="display-lg">{cs ? "Poslání CometX" : "The CometX mission"}</h2>
               <div className="grid gap-8 sm:grid-cols-3">
                 {[
                   [
-                    "A calendar",
-                    "Annual Symposium, Beer POTLA.CH, focused workshops and relaxed outdoor gatherings.",
+                    cs ? "Kalendář" : "A calendar",
+                    cs ? "Výroční sympozium, Beer POTLA.CH, odborné workshopy a pohodová venkovní setkání." : "Annual Symposium, Beer POTLA.CH, focused workshops and relaxed outdoor gatherings.",
                   ],
                   [
-                    "A membership",
-                    "Membership supports the nonprofit and opens member content, event offers and community benefits.",
+                    cs ? "Členství" : "A membership",
+                    cs ? "Členstvím podpoříte neziskovku a získáte členský obsah, nabídky akcí a komunitní výhody." : "Membership supports the nonprofit and opens member content, event offers and community benefits.",
                   ],
                   [
-                    "A network",
-                    "A bridge between Czech and Slovak expats, institutions, companies, academia and industry.",
+                    cs ? "Síť" : "A network",
+                    cs ? "Most mezi českými a slovenskými krajany, institucemi, firmami, akademickou sférou a průmyslem." : "A bridge between Czech and Slovak expats, institutions, companies, academia and industry.",
                   ],
                 ].map(([title, text]) => (
                   <div key={title} className="rule-top pt-5">
@@ -194,7 +196,7 @@ function Home() {
 
           {/* MEMBERSHIP */}
           <Section>
-            <SectionHeading eyebrow="Membership" title="Three ways to be part of it" />
+            <SectionHeading eyebrow={cs ? "Členství" : "Membership"} title={cs ? "Tři možnosti, jak být součástí" : "Three ways to be part of it"} />
             <div className="grid gap-6 md:grid-cols-3">
               {data.plans.map((plan) => (
                 <div key={plan.slug} className="flex flex-col border border-border p-8">
@@ -202,14 +204,14 @@ function Home() {
                   <p className="mt-3 flex-1 text-sm text-muted-foreground">{plan.description}</p>
                   <p className="mt-6 font-display text-xl font-bold">
                     {formatMoney(Number(plan.annual_price), plan.currency)}
-                    <span className="text-sm font-normal text-muted-foreground"> / year</span>
+                    <span className="text-sm font-normal text-muted-foreground"> {cs ? "/ rok" : "/ year"}</span>
                   </p>
                 </div>
               ))}
             </div>
             <div className="mt-8">
               <Button asChild variant="signal" size="lg">
-                <Link to="/membership">Compare benefits</Link>
+                <Link to="/membership">{cs ? "Porovnat výhody" : "Compare benefits"}</Link>
               </Button>
             </div>
           </Section>
@@ -217,11 +219,11 @@ function Home() {
           {/* COMMUNITY CONTENT */}
           <Section className="pt-0">
             <SectionHeading
-              eyebrow="Community"
-              title="Stories from the network"
+              eyebrow={cs ? "Komunita" : "Community"}
+              title={cs ? "Příběhy z naší sítě" : "Stories from the network"}
               action={
                 <Link to="/community" className="text-sm font-medium underline underline-offset-4">
-                  All stories
+                  {cs ? "Všechny příběhy" : "All stories"}
                 </Link>
               }
             />
@@ -244,7 +246,7 @@ function Home() {
                     )}
                   </div>
                   <div className="p-6">
-                    {article.visibility !== "public" && <StatusPill tone="muted">Members</StatusPill>}
+                    {article.visibility !== "public" && <StatusPill tone="muted">{cs ? "Pro členy" : "Members"}</StatusPill>}
                     <h3 className="mt-3 font-display text-lg font-bold leading-snug">
                       {article.title}
                     </h3>
@@ -260,7 +262,7 @@ function Home() {
           {/* PARTNERS */}
           <section className="border-t border-border">
             <div className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
-              <p className="eyebrow text-muted-foreground">Supported by</p>
+              <p className="eyebrow text-muted-foreground">{cs ? "S podporou" : "Supported by"}</p>
               <div className="mt-6 flex flex-wrap items-center gap-x-12 gap-y-5">
                 {data.partners.map((partner) => (
                   <span
@@ -278,10 +280,10 @@ function Home() {
           <section className="bg-accent text-accent-foreground">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-8 px-5 py-16 lg:px-8">
               <h2 className="display-lg max-w-2xl">
-                Join the people who already know how this works.
+                {cs ? "Přidejte se k lidem, kteří už vědí, jak na to." : "Join the people who already know how this works."}
               </h2>
               <Button asChild variant="ink" size="xl">
-                <Link to="/membership">Become a member</Link>
+                <Link to="/membership">{cs ? "Stát se členem" : "Become a member"}</Link>
               </Button>
             </div>
           </section>

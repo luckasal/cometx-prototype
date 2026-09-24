@@ -11,6 +11,7 @@ import {
   Section,
   SectionHeading,
 } from "@/components/site/Bits";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Route = createFileRoute("/events/")({
   head: () => ({
@@ -34,6 +35,8 @@ export const Route = createFileRoute("/events/")({
 });
 
 function EventsPage() {
+  const { language } = useLanguage();
+  const cs = language === "cs";
   const fetchEvents = useServerFn(listEvents);
   const { data, isLoading, error } = useQuery({
     queryKey: ["events"],
@@ -43,20 +46,20 @@ function EventsPage() {
   return (
     <>
       <PageHero
-        eyebrow="Calendar"
-        title="Discover CometX events"
-        lead="Annual Symposium, expert-led workshops, Beer POTLA.CH debates and leisure activities for building lasting connections."
+        eyebrow={cs ? "Kalendář" : "Calendar"}
+        title={cs ? "Objevte akce CometX" : "Discover CometX events"}
+        lead={cs ? "Výroční sympozium, odborné workshopy, debaty Beer POTLA.CH a volnočasová setkání, ze kterých vznikají trvalá spojení." : "Annual Symposium, expert-led workshops, Beer POTLA.CH debates and leisure activities for building lasting connections."}
       />
 
       <Section>
-        {isLoading && <LoadingBlock label="Loading events" />}
+        {isLoading && <LoadingBlock label={cs ? "Načítáme akce" : "Loading events"} />}
         {error && <ErrorBlock error={error} />}
 
         {data && (
           <>
             {data.featured.length > 0 && (
               <>
-                <SectionHeading eyebrow="Event of the year" title="Annual Symposium" />
+                <SectionHeading eyebrow={cs ? "Akce roku" : "Event of the year"} title={cs ? "Výroční sympozium" : "Annual Symposium"} />
                 <div className="mb-20 grid gap-6 md:grid-cols-3">
                   {data.featured.map((event) => (
                     <EventCard key={event.slug} event={event} />
@@ -65,9 +68,9 @@ function EventsPage() {
               </>
             )}
 
-            <SectionHeading eyebrow="Next up" title="Upcoming" />
+            <SectionHeading eyebrow={cs ? "Co nás čeká" : "Next up"} title={cs ? "Nadcházející" : "Upcoming"} />
             {data.upcoming.length === 0 ? (
-              <EmptyBlock title="Nothing scheduled right now" hint="New dates are published monthly." />
+              <EmptyBlock title={cs ? "Právě nejsou naplánované žádné akce" : "Nothing scheduled right now"} hint={cs ? "Nové termíny zveřejňujeme každý měsíc." : "New dates are published monthly."} />
             ) : (
               <div className="grid gap-6 md:grid-cols-3">
                 {data.upcoming.map((event) => (
@@ -77,9 +80,9 @@ function EventsPage() {
             )}
 
             <div className="mt-20">
-              <SectionHeading eyebrow="Selected history" title="Past highlights" />
+              <SectionHeading eyebrow={cs ? "Z historie" : "Selected history"} title={cs ? "Minulé akce" : "Past highlights"} />
               {data.past.length === 0 ? (
-                <EmptyBlock title="No past events yet" />
+                <EmptyBlock title={cs ? "Zatím žádné minulé akce" : "No past events yet"} />
               ) : (
                 <div className="grid gap-6 md:grid-cols-3">
                   {data.past.map((event) => (

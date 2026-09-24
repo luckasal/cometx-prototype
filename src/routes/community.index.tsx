@@ -10,6 +10,7 @@ import {
   Section,
   StatusPill,
 } from "@/components/site/Bits";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Route = createFileRoute("/community/")({
   head: () => ({
@@ -33,6 +34,8 @@ export const Route = createFileRoute("/community/")({
 });
 
 function CommunityPage() {
+  const { language } = useLanguage();
+  const cs = language === "cs";
   const fetchArticles = useServerFn(listArticles);
   const { data, isLoading, error } = useQuery({
     queryKey: ["articles"],
@@ -42,14 +45,14 @@ function CommunityPage() {
   return (
     <>
       <PageHero
-        eyebrow="Community"
-        title="Opinions, reports and Swiss expat life"
-        lead="Stories from CometX events and the people connecting science, business, diplomacy and community across Switzerland."
+        eyebrow={cs ? "Komunita" : "Community"}
+        title={cs ? "Názory, reportáže a život krajanů ve Švýcarsku" : "Opinions, reports and Swiss expat life"}
+        lead={cs ? "Příběhy z akcí CometX a od lidí, kteří ve Švýcarsku propojují vědu, byznys, diplomacii a komunitu." : "Stories from CometX events and the people connecting science, business, diplomacy and community across Switzerland."}
       />
       <Section>
-        {isLoading && <LoadingBlock label="Loading stories" />}
+        {isLoading && <LoadingBlock label={cs ? "Načítáme příběhy" : "Loading stories"} />}
         {error && <ErrorBlock error={error} />}
-        {data && data.length === 0 && <EmptyBlock title="No stories published yet" />}
+        {data && data.length === 0 && <EmptyBlock title={cs ? "Zatím nebyly publikovány žádné příběhy" : "No stories published yet"} />}
         {data && data.length > 0 && (
           <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
             {data.map((article) => (
@@ -73,16 +76,16 @@ function CommunityPage() {
                   <div className="flex items-center gap-3">
                     <span className="eyebrow text-muted-foreground">
                       {article.publishedAt
-                        ? new Date(article.publishedAt).toLocaleDateString("en-GB", {
+                        ? new Date(article.publishedAt).toLocaleDateString(cs ? "cs-CZ" : "en-GB", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
                           })
-                        : "Draft"}
+                        : cs ? "Koncept" : "Draft"}
                     </span>
                     {article.visibility !== "public" && (
                       <StatusPill tone="muted">
-                        {article.visibility === "registered" ? "Account" : "Members"}
+                        {article.visibility === "registered" ? (cs ? "S účtem" : "Account") : (cs ? "Pro členy" : "Members")}
                       </StatusPill>
                     )}
                   </div>

@@ -10,6 +10,7 @@ import {
   Section,
   StatusPill,
 } from "@/components/site/Bits";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Route = createFileRoute("/partners")({
   head: () => ({
@@ -32,6 +33,8 @@ export const Route = createFileRoute("/partners")({
 });
 
 function PartnersPage() {
+  const { language } = useLanguage();
+  const cs = language === "cs";
   const fetchPartners = useServerFn(listPartners);
   const { data, isLoading, error } = useQuery({
     queryKey: ["partners"],
@@ -41,14 +44,14 @@ function PartnersPage() {
   return (
     <>
       <PageHero
-        eyebrow="Partners"
-        title="CometX partners"
-        lead="Our partners help Czech and Slovak expats with strong ties to Switzerland meet, grow and create new opportunities together."
+        eyebrow={cs ? "Partneři" : "Partners"}
+        title={cs ? "Partneři CometX" : "CometX partners"}
+        lead={cs ? "Naši partneři pomáhají Čechům a Slovákům se silnou vazbou na Švýcarsko setkávat se, růst a společně vytvářet nové příležitosti." : "Our partners help Czech and Slovak expats with strong ties to Switzerland meet, grow and create new opportunities together."}
       />
       <Section>
-        {isLoading && <LoadingBlock label="Loading partners" />}
+        {isLoading && <LoadingBlock label={cs ? "Načítáme partnery" : "Loading partners"} />}
         {error && <ErrorBlock error={error} />}
-        {data && data.length === 0 && <EmptyBlock title="No partners listed yet" />}
+        {data && data.length === 0 && <EmptyBlock title={cs ? "Zatím nejsou uvedeni žádní partneři" : "No partners listed yet"} />}
         {data && data.length > 0 && (
           <div className="grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
             {data.map((partner) => (
@@ -72,7 +75,7 @@ function PartnersPage() {
                     rel="noreferrer noopener"
                     className="mt-6 text-sm underline underline-offset-4"
                   >
-                    Visit website
+                    {cs ? "Navštívit web" : "Visit website"}
                   </a>
                 )}
               </div>
@@ -80,7 +83,7 @@ function PartnersPage() {
           </div>
         )}
         <div className="mt-12 border-t border-border pt-8 text-sm text-muted-foreground">
-          <p>Interested in working with CometX?</p>
+          <p>{cs ? "Máte zájem o spolupráci s CometX?" : "Interested in working with CometX?"}</p>
           <p className="mt-2">
             Czech Republic: <a href="mailto:jan.mastny@cometx.ch" className="underline underline-offset-4">Jan Mastný</a>
             {" · "}Slovakia: <a href="mailto:gleb.kopylov@cometx.ch" className="underline underline-offset-4">Gleb Kopylov</a>

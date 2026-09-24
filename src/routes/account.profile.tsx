@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorBlock, LoadingBlock, Section, SectionHeading } from "@/components/site/Bits";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Route = createFileRoute("/account/profile")({
   component: AccountProfilePage,
@@ -32,6 +33,8 @@ const empty: FormState = {
 };
 
 function AccountProfilePage() {
+  const { language } = useLanguage();
+  const cs = language === "cs";
   const queryClient = useQueryClient();
   const fetchOverview = useServerFn(getAccountOverview);
   const saveProfile = useServerFn(updateMyProfile);
@@ -62,7 +65,7 @@ function AccountProfilePage() {
         ) as never,
       }),
     onSuccess: () => {
-      toast.success("Profile saved");
+      toast.success(cs ? "Profil byl uložen" : "Profile saved");
       queryClient.invalidateQueries({ queryKey: ["account"] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -78,8 +81,8 @@ function AccountProfilePage() {
 
   return (
     <Section>
-      <SectionHeading eyebrow="Account" title="Profile" />
-      {isLoading && <LoadingBlock label="Loading profile" />}
+      <SectionHeading eyebrow={cs ? "Účet" : "Account"} title={cs ? "Profil" : "Profile"} />
+      {isLoading && <LoadingBlock label={cs ? "Načítáme profil" : "Loading profile"} />}
       {error && <ErrorBlock error={error} />}
       {data && (
         <form
@@ -91,11 +94,11 @@ function AccountProfilePage() {
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="first_name">First name</Label>
+              <Label htmlFor="first_name">{cs ? "Jméno" : "First name"}</Label>
               <Input id="first_name" {...field("first_name")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="last_name">Last name</Label>
+              <Label htmlFor="last_name">{cs ? "Příjmení" : "Last name"}</Label>
               <Input id="last_name" {...field("last_name")} />
             </div>
           </div>
@@ -103,29 +106,29 @@ function AccountProfilePage() {
             <Label htmlFor="email">Email</Label>
             <Input id="email" value={data.profile.email ?? ""} disabled />
             <p className="text-xs text-muted-foreground">
-              Your email is managed by your login and cannot be changed here.
+              {cs ? "E-mail je svázaný s přihlášením a zde jej nelze změnit." : "Your email is managed by your login and cannot be changed here."}
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="company">Company</Label>
+              <Label htmlFor="company">{cs ? "Společnost" : "Company"}</Label>
               <Input id="company" {...field("company")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="job_title">Job title</Label>
+              <Label htmlFor="job_title">{cs ? "Pozice" : "Job title"}</Label>
               <Input id="job_title" {...field("job_title")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">{cs ? "Telefon" : "Phone"}</Label>
               <Input id="phone" {...field("phone")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
+              <Label htmlFor="country">{cs ? "Země" : "Country"}</Label>
               <Input id="country" {...field("country")} />
             </div>
           </div>
           <Button type="submit" variant="ink" size="lg" disabled={mutation.isPending}>
-            {mutation.isPending ? "Saving..." : "Save profile"}
+            {mutation.isPending ? (cs ? "Ukládáme…" : "Saving...") : (cs ? "Uložit profil" : "Save profile")}
           </Button>
         </form>
       )}

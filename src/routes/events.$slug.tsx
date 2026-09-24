@@ -38,6 +38,7 @@ export const Route = createFileRoute("/events/$slug")({
 function EventDetailPage() {
   const { slug } = Route.useParams();
   const { language, toggleLanguage } = useLanguage();
+  const cs = language === "cs";
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -53,7 +54,7 @@ function EventDetailPage() {
   const reserveMutation = useMutation({
     mutationFn: (ticketTypeId: string) => reserve({ data: { ticketTypeId } }),
     onSuccess: () => {
-      toast.success("Your place is reserved. See it in My CometX.");
+      toast.success(cs ? "Místo je rezervované. Najdete ho v Můj CometX." : "Your place is reserved. See it in My CometX.");
       queryClient.invalidateQueries({ queryKey: ["event", slug] });
       queryClient.invalidateQueries({ queryKey: ["account"] });
     },
@@ -64,7 +65,7 @@ function EventDetailPage() {
   if (isLoading)
     return (
       <Section>
-        <LoadingBlock label="Loading event" />
+        <LoadingBlock label={cs ? "Načítáme akci" : "Loading event"} />
       </Section>
     );
   if (error)
@@ -76,11 +77,11 @@ function EventDetailPage() {
   if (!data)
     return (
       <Section>
-        <h1 className="display-lg">Event not found</h1>
+        <h1 className="display-lg">{cs ? "Akce nebyla nalezena" : "Event not found"}</h1>
         <p className="mt-4 text-muted-foreground">
-          This event may have been unpublished.{" "}
+          {cs ? "Akce mohla být stažena z publikace." : "This event may have been unpublished."}{" "}
           <Link to="/events" className="underline underline-offset-4">
-            Back to all events
+            {cs ? "Zpět na všechny akce" : "Back to all events"}
           </Link>
         </p>
       </Section>
@@ -93,7 +94,6 @@ function EventDetailPage() {
     : new Date(event.startDate);
 
   if (isSymposium2026) {
-    const cs = language === "cs";
     const copy = cs
       ? {
           edition: "6. ročník · proběhl 11. září 2026",
@@ -181,7 +181,7 @@ function EventDetailPage() {
               </button>
             </div>
             <div className="max-w-4xl">
-              <p className="eyebrow text-accent">CometX · Event of the year</p>
+              <p className="eyebrow text-accent">CometX · {cs ? "Akce roku" : "Event of the year"}</p>
               <h1 className="display-xl mt-4">{copy.title}</h1>
               <p className="mt-6 max-w-3xl text-lg leading-relaxed text-ink-foreground/80">{copy.intro}</p>
             </div>
@@ -231,25 +231,25 @@ function EventDetailPage() {
       <section className="bg-ink text-ink-foreground">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:px-8 lg:py-24">
           <div>
-            {event.featured && <StatusPill tone="signal">Flagship event</StatusPill>}
+            {event.featured && <StatusPill tone="signal">{cs ? "Hlavní akce" : "Flagship event"}</StatusPill>}
             <h1 className="display-xl mt-5">{event.title}</h1>
             <p className="mt-6 max-w-xl text-lg text-ink-foreground/70">{event.shortDescription}</p>
             <dl className="mt-10 grid gap-5 sm:grid-cols-3">
-              <Meta icon={<CalendarDays className="size-4" />} label="Date">
-                {start.toLocaleDateString("en-GB", {
+              <Meta icon={<CalendarDays className="size-4" />} label={cs ? "Datum" : "Date"}>
+                {start.toLocaleDateString(cs ? "cs-CZ" : "en-GB", {
                   day: "numeric",
                   month: "long",
                   year: "numeric",
                 })}
               </Meta>
-              <Meta icon={<MapPin className="size-4" />} label="Where">
-                {event.venue ?? "To be announced"}
+              <Meta icon={<MapPin className="size-4" />} label={cs ? "Místo" : "Where"}>
+                {event.venue ?? (cs ? "Bude upřesněno" : "To be announced")}
                 {event.address && (
                   <span className="block text-ink-foreground/50">{event.address}</span>
                 )}
               </Meta>
-              <Meta icon={<Users className="size-4" />} label="Places left">
-                {data.spotsLeft === null ? (data.event.capacity === null ? "Open capacity" : "Checked when booking") : data.spotsLeft}
+              <Meta icon={<Users className="size-4" />} label={cs ? "Volná místa" : "Places left"}>
+                {data.spotsLeft === null ? (data.event.capacity === null ? (cs ? "Bez omezení" : "Open capacity") : (cs ? "Ověří se při rezervaci" : "Checked when booking")) : data.spotsLeft}
               </Meta>
             </dl>
           </div>
@@ -264,12 +264,12 @@ function EventDetailPage() {
       <Section>
         <div className="grid gap-14 lg:grid-cols-[1.3fr_0.7fr]">
           <div>
-            <SectionHeading eyebrow="About" title="The programme" />
+            <SectionHeading eyebrow={cs ? "O akci" : "About"} title={cs ? "Program" : "The programme"} />
             <Prose text={event.description} />
 
             {workshops.length > 0 && (
               <div className="mt-16">
-                <SectionHeading eyebrow="Workshop floor" title="Workshops" />
+                <SectionHeading eyebrow={cs ? "Prakticky" : "Workshop floor"} title={cs ? "Workshopy" : "Workshops"} />
                 <ul className="divide-y divide-border border-y border-border">
                   {workshops.map((w) => (
                     <li key={w.id} className="flex flex-wrap justify-between gap-4 py-5">
@@ -298,7 +298,7 @@ function EventDetailPage() {
 
             {speakers.length > 0 && (
               <div className="mt-16">
-                <SectionHeading eyebrow="On stage" title="Speakers" />
+                <SectionHeading eyebrow={cs ? "Na pódiu" : "On stage"} title={cs ? "Řečníci" : "Speakers"} />
                 <div className="grid gap-8 sm:grid-cols-2">
                   {speakers.map((s) => (
                     <div key={s.id} className="flex gap-4">
@@ -328,7 +328,7 @@ function EventDetailPage() {
 
             {partners.length > 0 && (
               <div className="mt-16">
-                <SectionHeading eyebrow="Supported by" title="Event partners" />
+                <SectionHeading eyebrow={cs ? "S podporou" : "Supported by"} title={cs ? "Partneři akce" : "Event partners"} />
                 <div className="flex flex-wrap gap-x-10 gap-y-4">
                   {partners.map((p) => (
                     <span key={p.id} className="font-display font-bold text-muted-foreground">
@@ -344,20 +344,20 @@ function EventDetailPage() {
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="border border-ink">
               <div className="border-b border-ink bg-ink px-6 py-4 text-ink-foreground">
-                <p className="eyebrow text-accent">Registration</p>
+                <p className="eyebrow text-accent">{cs ? "Registrace" : "Registration"}</p>
                 <p className="mt-1 font-display text-lg font-bold">
                   {data.myRegistration
-                    ? "You are registered"
+                    ? (cs ? "Jste registrováni" : "You are registered")
                     : data.registrationOpen
-                      ? "Open"
-                      : "Closed"}
+                      ? (cs ? "Otevřeno" : "Open")
+                      : (cs ? "Uzavřeno" : "Closed")}
                 </p>
               </div>
 
               <div className="space-y-6 p-6">
                 {data.membershipName && (
                   <p className="text-xs text-muted-foreground">
-                    Pricing shown for your <strong>{data.membershipName}</strong> membership.
+                    {cs ? "Cena odpovídá vašemu členství" : "Pricing shown for your"} <strong>{data.membershipName}</strong>{cs ? "." : " membership."}
                   </p>
                 )}
 
@@ -365,15 +365,15 @@ function EventDetailPage() {
                   <div className="space-y-4">
                     <StatusPill tone="success">{data.myRegistration.status}</StatusPill>
                     <p className="text-sm text-muted-foreground">
-                      Paid: {formatMoney(data.myRegistration.pricePaid, data.myRegistration.currency)}
+                      {cs ? "Zaplaceno" : "Paid"}: {formatMoney(data.myRegistration.pricePaid, data.myRegistration.currency)}
                     </p>
                     <Button asChild variant="outlineInk" className="w-full">
-                      <Link to="/account/events">See it in My CometX</Link>
+                      <Link to="/account/events">{cs ? "Zobrazit v Můj CometX" : "See it in My CometX"}</Link>
                     </Button>
                   </div>
                 ) : tickets.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No tickets are on sale for this event.
+                    {cs ? "Na tuto akci nejsou v prodeji žádné vstupenky." : "No tickets are on sale for this event."}
                   </p>
                 ) : (
                   tickets.map((ticket) => (
@@ -385,7 +385,7 @@ function EventDetailPage() {
 
                       <div className="mt-3 flex items-baseline gap-3">
                         {ticket.price.includedInMembership ? (
-                          <span className="font-display text-xl font-extrabold">Included</span>
+                          <span className="font-display text-xl font-extrabold">{cs ? "Zahrnuto" : "Included"}</span>
                         ) : (
                           <>
                             <span className="font-display text-xl font-extrabold">
@@ -400,7 +400,7 @@ function EventDetailPage() {
                         )}
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">{ticket.price.reason}</p>
-                      <p className="mt-2 text-xs text-muted-foreground">Prototype: registration is saved; no payment is collected.</p>
+                      <p className="mt-2 text-xs text-muted-foreground">{cs ? "Prototyp: registrace se uloží, platba se neprovádí." : "Prototype: registration is saved; no payment is collected."}</p>
 
                       <div className="mt-4">
                         {!user ? (
@@ -411,15 +411,15 @@ function EventDetailPage() {
                               navigate({ to: "/login", search: { redirect: `/events/${slug}` } })
                             }
                           >
-                            Log in to register
+                            {cs ? "Pro registraci se přihlaste" : "Log in to register"}
                           </Button>
                         ) : !ticket.price.eligible ? (
                           <Button asChild variant="outlineInk" className="w-full">
-                            <Link to="/membership">Upgrade membership</Link>
+                            <Link to="/membership">{cs ? "Změnit členství" : "Upgrade membership"}</Link>
                           </Button>
                         ) : ticket.soldOut || !data.registrationOpen ? (
                           <Button disabled className="w-full" variant="ink">
-                            {ticket.soldOut ? "Sold out" : "Registration closed"}
+                            {ticket.soldOut ? (cs ? "Vyprodáno" : "Sold out") : (cs ? "Registrace uzavřena" : "Registration closed")}
                           </Button>
                         ) : (
                           <Button
@@ -428,14 +428,14 @@ function EventDetailPage() {
                             disabled={reserveMutation.isPending}
                             onClick={() => reserveMutation.mutate(ticket.id)}
                           >
-                            {reserveMutation.isPending ? "Reserving..." : "Reserve your place"}
+                            {reserveMutation.isPending ? (cs ? "Rezervujeme…" : "Reserving...") : (cs ? "Rezervovat místo" : "Reserve your place")}
                           </Button>
                         )}
                       </div>
 
                       {ticket.spotsLeft !== null && ticket.spotsLeft <= 10 && !ticket.soldOut && (
                         <p className="mt-2 text-xs text-destructive">
-                          Only {ticket.spotsLeft} places left
+                          {cs ? `Zbývá pouze ${ticket.spotsLeft} míst` : `Only ${ticket.spotsLeft} places left`}
                         </p>
                       )}
                     </div>

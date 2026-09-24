@@ -8,6 +8,7 @@ import { formatMoney } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { ErrorBlock, LoadingBlock, PageHero, Section } from "@/components/site/Bits";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Route = createFileRoute("/membership")({
   head: () => ({
@@ -38,6 +39,8 @@ function benefitLabel(benefit: { key: string; name: string; value: number | null
 }
 
 function MembershipPage() {
+  const { language } = useLanguage();
+  const cs = language === "cs";
   const { user } = useAuth();
   const navigate = useNavigate();
   const fetchPlans = useServerFn(getMembershipPlans);
@@ -60,13 +63,13 @@ function MembershipPage() {
   return (
     <>
       <PageHero
-        eyebrow="Membership"
-        title="Experience more than our events"
-        lead="Membership directly supports CometX activities and gives you exclusive talks, articles and videos, better event prices, first-hand news and community benefits."
+        eyebrow={cs ? "Členství" : "Membership"}
+        title={cs ? "Zažijte víc než jen naše akce" : "Experience more than our events"}
+        lead={cs ? "Členstvím přímo podporujete činnost CometX a získáte exkluzivní přednášky, články a videa, výhodnější ceny akcí, novinky z první ruky a komunitní benefity." : "Membership directly supports CometX activities and gives you exclusive talks, articles and videos, better event prices, first-hand news and community benefits."}
       />
 
       <Section>
-        {isLoading && <LoadingBlock label="Loading plans" />}
+        {isLoading && <LoadingBlock label={cs ? "Načítáme členství" : "Loading plans"} />}
         {error && <ErrorBlock error={error} />}
 
         {data && (
@@ -80,14 +83,14 @@ function MembershipPage() {
                     : "flex flex-col border border-border bg-card p-8"
                 }
               >
-                {index === 1 && <p className="eyebrow mb-3 text-accent-foreground">Most chosen</p>}
+                {index === 1 && <p className="eyebrow mb-3 text-accent-foreground">{cs ? "Nejčastější volba" : "Most chosen"}</p>}
                 <h2 className="font-display text-3xl font-extrabold">{plan.name}</h2>
                 <p className="mt-3 text-sm text-muted-foreground">{plan.description}</p>
                 <p className="mt-6 font-display text-3xl font-extrabold">
                   {formatMoney(plan.annualPrice, plan.currency)}
-                  <span className="text-sm font-normal text-muted-foreground"> / year</span>
+                  <span className="text-sm font-normal text-muted-foreground"> {cs ? "/ rok" : "/ year"}</span>
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">Prototype pricing — no payment collected</p>
+                <p className="mt-1 text-xs text-muted-foreground">{cs ? "Cena v prototypu — platba se neprovádí" : "Prototype pricing — no payment collected"}</p>
 
                 <ul className="mt-6 flex-1 space-y-3 border-t border-border pt-6">
                   {plan.benefits.map((benefit) => (
@@ -106,7 +109,7 @@ function MembershipPage() {
                       disabled={checkoutMutation.isPending}
                       onClick={() => checkoutMutation.mutate(plan.slug)}
                     >
-                      {checkoutMutation.isPending ? "Saving membership..." : `Join ${plan.name}`}
+                      {checkoutMutation.isPending ? (cs ? "Ukládáme členství…" : "Saving membership...") : (cs ? `Zvolit ${plan.name}` : `Join ${plan.name}`)}
                     </Button>
                   ) : (
                     <Button
@@ -114,7 +117,7 @@ function MembershipPage() {
                       className="w-full"
                       onClick={() => navigate({ to: "/register", search: { redirect: "/membership" } })}
                     >
-                      Create account to join
+                      {cs ? "Pro členství si vytvořte účet" : "Create account to join"}
                     </Button>
                   )}
                 </div>
@@ -124,9 +127,9 @@ function MembershipPage() {
         )}
 
         <p className="mt-10 max-w-2xl text-sm text-muted-foreground">
-          Choose a plan to save a prototype membership in your account. No payment is taken. Already a member?{" "}
+          {cs ? "Vyberte si plán, který se uloží do vašeho účtu. Žádná platba se neprovede. Už jste členem?" : "Choose a plan to save a prototype membership in your account. No payment is taken. Already a member?"}{" "}
           <Link to="/account/membership" className="underline underline-offset-4">
-            See your membership
+            {cs ? "Zobrazit členství" : "See your membership"}
           </Link>
           .
         </p>

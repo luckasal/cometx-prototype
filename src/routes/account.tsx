@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { LoadingBlock, Section } from "@/components/site/Bits";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -16,14 +17,15 @@ export const Route = createFileRoute("/account")({
   component: AccountLayout,
 });
 
-const tabs = [
-  { to: "/account", label: "Overview", exact: true },
-  { to: "/account/events", label: "My events", exact: false },
-  { to: "/account/membership", label: "Membership", exact: false },
-  { to: "/account/profile", label: "Profile", exact: false },
-] as const;
-
 function AccountLayout() {
+  const { language } = useLanguage();
+  const cs = language === "cs";
+  const tabs = [
+    { to: "/account", label: cs ? "Přehled" : "Overview", exact: true },
+    { to: "/account/events", label: cs ? "Moje akce" : "My events", exact: false },
+    { to: "/account/membership", label: cs ? "Členství" : "Membership", exact: false },
+    { to: "/account/profile", label: cs ? "Profil" : "Profile", exact: false },
+  ] as const;
   const { user, loading, signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
   const navigate = useNavigate();
@@ -35,7 +37,7 @@ function AccountLayout() {
   if (loading || !user)
     return (
       <Section>
-        <LoadingBlock label="Checking your session" />
+        <LoadingBlock label={cs ? "Ověřujeme přihlášení" : "Checking your session"} />
       </Section>
     );
 
@@ -43,15 +45,15 @@ function AccountLayout() {
     <>
       <div className="border-b border-border bg-paper">
         <div className="mx-auto max-w-7xl px-5 pt-14 lg:px-8">
-          <p className="eyebrow text-muted-foreground">Members area</p>
-          <h1 className="display-lg mt-3">My CometX</h1>
+          <p className="eyebrow text-muted-foreground">{cs ? "Členská sekce" : "Members area"}</p>
+          <h1 className="display-lg mt-3">{cs ? "Můj CometX" : "My CometX"}</h1>
           <nav className="mt-8 flex flex-wrap gap-6">
             <button className="pb-3 text-sm font-medium text-muted-foreground hover:text-foreground" disabled={signingOut} onClick={async () => {
               setSigningOut(true);
               try { await signOut(); await navigate({ to: "/login" }); }
-              catch { toast.error("Could not log out. Please try again."); }
+              catch { toast.error(cs ? "Odhlášení se nezdařilo. Zkuste to znovu." : "Could not log out. Please try again."); }
               finally { setSigningOut(false); }
-            }}>{signingOut ? "Logging out..." : "Log out"}</button>
+            }}>{signingOut ? (cs ? "Odhlašujeme…" : "Logging out...") : (cs ? "Odhlásit se" : "Log out")}</button>
             {tabs.map((tab) => (
               <Link
                 key={tab.to}

@@ -11,12 +11,15 @@ import {
   SectionHeading,
   StatusPill,
 } from "@/components/site/Bits";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Route = createFileRoute("/account/events")({
   component: AccountEventsPage,
 });
 
 function AccountEventsPage() {
+  const { language } = useLanguage();
+  const cs = language === "cs";
   const fetchOverview = useServerFn(getAccountOverview);
   const { data, isLoading, error } = useQuery({
     queryKey: ["account"],
@@ -25,13 +28,13 @@ function AccountEventsPage() {
 
   return (
     <Section>
-      <SectionHeading eyebrow="Registrations" title="My events" />
-      {isLoading && <LoadingBlock label="Loading registrations" />}
+      <SectionHeading eyebrow={cs ? "Registrace" : "Registrations"} title={cs ? "Moje akce" : "My events"} />
+      {isLoading && <LoadingBlock label={cs ? "Načítáme registrace" : "Loading registrations"} />}
       {error && <ErrorBlock error={error} />}
       {data && data.registrations.length === 0 && (
         <EmptyBlock
-          title="You have not registered for anything yet"
-          hint="Browse the calendar and reserve a place."
+          title={cs ? "Zatím nejste na nic registrováni" : "You have not registered for anything yet"}
+          hint={cs ? "Prohlédněte si kalendář a rezervujte si místo." : "Browse the calendar and reserve a place."}
         />
       )}
       {data && data.registrations.length > 0 && (
@@ -39,11 +42,11 @@ function AccountEventsPage() {
           <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-paper text-left">
               <tr className="[&>th]:px-5 [&>th]:py-3 [&>th]:text-xs [&>th]:uppercase [&>th]:tracking-widest [&>th]:text-muted-foreground">
-                <th>Event</th>
-                <th>Date</th>
-                <th>Ticket</th>
-                <th>Paid</th>
-                <th>Status</th>
+                <th>{cs ? "Akce" : "Event"}</th>
+                <th>{cs ? "Datum" : "Date"}</th>
+                <th>{cs ? "Vstupenka" : "Ticket"}</th>
+                <th>{cs ? "Zaplaceno" : "Paid"}</th>
+                <th>{cs ? "Stav" : "Status"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -59,14 +62,14 @@ function AccountEventsPage() {
                     </Link>
                   </td>
                   <td className="text-muted-foreground">
-                    {new Date(reg.startDate).toLocaleDateString("en-GB", {
+                    {new Date(reg.startDate).toLocaleDateString(cs ? "cs-CZ" : "en-GB", {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
                     })}
                   </td>
                   <td className="text-muted-foreground">{reg.ticketName ?? "-"}</td>
-                  <td>{reg.pricePaid === 0 ? "No payment collected" : formatMoney(reg.pricePaid, reg.currency)}</td>
+                  <td>{reg.pricePaid === 0 ? (cs ? "Bez platby" : "No payment collected") : formatMoney(reg.pricePaid, reg.currency)}</td>
                   <td>
                     <StatusPill tone={reg.status === "confirmed" ? "success" : "muted"}>
                       {reg.status}
