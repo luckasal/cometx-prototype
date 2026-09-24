@@ -4,7 +4,10 @@ import type { Database } from './types';
 import { brokeredPreviewStorage } from './previewAuthStorage';
 
 function isNewSupabaseApiKey(value: string): boolean {
-  return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_');
+  return (
+    value.startsWith('sb_publishable_') ||
+    value.startsWith('sb_secret_')
+  );
 }
 
 function createSupabaseFetch(supabaseKey: string): typeof fetch {
@@ -16,9 +19,9 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
     );
 
     if (init?.headers) {
-      new Headers(init.headers).forEach((value, key) =>
-        headers.set(key, value),
-      );
+      new Headers(init.headers).forEach((value, key) => {
+        headers.set(key, value);
+      });
     }
 
     // New Supabase API keys are opaque strings, not bearer JWTs.
@@ -39,21 +42,32 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 function createSupabaseClient() {
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  /*
+   * Browser/Vite builds use VITE_* variables.
+   * Server-side/Vercel execution can fall back to process.env.
+   */
+  const runtimeEnv =
+    typeof process !== 'undefined' ? process.env : undefined;
+
+  const SUPABASE_URL =
+    import.meta.env.VITE_SUPABASE_URL ||
+    runtimeEnv?.VITE_SUPABASE_URL ||
+    runtimeEnv?.SUPABASE_URL;
+
   const SUPABASE_PUBLISHABLE_KEY =
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    runtimeEnv?.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    runtimeEnv?.SUPABASE_PUBLISHABLE_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     const missing = [
-      ...(!SUPABASE_URL ? ['VITE_SUPABASE_URL'] : []),
+      ...(!SUPABASE_URL ? ['Supabase URL'] : []),
       ...(!SUPABASE_PUBLISHABLE_KEY
-        ? ['VITE_SUPABASE_PUBLISHABLE_KEY']
+        ? ['Supabase publishable key']
         : []),
     ];
 
-    const message = `Missing Supabase environment variable(s): ${missing.join(
-      ', ',
-    )}.`;
+    const message = `Missing Supabase configuration: ${missing.join(', ')}.`;
 
     console.error(`[Supabase] ${message}`);
     throw new Error(message);
@@ -66,6 +80,7 @@ function createSupabaseClient() {
       global: {
         fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
       },
+
       auth: {
         storage: brokeredPreviewStorage(),
         persistSession: true,
@@ -77,7 +92,7 @@ function createSupabaseClient() {
 
 let _supabase: ReturnType<typeof createSupabaseClient> | undefined;
 
-// Import the supabase client like this:
+// Import the Supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 export const supabase = new Proxy(
   {} as ReturnType<typeof createSupabaseClient>,
