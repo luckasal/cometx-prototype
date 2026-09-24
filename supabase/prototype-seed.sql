@@ -3,9 +3,9 @@ begin;
 insert into public.entitlements(key,name) values
  ('symposium_free_ticket','Symposium included'),('potlach_discount','POTLA.CH discount') on conflict(key) do nothing;
 insert into public.membership_plans(name,slug,description,annual_price,sort_order) values
- ('Fanousek','fanousek','Support the community and get discounted networking tickets.',60,1),
- ('CometXXL','cometxxl','Symposium included and half-price POTLA.CH tickets.',240,2),
- ('Ambasador','ambasador','Support CometX with symposium access and member event benefits.',480,3)
+ ('Fanoušek','fanousek','Užijte si online obsah a největší networkingovou akci pro Čechy a Slováky ve Švýcarsku.',90,1),
+ ('CometXXL','cometxxl','Kompletní ochutnávka všeho, co tvoříme.',250,2),
+ ('Ambasador','ambasador','Buďte u všeho, co CometX dělá, a šiřte myšlenku, že networking pomáhá.',599,3)
  on conflict(slug) do nothing;
 insert into public.plan_entitlements(membership_plan_id,entitlement_id,value)
  select p.id,e.id,v.amount from (values ('fanousek','potlach_discount',20),('cometxxl','potlach_discount',50),('cometxxl','symposium_free_ticket',1),('ambasador','potlach_discount',50),('ambasador','symposium_free_ticket',1)) v(slug,key,amount)

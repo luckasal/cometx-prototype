@@ -31,11 +31,20 @@ export const Route = createFileRoute("/membership")({
   component: MembershipPage,
 });
 
-function benefitLabel(benefit: { key: string; name: string; value: number | null }) {
-  if (benefit.value === null) return benefit.name;
-  if (benefit.key.endsWith("_discount")) return `${benefit.name}: ${benefit.value}%`;
-  if (benefit.key.endsWith("_credit")) return `${benefit.name}: CHF ${benefit.value}`;
-  return benefit.name;
+const englishBenefits: Record<string, string> = {
+  member_content: "Talks, videos, interviews and articles in the members section",
+  community_membership: "CometX community membership",
+  symposium_half_price: "50% off the upcoming SCAS Symposium",
+  symposium_free_ticket: "Free admission to the upcoming SCAS",
+  other_events_discount: "50% off all other events except workshops",
+  potlach_free_ticket: "Free admission to every Beer POTLA.CH",
+  workshop_credit: "Credit for any CometX workshop",
+};
+
+function benefitLabel(benefit: { key: string; name: string; value: number | null }, cs: boolean) {
+  const name = cs ? benefit.name : (englishBenefits[benefit.key] ?? benefit.name);
+  if (benefit.key === "workshop_credit") return `${name}: CHF ${benefit.value}`;
+  return name;
 }
 
 function MembershipPage() {
@@ -65,7 +74,7 @@ function MembershipPage() {
       <PageHero
         eyebrow={cs ? "Členství" : "Membership"}
         title={cs ? "Zažijte víc než jen naše akce" : "Experience more than our events"}
-        lead={cs ? "Členstvím přímo podporujete činnost CometX a získáte exkluzivní přednášky, články a videa, výhodnější ceny akcí, novinky z první ruky a komunitní benefity." : "Membership directly supports CometX activities and gives you exclusive talks, articles and videos, better event prices, first-hand news and community benefits."}
+        lead={cs ? "Členství přímo podporuje rozvoj našich aktivit. Vyberte si ze tří kategorií přesně tu, která odpovídá vašim potřebám." : "Membership directly supports the growth of our activities. Choose the category that best matches your needs."}
       />
 
       <Section>
@@ -90,13 +99,14 @@ function MembershipPage() {
                   {formatMoney(plan.annualPrice, plan.currency)}
                   <span className="text-sm font-normal text-muted-foreground"> {cs ? "/ rok" : "/ year"}</span>
                 </p>
+                <p className="mt-1 text-xs text-muted-foreground">+ CHF 1.99 {cs ? "aktivační poplatek" : "setup fee"}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{cs ? "Cena v prototypu — platba se neprovádí" : "Prototype pricing — no payment collected"}</p>
 
                 <ul className="mt-6 flex-1 space-y-3 border-t border-border pt-6">
                   {plan.benefits.map((benefit) => (
                     <li key={benefit.key} className="flex gap-3 text-sm">
                       <Check className="mt-0.5 size-4 shrink-0 text-accent-foreground" />
-                      <span>{benefitLabel(benefit)}</span>
+                      <span>{benefitLabel(benefit, cs)}</span>
                     </li>
                   ))}
                 </ul>
@@ -126,7 +136,28 @@ function MembershipPage() {
           </div>
         )}
 
-        <p className="mt-10 max-w-2xl text-sm text-muted-foreground">
+        <div className="mt-10 max-w-3xl border-t border-border pt-8">
+          <h2 className="font-display text-xl font-bold">{cs ? "Každý člen vždy získá" : "Every member always receives"}</h2>
+          <ul className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+            {(cs ? [
+              "Exkluzivní přístup do placené sekce webu",
+              "Výhodné ceny vstupenek na akce CometX",
+              "Informace o aktuálním dění z první ruky",
+              "Možnost zviditelnit vlastní příběh a práci",
+              "Dárky, vychytávky a komunitní zábavu",
+              "Možnost odečíst podporu spolku z daní ve Švýcarsku",
+            ] : [
+              "Exclusive access to the members section",
+              "Preferred prices for CometX events",
+              "First-hand news and updates",
+              "A chance to showcase your story and work",
+              "Gifts, extras and community activities",
+              "Potential Swiss tax deduction for association support",
+            ]).map((item) => <li key={item} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0" />{item}</li>)}
+          </ul>
+        </div>
+
+        <p className="mt-8 max-w-2xl text-sm text-muted-foreground">
           {cs ? "Vyberte si plán, který se uloží do vašeho účtu. Žádná platba se neprovede. Už jste členem?" : "Choose a plan to save a prototype membership in your account. No payment is taken. Already a member?"}{" "}
           <Link to="/account/membership" className="underline underline-offset-4">
             {cs ? "Zobrazit členství" : "See your membership"}
