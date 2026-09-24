@@ -50,27 +50,31 @@ join public.membership_plans p on p.slug = x.plan_slug
 join public.entitlements e on e.key = x.entitlement_key;
 
 insert into public.events
-  (title, slug, short_description, description, start_date, venue, status, featured)
+  (title, slug, short_description, description, start_date, venue, address, status, featured, hero_image_url)
 values
   (
     'Emoční regulace v každodenní praxi',
     'emocni-regulace-v-kazdodenni-praxi',
     'Praktický workshop zaměřený na zvládání emocí v každodenním životě.',
     'Exkluzivní příležitost k seberozvoji v malé skupině podobně smýšlejících lidí. Praktické téma vedené odborníkem z Česka nebo Slovenska.',
-    '2026-10-17 10:00:00+02',
+    '2026-10-17 14:00:00+02',
     'Altstadthaus Quartiertreff',
+    'Obmannamtsgasse 15, 8001 Zürich, Switzerland',
     'registration_open',
-    false
+    false,
+    '/assets/cometx/emotional-regulation.jpg'
   ),
   (
     'Co AI nevyřeší',
     'co-ai-nevyresi',
     'Diskuse o tom, kde umělá inteligence končí a kde zůstává nenahraditelný člověk.',
     'Tematická CometX akce s odbornou diskusí, hlubším pohledem na současné téma a prostorem pro networking a sdílení zkušeností.',
-    '2027-01-15 18:00:00+01',
+    '2027-01-15 14:00:00+01',
     'Zurich – přesné místo bude upřesněno',
+    null,
     'registration_open',
-    false
+    false,
+    '/assets/cometx/ai-workshop.jpeg'
   ),
   (
     'Jak řešit konflikty s toxickými osobnostmi',
@@ -79,8 +83,10 @@ values
     'Exkluzivní příležitost k seberozvoji v malé skupině. Zaměření na komunikaci, duševní zdraví a praktické soft skills.',
     '2027-03-11 18:00:00+01',
     'Zurich – přesné místo bude upřesněno',
+    null,
     'registration_open',
-    false
+    false,
+    '/assets/cometx/conflict-workshop.jpg'
   )
 on conflict (slug) do update set
   title = excluded.title,
@@ -88,8 +94,10 @@ on conflict (slug) do update set
   description = excluded.description,
   start_date = excluded.start_date,
   venue = excluded.venue,
+  address = excluded.address,
   status = excluded.status,
-  featured = excluded.featured;
+  featured = excluded.featured,
+  hero_image_url = excluded.hero_image_url;
 
 -- Remove the two invented stakeholder-demo listings now replaced by official events.
 delete from public.events where slug in ('beer-potlach-zurich', 'networking-evening-geneva');

@@ -72,9 +72,6 @@ function Home() {
               <Button asChild variant="outlineLight" size="xl">
                 <Link to="/events">{cs ? "Nadcházející akce" : "See upcoming events"}</Link>
               </Button>
-              <Button asChild variant="outlineLight" size="xl">
-                <Link to="/demo">{cs ? "Vyzkoušet demo" : "Try the interactive demo"}</Link>
-              </Button>
             </div>
           </div>
 

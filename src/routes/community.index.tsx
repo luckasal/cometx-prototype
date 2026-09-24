@@ -99,6 +99,36 @@ function CommunityPage() {
           </div>
         )}
       </Section>
+      <section className="border-y border-border bg-paper">
+        <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              { title: cs ? "Celá videa" : "Full videos", text: cs ? "Přednášky a rozhovory z akcí CometX na našem YouTube kanálu." : "Talks and interviews from CometX events on our YouTube channel.", href: "https://www.youtube.com/@cometx" },
+              { title: cs ? "Fotogalerie" : "Gallery", text: cs ? "Atmosféra, setkání a nezapomenutelné momenty z minulých akcí." : "Atmosphere, encounters and memorable moments from previous events.", href: "https://www.cometx.ch/gallery" },
+              { title: cs ? "Názory komunity" : "Community opinions", text: cs ? "Skutečné zkušenosti a názory lidí, kteří tvoří CometX." : "Real experiences and opinions from the people who make CometX.", href: "https://www.cometx.ch/opinions" },
+            ].map((item) => (
+              <a key={item.title} href={item.href} target="_blank" rel="noreferrer noopener" className="group border border-border bg-background p-7">
+                <h2 className="font-display text-xl font-bold group-hover:underline">{item.title}</h2>
+                <p className="mt-3 text-sm text-muted-foreground">{item.text}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section className="bg-accent text-accent-foreground">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 md:grid-cols-2 lg:px-8">
+          <div>
+            <h2 className="font-display text-2xl font-extrabold">{cs ? "Připojte se k WhatsApp komunitě" : "Join the WhatsApp community"}</h2>
+            <p className="mt-2 text-sm">{cs ? "Nové kontakty, sdílené zkušenosti a aktuální dění na jednom místě." : "New contacts, shared experiences and current community news in one place."}</p>
+            <a href="https://chat.whatsapp.com/DczHatSCHRSADY6phvkdfe" target="_blank" rel="noreferrer noopener" className="mt-5 inline-flex bg-ink px-5 py-3 text-sm font-bold text-ink-foreground">WhatsApp</a>
+          </div>
+          <div>
+            <h2 className="font-display text-2xl font-extrabold">{cs ? "CometX newsletter" : "CometX newsletter"}</h2>
+            <p className="mt-2 text-sm">{cs ? "Nové akce, nové kontakty, nová perspektiva. Přihlášení zatím dokončíte na oficiálním webu CometX." : "New events, new contacts, new perspective. For now, complete signup on the official CometX website."}</p>
+            <a href="https://www.cometx.ch/" target="_blank" rel="noreferrer noopener" className="mt-5 inline-flex border border-ink px-5 py-3 text-sm font-bold">{cs ? "Přihlásit newsletter" : "Subscribe"}</a>
+          </div>
+        </div>
+      </section>
     </>
   );
 }

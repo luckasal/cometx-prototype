@@ -13,6 +13,7 @@ const NAV = [
   { to: "/community", en: "Community", cs: "Komunita" },
   { to: "/partners", en: "Partners", cs: "Partneři" },
   { to: "/about", en: "About", cs: "O nás" },
+  { to: "/get-involved", en: "Get involved", cs: "Zapojte se" },
 ] as const;
 
 export function SiteHeader() {

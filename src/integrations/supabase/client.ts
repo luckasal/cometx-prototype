@@ -50,14 +50,14 @@ function createSupabaseClient() {
     typeof process !== 'undefined' ? process.env : undefined;
 
   const SUPABASE_URL =
-    import.meta.env.VITE_SUPABASE_URL ||
-    runtimeEnv?.VITE_SUPABASE_URL ||
-    runtimeEnv?.SUPABASE_URL;
+    import.meta.env['VITE_SUPABASE_URL'] ||
+    runtimeEnv?.['VITE_SUPABASE_URL'] ||
+    runtimeEnv?.['SUPABASE_URL'];
 
   const SUPABASE_PUBLISHABLE_KEY =
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    runtimeEnv?.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    runtimeEnv?.SUPABASE_PUBLISHABLE_KEY;
+    import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
+    runtimeEnv?.['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
+    runtimeEnv?.['SUPABASE_PUBLISHABLE_KEY'];
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     const missing = [

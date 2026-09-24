@@ -127,6 +127,10 @@ function EventDetailPage() {
           membership: "Prohlédnout členství",
           events: "Další akce",
           supported: "Partneři akce",
+          programmePdf: "Otevřít oficiální program",
+          companyTitle: "Prezentujte svou firmu",
+          companyLead: "Partnerské balíčky začínaly na 200 CHF. Pro další ročník kontaktujte tým CometX.",
+          previous: "Předchozí ročníky",
         }
       : {
           edition: "6th edition · held on 11 September 2026",
@@ -160,6 +164,10 @@ function EventDetailPage() {
           membership: "Explore membership",
           events: "Upcoming events",
           supported: "Event partners",
+          programmePdf: "Open the official programme",
+          companyTitle: "Present your company",
+          companyLead: "Partner packages started at CHF 200. Contact the CometX team about the next edition.",
+          previous: "Previous editions",
         };
 
     return (
@@ -193,14 +201,6 @@ function EventDetailPage() {
           </div>
         </section>
 
-        <section className="bg-accent text-accent-foreground">
-          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-px px-5 py-8 sm:grid-cols-4 lg:px-8">
-            {[["320+", cs ? "účastníků" : "attendees"], ["27", cs ? "zapojených firem" : "companies"], ["5", cs ? "workshopů" : "workshops"], ["23", cs ? "řečníků a hostů" : "speakers & guests"]].map(([value, label]) => (
-              <div key={label} className="px-4 py-3 text-center"><p className="font-display text-3xl font-extrabold">{value}</p><p className="mt-1 text-xs font-semibold uppercase tracking-wider">{label}</p></div>
-            ))}
-          </div>
-        </section>
-
         <Section>
           <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div><p className="eyebrow text-signal">{cs ? "Ohlédnutí" : "The experience"}</p><h2 className="display-lg mt-3">{copy.recap}</h2><p className="mt-6 text-lg leading-relaxed text-muted-foreground">{copy.recapText}</p></div>
@@ -208,6 +208,7 @@ function EventDetailPage() {
               {copy.programme.map(([title, description]) => <div key={title} className="border border-border bg-card p-6"><Sparkles className="size-5 text-signal" /><h3 className="mt-5 font-display text-xl font-bold">{title}</h3><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p></div>)}
             </div>
           </div>
+          <a href="https://www.cometx.ch/_files/ugd/41f758_e0c14abc95f14c25a35f71d07293165f.pdf" target="_blank" rel="noreferrer noopener" className="mt-8 inline-flex border border-ink px-5 py-3 text-sm font-bold hover:bg-ink hover:text-ink-foreground">{copy.programmePdf}</a>
 
           {speakers.length > 0 && <div className="mt-20"><SectionHeading eyebrow={cs ? "Na pódiu" : "On stage"} title={copy.speakers} /><div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{speakers.map((s) => <article key={s.id} className="group border border-border bg-card"><div className="aspect-square overflow-hidden bg-muted">{s.photoUrl && <img src={s.photoUrl} alt={s.name} className="size-full object-cover grayscale transition duration-300 group-hover:grayscale-0" loading="lazy" />}</div><div className="p-4"><h3 className="font-display text-lg font-bold">{s.name}</h3><p className="mt-1 text-xs text-muted-foreground">{s.jobTitle}{s.company ? ` · ${s.company}` : ""}</p></div></article>)}</div></div>}
 
@@ -220,6 +221,30 @@ function EventDetailPage() {
             <aside className="border border-ink bg-ink p-8 text-ink-foreground lg:self-start"><p className="eyebrow text-accent">CometX 2027</p><h2 className="mt-3 font-display text-3xl font-extrabold">{copy.next}</h2><p className="mt-4 text-sm leading-relaxed text-ink-foreground/70">{copy.nextText}</p><div className="mt-8 grid gap-3"><Button asChild variant="signal"><Link to="/membership">{copy.membership}<ArrowRight className="size-4" /></Link></Button><Button asChild variant="outlineInk" className="border-ink-foreground/40 text-ink-foreground hover:bg-ink-foreground/10"><Link to="/events">{copy.events}</Link></Button></div></aside>
           </div>
         </section>
+
+        <Section>
+          <div className="grid gap-12 lg:grid-cols-[1fr_0.8fr]">
+            <div>
+              <SectionHeading eyebrow={cs ? "Pro firmy" : "For companies"} title={copy.companyTitle} />
+              <p className="max-w-2xl text-sm text-muted-foreground">{copy.companyLead}</p>
+              <div className="mt-7 grid gap-4 sm:grid-cols-3">
+                {[
+                  ["Silver", cs ? "1 vstup zdarma · logo na materiálech · sociální sítě · networking · distribuce materiálů" : "1 free entry · logo on materials · social visibility · networking · material distribution"],
+                  ["Golden", cs ? "2 vstupy zdarma · Silver balíček · roll-up · 5minutový vstup nebo networkingový stůl" : "2 free entries · Silver package · roll-up display · 5-minute talk or networking table"],
+                  ["Diamond", cs ? "3 vstupy zdarma · Golden balíček · 15minutová přednáška · networkingový stůl" : "3 free entries · Golden package · 15-minute talk · networking table"],
+                ].map(([name, details]) => <article key={name} className="border border-border p-5"><h3 className="font-display text-xl font-bold">{name}</h3><p className="mt-2 text-sm text-muted-foreground">{details}</p></article>)}
+              </div>
+              <p className="mt-6 text-sm"><a href="mailto:adam.pruska@cometx.ch" className="underline underline-offset-4">adam.pruska@cometx.ch</a>{" · "}<a href="mailto:michaela.dohnalkova@cometx.ch" className="underline underline-offset-4">michaela.dohnalkova@cometx.ch</a></p>
+            </div>
+            <div>
+              <SectionHeading eyebrow={cs ? "Archiv" : "Archive"} title={copy.previous} />
+              <div className="grid grid-cols-2 gap-3">
+                {[["2025", "https://www.cometx.ch/symposium-2025"], ["2024", "https://www.cometx.ch/symposium-2024"], ["2023", "https://www.cometx.ch/symposium-2023"], ["2022", "https://www.cometx.ch/symposium-2022"]].map(([year, href]) => <a key={year} href={href} target="_blank" rel="noreferrer noopener" className="border border-border p-5 font-display text-2xl font-extrabold hover:bg-paper">{year}</a>)}
+              </div>
+              <a href="https://www.cometx.ch/gallery" target="_blank" rel="noreferrer noopener" className="mt-4 inline-flex text-sm underline underline-offset-4">{cs ? "Fotografie a videa z akcí" : "Event photos and videos"}</a>
+            </div>
+          </div>
+        </Section>
 
         {partners.length > 0 && <Section><SectionHeading eyebrow={cs ? "Děkujeme" : "With thanks"} title={copy.supported} /><div className="flex flex-wrap gap-x-10 gap-y-5">{partners.map((p) => <span key={p.id} className="font-display text-lg font-bold text-muted-foreground">{p.name}</span>)}</div></Section>}
       </>

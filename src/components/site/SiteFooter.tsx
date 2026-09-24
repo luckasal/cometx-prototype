@@ -18,6 +18,8 @@ export function SiteFooter() {
               CHE-424.450.235<br />
               Untere Vogelsangstrasse 193, 8400 Winterthur<br />
               <a href="mailto:info@cometx.ch" className="hover:text-accent">info@cometx.ch</a>
+              <br />IBAN: CH98 0026 9269 1309 2601 K
+              <br />BIC: UBSWCHZH80A
             </address>
           </div>
 
@@ -34,6 +36,7 @@ export function SiteFooter() {
             links={[
               { to: "/about", label: cs ? "O nás" : "About" },
               { to: "/partners", label: cs ? "Partneři" : "Partners" },
+              { to: "/get-involved", label: cs ? "Volné pozice" : "Open positions" },
             ]}
           />
           <FooterColumn
@@ -48,7 +51,9 @@ export function SiteFooter() {
 
         <div className="mt-14 flex flex-col gap-2 border-t border-ink-foreground/15 pt-6 text-xs text-ink-foreground/50 sm:flex-row sm:justify-between">
           <span>&copy; {new Date().getFullYear()} CometX - Come and Meet Expats</span>
-          <span className="flex gap-4">
+          <span className="flex flex-wrap gap-4">
+            <a href="https://www.cometx.ch/_files/ugd/41f758_b4416cc4324a440fae43acc5bf10defd.pdf" target="_blank" rel="noreferrer noopener" className="hover:text-accent">{cs ? "Obchodní podmínky" : "Terms"}</a>
+            <a href="https://www.cometx.ch/_files/ugd/41f758_cf8654296bfe4790be7ac44abfe07fbd.pdf" target="_blank" rel="noreferrer noopener" className="hover:text-accent">{cs ? "Ochrana soukromí" : "Privacy"}</a>
             <a href="https://www.instagram.com/cometx_ch/" target="_blank" rel="noreferrer noopener" className="hover:text-accent">Instagram</a>
             <a href="https://www.linkedin.com/in/cometx-ch" target="_blank" rel="noreferrer noopener" className="hover:text-accent">LinkedIn</a>
             <a href="https://www.youtube.com/@cometx" target="_blank" rel="noreferrer noopener" className="hover:text-accent">YouTube</a>
