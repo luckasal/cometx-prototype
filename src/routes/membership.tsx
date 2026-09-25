@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorBlock, LoadingBlock, PageHero, Section } from "@/components/site/Bits";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/membership")({
   head: () => ({
@@ -99,8 +100,7 @@ function MembershipPage() {
                   {formatMoney(plan.annualPrice, plan.currency)}
                   <span className="text-sm font-normal text-muted-foreground"> {cs ? "/ rok" : "/ year"}</span>
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">+ CHF 1.99 {cs ? "aktivační poplatek" : "setup fee"}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{cs ? "Cena v prototypu — platba se neprovádí" : "Prototype pricing — no payment collected"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{cs ? "Online platba bude brzy dostupná." : "Online checkout will be available soon."}</p>
 
                 <ul className="mt-6 flex-1 space-y-3 border-t border-border pt-6">
                   {plan.benefits.map((benefit) => (
@@ -117,7 +117,7 @@ function MembershipPage() {
                       variant={index === 1 ? "signal" : "outlineInk"}
                       className="w-full"
                       disabled={checkoutMutation.isPending}
-                      onClick={() => checkoutMutation.mutate(plan.slug)}
+                      onClick={() => { trackEvent("membership_cta", { plan: plan.slug }); checkoutMutation.mutate(plan.slug); }}
                     >
                       {checkoutMutation.isPending ? (cs ? "Ukládáme členství…" : "Saving membership...") : (cs ? `Zvolit ${plan.name}` : `Join ${plan.name}`)}
                     </Button>
@@ -125,7 +125,7 @@ function MembershipPage() {
                     <Button
                       variant={index === 1 ? "signal" : "outlineInk"}
                       className="w-full"
-                      onClick={() => navigate({ to: "/register", search: { redirect: "/membership" } })}
+                      onClick={() => { trackEvent("membership_cta", { plan: plan.slug, destination: "register" }); navigate({ to: "/register", search: { redirect: "/membership" } }); }}
                     >
                       {cs ? "Pro členství si vytvořte účet" : "Create account to join"}
                     </Button>
@@ -158,7 +158,7 @@ function MembershipPage() {
         </div>
 
         <p className="mt-8 max-w-2xl text-sm text-muted-foreground">
-          {cs ? "Vyberte si plán, který se uloží do vašeho účtu. Žádná platba se neprovede. Už jste členem?" : "Choose a plan to save a prototype membership in your account. No payment is taken. Already a member?"}{" "}
+          {cs ? "Členství a online platbu dokončíte, jakmile bude checkout aktivní. Už jste členem?" : "Membership checkout will be available once payments are enabled. Already a member?"}{" "}
           <Link to="/account/membership" className="underline underline-offset-4">
             {cs ? "Zobrazit členství" : "See your membership"}
           </Link>

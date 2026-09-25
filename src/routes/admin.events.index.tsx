@@ -33,7 +33,7 @@ function AdminEventsPage() {
   return (
     <AdminPage
       title="Events"
-      description="Publishing an event makes it visible on the public site immediately."
+      description="Only published events appear on the public site. Operational status controls registration separately."
       action={
         <Button asChild variant="ink">
           <Link to="/admin/events/new">New event</Link>
@@ -44,7 +44,7 @@ function AdminEventsPage() {
       {error && <ErrorBlock error={error} />}
       {data && data.length === 0 && <EmptyBlock title="No events yet" />}
       {data && data.length > 0 && (
-        <AdminTable head={["Title", "Date", "Status", "Capacity", ""]}>
+        <AdminTable head={["Title", "Date", "Visibility", "Event status", "Capacity", ""]}>
           {data.map((event) => (
             <tr key={event.id} className="[&>td]:px-4 [&>td]:py-3">
               <td>
@@ -61,10 +61,11 @@ function AdminEventsPage() {
                 {new Date(event.start_date).toLocaleDateString("en-GB")}
               </td>
               <td>
-                <StatusPill tone={event.status === "draft" ? "muted" : "signal"}>
-                  {event.status.replace(/_/g, " ")}
+                <StatusPill tone={event.publish_state === "published" ? "signal" : "muted"}>
+                  {event.publish_state}
                 </StatusPill>
               </td>
+              <td className="capitalize text-muted-foreground">{event.event_status.replace(/_/g, " ")}</td>
               <td className="text-muted-foreground">{event.capacity ?? "-"}</td>
               <td className="text-right">
                 <button

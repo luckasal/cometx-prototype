@@ -16,6 +16,7 @@ import {
 } from "@/components/site/Bits";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/events/$slug")({
   head: ({ params }) => ({
@@ -54,6 +55,7 @@ function EventDetailPage() {
   const reserveMutation = useMutation({
     mutationFn: (ticketTypeId: string) => reserve({ data: { ticketTypeId } }),
     onSuccess: () => {
+      trackEvent("event_registration", { event_slug: slug });
       toast.success(cs ? "Místo je rezervované. Najdete ho v Můj CometX." : "Your place is reserved. See it in My CometX.");
       queryClient.invalidateQueries({ queryKey: ["event", slug] });
       queryClient.invalidateQueries({ queryKey: ["account"] });
@@ -291,6 +293,17 @@ function EventDetailPage() {
           <div>
             <SectionHeading eyebrow={cs ? "O akci" : "About"} title={cs ? "Program" : "The programme"} />
             <Prose text={event.description} />
+
+            {event.galleryUrls.length > 0 && (
+              <div className="mt-16">
+                <SectionHeading eyebrow={cs ? "Z akce" : "From the event"} title={cs ? "Galerie" : "Gallery"} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {event.galleryUrls.map((url, index) => (
+                    <img key={url} src={url} alt={`${event.title} ${index + 1}`} className="aspect-[4/3] w-full object-cover" loading="lazy" />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {workshops.length > 0 && (
               <div className="mt-16">

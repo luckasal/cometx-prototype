@@ -18,7 +18,7 @@ function AdminRegistrationsPage() {
   });
 
   return (
-    <AdminPage title="Registrations" description="Database reservations, newest first. This prototype does not collect payment.">
+    <AdminPage title="Registrations" description="Event reservations, newest first. Payment status is tracked separately when Stripe is enabled.">
       {isLoading && <LoadingBlock label="Loading registrations" />}
       {error && <ErrorBlock error={error} />}
       {data && data.length === 0 && <EmptyBlock title="No registrations yet" />}

@@ -16,6 +16,7 @@ import {
 import { formatMoney } from "@/lib/pricing";
 import heroImage from "@/assets/hero-symposium.jpg";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { BrandXElement } from "@/components/site/BrandXElement";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -49,11 +50,12 @@ function Home() {
     <>
       {/* HERO */}
       <section className="relative overflow-hidden bg-ink text-ink-foreground">
+        <BrandXElement className="absolute -right-24 -top-48 h-[42rem] w-auto opacity-20 lg:-right-12 lg:-top-40" />
         <img
           src={heroImage}
           alt=""
           aria-hidden
-          className="pointer-events-none absolute inset-0 size-full object-cover opacity-25"
+          className="brand-photo pointer-events-none absolute inset-0 size-full opacity-25"
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink via-ink/85 to-ink/40" />
         <div className="relative mx-auto grid max-w-7xl gap-12 px-5 py-20 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:px-8 lg:py-32">
@@ -113,7 +115,7 @@ function Home() {
                     <img
                       src={data.featured.hero_image_url}
                       alt={data.featured.title}
-                      className="size-full object-cover"
+                      className="brand-photo size-full"
                     />
                   )}
                 </div>
@@ -237,7 +239,7 @@ function Home() {
                       <img
                         src={article.hero_image_url}
                         alt={article.title}
-                        className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        className="brand-photo size-full transition-transform duration-500 group-hover:scale-[1.03]"
                         loading="lazy"
                       />
                     )}

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { adminGetEvent } from "@/lib/admin.functions";
 import { AdminPage } from "@/components/admin/AdminBits";
-import { EventForm, type EventFormValues, type TicketDraft } from "@/components/admin/EventForm";
+import { EventForm, type EventFormValues, type TicketDraft, type WorkshopDraft } from "@/components/admin/EventForm";
 import { ErrorBlock, LoadingBlock } from "@/components/site/Bits";
 
 export const Route = createFileRoute("/admin/events/$id")({
@@ -48,10 +48,12 @@ function EditEventPage() {
   const initialEvent: EventFormValues = {
     id: e.id,
     title: e.title,
+    event_type: e.event_type,
     slug: e.slug,
     short_description: e.short_description ?? "",
     description: e.description ?? "",
     hero_image_url: e.hero_image_url ?? "",
+    gallery_urls: Array.isArray(e.gallery_urls) ? e.gallery_urls.filter((url): url is string => typeof url === "string").join("\n") : "",
     start_date: toLocalInput(e.start_date),
     end_date: toLocalInput(e.end_date),
     venue: e.venue ?? "",
@@ -59,7 +61,8 @@ function EditEventPage() {
     capacity: e.capacity === null ? "" : String(e.capacity),
     registration_start: toLocalInput(e.registration_start),
     registration_end: toLocalInput(e.registration_end),
-    status: e.status,
+    publish_state: e.publish_state,
+    event_status: e.event_status,
     featured: !!e.featured,
   };
 
@@ -73,13 +76,17 @@ function EditEventPage() {
     discount_entitlement: ticket.discount_entitlement ?? "",
     free_entitlement: ticket.free_entitlement ?? "",
   }));
+  const initialWorkshops: WorkshopDraft[] = data.workshops.map((workshop) => ({
+    id: workshop.id, title: workshop.title, description: workshop.description ?? "", speaker_id: workshop.speaker_id ?? "", start_time: toLocalInput(workshop.start_time), end_time: toLocalInput(workshop.end_time), location: workshop.location ?? "", capacity: workshop.capacity === null ? "" : String(workshop.capacity), base_price: String(Number(workshop.base_price)), separate_registration_required: workshop.separate_registration_required,
+  }));
 
   return (
-    <AdminPage title={e.title} description={`Editing /events/${e.slug}`}>
+    <AdminPage title={e.title} description={`Editing /events/${e.slug}. Save changes before refreshing the preview.`}>
       <EventForm
         initialEvent={initialEvent}
         initialTickets={initialTickets}
         initialSpeakerIds={data.speakerIds}
+        initialWorkshops={initialWorkshops}
       />
     </AdminPage>
   );

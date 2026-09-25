@@ -10,9 +10,9 @@ function NewEventPage() {
   return (
     <AdminPage
       title="New event"
-      description="Save as draft while you work, then switch the status to published or registration open."
+      description="Save a draft first, then preview, publish, or unpublish it from the editor."
     >
-      <EventForm initialEvent={emptyEvent} initialTickets={[]} initialSpeakerIds={[]} />
+      <EventForm initialEvent={emptyEvent} initialTickets={[]} initialSpeakerIds={[]} initialWorkshops={[]} />
     </AdminPage>
   );
 }

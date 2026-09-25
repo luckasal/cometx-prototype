@@ -38,6 +38,9 @@ function AdminDashboard() {
             ["Articles", data.articles, "/admin/articles"],
             ["Speakers", data.speakers, "/admin/speakers"],
             ["Partners", data.partners, "/admin/partners"],
+            ["Contacts", data.contacts, "/admin/contacts"],
+            ["Payments", data.payments, "/admin/payments"],
+            ["Structured content", data.content, "/admin/content"],
           ].map(([label, value, to]) => (
             <Link
               key={label as string}
