@@ -15,6 +15,13 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## Setup note
 
+## Stripe connection and quantity-pricing groundwork
+
+- Codex on `codex-dev`, after `709954d`: verified Stripe plugin access to CometX sandbox (test mode), accepted planner recommendation for hosted Checkout. No live Stripe changes.
+- Added pure `ticket-order.ts` quote calculator and six regression tests for multiple types/quantities, single/all ticket member-benefit policies, invalid inputs and minor-unit totals. Not wired into public UI/server checkout yet; no migrations or deployment.
+- Blocking business choice: does membership discount cover only the member's ticket or every ticket in their basket? Awaiting user answer. Second sellable ticket type/price is not confirmed; expired early birds must stay inactive.
+- Remaining: runtime sandbox key/webhook setup, atomic multi-seat holds, idempotent order/session creation, verified webhook fulfillment and account/admin order display, full sandbox purchase test. Agent OAuth alone does not configure Vercel payments.
+
 ## Event CTA correction
 
 - Codex on `codex-dev`, following `1ec8ca6`: all My registration shortcuts now navigate to `/account/events` rather than the same-page ticket anchor. Unregistered visitors see Choose a ticket; clicking scrolls to and focuses/highlights the actual ticket options, including repeated clicks.

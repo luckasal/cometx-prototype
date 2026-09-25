@@ -2,6 +2,10 @@
 
 ## Status — 25 September 2026
 
+Update: Stripe plugin connection is now verified for `CometX sandbox` (`livemode=false`). The implementation planner accepted hosted web Checkout (guide `iguide_61VT2LMMbFANHLCbf410A7SoM9pRt`). The earlier connection failure below is historical. Connecting the agent does not configure the deployed application's runtime API key or webhook secret.
+
+Multi-ticket quote groundwork: `src/lib/ticket-order.ts` supports quantities and multiple trusted ticket types with CHF minor-unit totals. Member pricing on multiple tickets requires an explicit `one` or `all` policy; `one` also requires selecting the beneficiary ticket type. The user has been asked to confirm this business rule. No policy, extra ticket type or price has been invented. This helper is tested but not yet wired into checkout/UI; the deployed site still uses unpaid reservations.
+
 This is a repository review and plan based on the official `stripe-best-practices` skill, not output from `stripe_implementation_planner`. The Claude CLI is not installed. A Stripe plugin connection was offered; the Stripe MCP endpoint was added to Codex, but OAuth timed out while awaiting user sign-in. The planner remains unavailable. The official skill was installed as the requested fallback.
 
 No live payments are enabled. Current event registration is an unpaid prototype reservation, not a completed purchase. Repaired ticket records do not change that.
