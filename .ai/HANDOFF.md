@@ -19,11 +19,11 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 - Last agent: Codex
 - Branch: `codex-dev`
-- Commit: `0111c80` (`Add hidden sandbox checkout for event tickets`)
+- Commits: `0111c80` (checkout implementation), `c799aeb` (Preview/configuration findings)
 - What changed: added server-side sandbox Checkout, Stripe Product/Price sync from admin event saves, quantity-based orders, atomic Supabase seat holds, membership-aware server pricing, idempotent webhook fulfillment, and generic payment/admin UI. Quantity is 1–10 for one ticket type; explicit member price applies per ticket.
 - Files changed: `src/lib/ticket-payments.server.ts`, `src/lib/stripe.server.ts`, `src/lib/events.functions.ts`, `src/lib/admin.functions.ts`, `src/components/admin/EventForm.tsx`, `src/components/site/EventDetailTemplate.tsx`, `src/routes/admin.events.$id.tsx`, `src/routes/admin.payments.tsx`, `src/routes/api/public/stripe-webhook.ts`, `src/integrations/supabase/types.ts`, `drizzle/migrations/0005_hidden_ticket_payments.sql`, `STRIPE_INTEGRATION_PLAN.md`.
-- Migrations: 0005 added, not applied. Read-only preflight on `vlcssswzlvamtscyobbv` confirmed expected starting schema. Do not apply until new server code can be released in a coordinated deploy; migration replaces old registration RPCs.
-- Unresolved issues: Stripe sandbox Workbench has no webhook destination. Runtime Vercel env entries exist but values were not inspected; local `.env` lacks service-role/Stripe settings. No end-to-end checkout was executed. Mixed ticket types in one basket are not supported. npm launcher is broken on this host, though direct TypeScript/Vite binaries work.
+- Migrations: 0005 added, not applied. Read-only preflight on `vlcssswzlvamtscyobbv` confirmed expected starting schema. Do not apply until new server code can be released in a coordinated deploy; migration replaces old registration RPCs. Vercel generated a branch Preview after push, but it cannot load because public Supabase variables are not configured for Preview; no Production deployment occurred.
+- Unresolved issues: Stripe sandbox Workbench has no webhook destination. Runtime Vercel secret env entries exist but values were not inspected; local `.env` lacks service-role/Stripe settings. No end-to-end checkout was executed. Mixed ticket types in one basket are not supported. Preview has intentionally not been connected to Production Supabase, to avoid admin edits against live records. npm launcher is broken on this host, though direct TypeScript/Vite binaries work.
 - What needs review: migration grants/RLS and RPC lock/capacity behavior; payment replay/expiry handling; explicit member price semantics for multi-quantity orders; Stripe test-key enforcement; deployment and migration ordering. Build and typecheck pass; no payment or deploy performed.
 
 ## Stripe connection and quantity-pricing groundwork
