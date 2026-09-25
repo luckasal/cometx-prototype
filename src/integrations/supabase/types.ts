@@ -161,11 +161,15 @@ export type Database = {
           created_at: string
           description: string | null
           end_date: string | null
+          event_type: string
+          event_status: Database["public"]["Enums"]["event_operational_status"]
           featured: boolean
+          gallery_urls: Json
           hero_image_url: string | null
           id: string
           registration_end: string | null
           registration_start: string | null
+          publish_state: Database["public"]["Enums"]["event_publish_state"]
           short_description: string | null
           slug: string
           start_date: string
@@ -180,11 +184,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           end_date?: string | null
+          event_type?: string
+          event_status?: Database["public"]["Enums"]["event_operational_status"]
           featured?: boolean
+          gallery_urls?: Json
           hero_image_url?: string | null
           id?: string
           registration_end?: string | null
           registration_start?: string | null
+          publish_state?: Database["public"]["Enums"]["event_publish_state"]
           short_description?: string | null
           slug: string
           start_date: string
@@ -199,11 +207,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           end_date?: string | null
+          event_type?: string
+          event_status?: Database["public"]["Enums"]["event_operational_status"]
           featured?: boolean
+          gallery_urls?: Json
           hero_image_url?: string | null
           id?: string
           registration_end?: string | null
           registration_start?: string | null
+          publish_state?: Database["public"]["Enums"]["event_publish_state"]
           short_description?: string | null
           slug?: string
           start_date?: string
@@ -212,6 +224,24 @@ export type Database = {
           updated_at?: string
           venue?: string | null
         }
+        Relationships: []
+      }
+      contacts: {
+        Row: { id: string; email: string; first_name: string | null; last_name: string | null; phone: string | null; company: string | null; source: string; consent_at: string | null; newsletter_status: Database["public"]["Enums"]["contact_status"]; member_id: string | null; notes: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; email: string; first_name?: string | null; last_name?: string | null; phone?: string | null; company?: string | null; source?: string; consent_at?: string | null; newsletter_status?: Database["public"]["Enums"]["contact_status"]; member_id?: string | null; notes?: string | null; created_at?: string; updated_at?: string }
+        Update: { email?: string; first_name?: string | null; last_name?: string | null; phone?: string | null; company?: string | null; source?: string; consent_at?: string | null; newsletter_status?: Database["public"]["Enums"]["contact_status"]; member_id?: string | null; notes?: string | null; updated_at?: string }
+        Relationships: []
+      }
+      content_entries: {
+        Row: { id: string; content_type: Database["public"]["Enums"]["content_type"]; title: string; slug: string; summary: string | null; body: string | null; hero_image_url: string | null; media_urls: Json; status: Database["public"]["Enums"]["article_status"]; published_at: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; content_type: Database["public"]["Enums"]["content_type"]; title: string; slug: string; summary?: string | null; body?: string | null; hero_image_url?: string | null; media_urls?: Json; status?: Database["public"]["Enums"]["article_status"]; published_at?: string | null; created_at?: string; updated_at?: string }
+        Update: { content_type?: Database["public"]["Enums"]["content_type"]; title?: string; slug?: string; summary?: string | null; body?: string | null; hero_image_url?: string | null; media_urls?: Json; status?: Database["public"]["Enums"]["article_status"]; published_at?: string | null; updated_at?: string }
+        Relationships: []
+      }
+      payments: {
+        Row: { id: string; user_id: string | null; registration_id: string | null; membership_id: string | null; stripe_customer_id: string | null; stripe_checkout_session_id: string | null; stripe_payment_intent_id: string | null; amount: number; currency: string; status: Database["public"]["Enums"]["payment_status"]; invoice_url: string | null; receipt_url: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; user_id?: string | null; registration_id?: string | null; membership_id?: string | null; stripe_customer_id?: string | null; stripe_checkout_session_id?: string | null; stripe_payment_intent_id?: string | null; amount?: number; currency?: string; status?: Database["public"]["Enums"]["payment_status"]; invoice_url?: string | null; receipt_url?: string | null; created_at?: string; updated_at?: string }
+        Update: { user_id?: string | null; registration_id?: string | null; membership_id?: string | null; stripe_customer_id?: string | null; stripe_checkout_session_id?: string | null; stripe_payment_intent_id?: string | null; amount?: number; currency?: string; status?: Database["public"]["Enums"]["payment_status"]; invoice_url?: string | null; receipt_url?: string | null; updated_at?: string }
         Relationships: []
       }
       membership_plans: {
@@ -670,6 +700,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      subscribe_newsletter: { Args: { p_email: string; p_first_name?: string | null; p_last_name?: string | null }; Returns: string }
       register_prototype_ticket: { Args: { p_ticket_type_id: string }; Returns: string };
       select_prototype_membership: { Args: { p_plan_slug: string }; Returns: string };
       reserve_free_ticket: { Args: { p_ticket_type_id: string }; Returns: string }
@@ -687,6 +718,8 @@ export type Database = {
       app_role: "user" | "admin"
       article_status: "draft" | "published"
       article_visibility: "public" | "registered" | "members" | "entitlement"
+      contact_status: "subscribed" | "unsubscribed" | "pending"
+      content_type: "video" | "gallery" | "opinion" | "open_position" | "symposium"
       event_status:
         | "draft"
         | "published"
@@ -694,7 +727,10 @@ export type Database = {
         | "sold_out"
         | "completed"
         | "cancelled"
+      event_operational_status: "upcoming" | "registration_open" | "registration_closed" | "sold_out" | "completed" | "cancelled"
+      event_publish_state: "draft" | "published" | "unpublished"
       membership_status: "active" | "inactive" | "cancelled" | "past_due"
+      payment_status: "pending" | "paid" | "failed" | "refunded" | "void"
       registration_status: "pending" | "confirmed" | "cancelled" | "checked_in"
     }
     CompositeTypes: {
@@ -826,6 +862,8 @@ export const Constants = {
       app_role: ["user", "admin"],
       article_status: ["draft", "published"],
       article_visibility: ["public", "registered", "members", "entitlement"],
+      contact_status: ["subscribed", "unsubscribed", "pending"],
+      content_type: ["video", "gallery", "opinion", "open_position", "symposium"],
       event_status: [
         "draft",
         "published",
@@ -834,7 +872,10 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      event_operational_status: ["upcoming", "registration_open", "registration_closed", "sold_out", "completed", "cancelled"],
+      event_publish_state: ["draft", "published", "unpublished"],
       membership_status: ["active", "inactive", "cancelled", "past_due"],
+      payment_status: ["pending", "paid", "failed", "refunded", "void"],
       registration_status: ["pending", "confirmed", "cancelled", "checked_in"],
     },
   },
