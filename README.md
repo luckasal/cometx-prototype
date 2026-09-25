@@ -33,7 +33,7 @@ Membership benefits are data-driven through membership_plans, entitlements and p
 
 All SQL is in drizzle/migrations. The archive already contains schema and seed migrations 0000 and 0001. A fresh Supabase project needs those in order, then 0002_registration_integrity.sql. Apply the committed files using your authenticated SQL migration workflow or the Supabase SQL editor. Do not generate a replacement schema from drizzle/schema.ts: that imported file is only a placeholder.
 
-The configured remote project already has data. Apply only unapplied migrations after checking its migration history. Migration 0002 has not been remotely applied in this development session. It creates reserve_free_ticket, registration capacity enforcement, a private Stripe receipt table and fulfill_cometx_checkout. The payment function is executable only by service_role; free reservations require authenticated callers and derive the user ID from auth.uid().
+The configured remote project already has data. Apply only unapplied migrations after checking the remote schema and migration history. Migration 0005 adds private ticket checkout/payment state and replaces older ticket registration RPC behavior; coordinate it with deployment of the matching app code. Never rerun the original seed migration against existing data.
 
 Do not rerun the original seed migration against existing data: it is not repeatable. Use a separate development project for seed resets. A repeatable standalone seed workflow is still outstanding.
 
@@ -45,15 +45,13 @@ For membership demos, create active memberships pointing to the relevant plan ID
 
 ## Stripe test workflow
 
-Set server-only STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET, plus SITE_URL=http://127.0.0.1:3001. The app rejects live keys. Forward test events with:
+Ticket checkout is implemented on `codex-dev`, but migration 0005 and coordinated deployment are pending. Set server-only `STRIPE_SECRET_KEY` (test mode), `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and `SITE_URL=http://127.0.0.1:3001`. The app rejects live Stripe keys. Forward test events with:
 
 ```sh
 stripe listen --forward-to http://127.0.0.1:3001/api/public/stripe-webhook
 ```
 
-Use the returned signing secret in local configuration and restart the server. Checkout creates a one-time annual membership payment or ticket payment. The signed webhook, not the redirect, grants access. Only paid test sessions qualify. Database fulfillment and the session receipt commit in one transaction, so retries do not duplicate tickets or extend membership twice. Failed database writes return 500 so Stripe retries.
-
-Paid checkout seat holds and automatic refunds are not implemented yet. Keep this in test mode until that path is completed and tested.
+Use the returned signing secret in local configuration and restart the server. Only a signature-verified, paid test-mode webhook confirms a ticket. The browser return URL does not confirm payment. No end-to-end purchase has been verified yet. Do not apply migration 0005 independently of deployment: it replaces legacy reservation RPCs. Automatic refunds are not implemented.
 
 ## Main routes
 

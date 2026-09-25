@@ -63,10 +63,11 @@ function EventDetailPage() {
   }, [queryClient, slug]);
 
   const reserveMutation = useMutation({
-    mutationFn: (ticketTypeId: string) => reserve({ data: { ticketTypeId } }),
-    onSuccess: () => {
+    mutationFn: ({ticketTypeId,quantity}: {ticketTypeId:string;quantity:number}) => reserve({ data: { ticketTypeId,quantity } }),
+    onSuccess: (result) => {
       trackEvent("event_registration", { event_slug: slug });
-      toast.success(cs ? "Místo je rezervované. Najdete ho v Můj CometX." : "Your place is reserved. See it in My CometX.");
+      if (result.url) { window.location.assign(result.url); return; }
+      toast.success(cs ? "Vstupenka je potvrzena. Najdete ji v Můj CometX." : "Your ticket is confirmed. See it in My CometX.");
       queryClient.invalidateQueries({ queryKey: ["event", slug] });
       queryClient.invalidateQueries({ queryKey: ["account"] });
     },
@@ -263,7 +264,7 @@ function EventDetailPage() {
     );
   }
 
-  return <EventDetailTemplate data={data} pending={reserveMutation.isPending} onReserve={(id) => reserveMutation.mutate(id)} onLogin={() => navigate({ to: "/login", search: { redirect: `/events/${slug}` } })} />;
+  return <EventDetailTemplate data={data} pending={reserveMutation.isPending} onReserve={(id,quantity) => reserveMutation.mutate({ticketTypeId:id,quantity})} onLogin={() => navigate({ to: "/login", search: { redirect: `/events/${slug}` } })} />;
 }
 
 function Meta({

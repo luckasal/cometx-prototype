@@ -20,7 +20,12 @@ export function getStripeSecretKey(): string {
 }
 
 export function isStripeConfigured(): boolean {
-  return !!process.env["STRIPE_SECRET_KEY"];
+  const key = process.env["STRIPE_SECRET_KEY"] ?? "";
+  return key.startsWith("sk_test_") || key.startsWith("rk_test_");
+}
+
+export class StripeRequestError extends Error {
+  constructor(public status: number) { super(`Payment service request failed (${status}).`); }
 }
 
 function encodeForm(obj: Record<string, unknown>, prefix = ""): string[] {
@@ -48,19 +53,22 @@ function encodeForm(obj: Record<string, unknown>, prefix = ""): string[] {
 export async function stripeRequest<T>(
   path: string,
   body?: Record<string, unknown>,
+  idempotencyKey?: string,
 ): Promise<T> {
   const response = await fetch(`${STRIPE_API}${path}`, {
     method: body ? "POST" : "GET",
     headers: {
       Authorization: `Bearer ${getStripeSecretKey()}`,
       "Content-Type": "application/x-www-form-urlencoded",
+      "Stripe-Version": "2026-08-26.dahlia",
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },
     body: body ? encodeForm(body).join("&") : null,
   });
 
   const json = (await response.json()) as { error?: { message?: string } };
   if (!response.ok) {
-    throw new Error(json.error?.message ?? `Stripe request failed (${response.status}).`);
+    throw new StripeRequestError(response.status);
   }
   return json as T;
 }

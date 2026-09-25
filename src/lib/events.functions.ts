@@ -10,12 +10,15 @@ import {
 } from "./pricing";
 
 const slugSchema = z.object({ slug: z.string().min(1).max(200), preview: z.boolean().optional() });
-const ticketSchema = z.object({ ticketTypeId: z.string().uuid() });
+const ticketSchema = z.object({ ticketTypeId: z.string().uuid(), quantity:z.number().int().min(1).max(10).default(1) });
 
 export type EventTicketOption = {
   id: string;
   name: string;
   description: string | null;
+  memberPrice: number | null;
+  saleStart: string | null;
+  saleEnd: string | null;
   price: PriceResult;
   spotsLeft: number | null;
   soldOut: boolean;
@@ -140,23 +143,24 @@ export const getEventDetail = createServerFn({ method: "GET" })
     const tickets: EventTicketOption[] = (ticketsRes.data ?? []).map((ticket) => {
       const taken = registrations.filter((r) => r.ticket_type_id === ticket.id).length;
       const spotsLeft = !canReadAllRegistrations || ticket.capacity === null ? null : Math.max(ticket.capacity - taken, 0);
+      const regularPrice = calculateTicketPrice(
+        { basePrice:Number(ticket.base_price),currency:ticket.currency,requiredEntitlement:ticket.required_entitlement,
+          discountEntitlement:ticket.discount_entitlement,freeEntitlement:ticket.free_entitlement },entitlements);
+      const memberPrice=membership && ticket.member_price!==null && regularPrice.eligible
+        ? {...regularPrice,basePrice:Number(ticket.base_price),discount:Number(ticket.base_price)-Number(ticket.member_price),
+            finalPrice:Number(ticket.member_price),reason:"Member ticket price",includedInMembership:Number(ticket.member_price)===0}
+        : regularPrice;
       return {
         id: ticket.id,
         name: ticket.name,
         description: ticket.description,
-        price: calculateTicketPrice(
-          {
-            basePrice: Number(ticket.base_price),
-            currency: ticket.currency,
-            requiredEntitlement: ticket.required_entitlement,
-            discountEntitlement: ticket.discount_entitlement,
-            freeEntitlement: ticket.free_entitlement,
-          },
-          entitlements,
-        ),
+        memberPrice: ticket.member_price === null ? null : Number(ticket.member_price),
+        saleStart: ticket.sale_start,
+        saleEnd: ticket.sale_end,
+        price: memberPrice,
         spotsLeft,
         soldOut: event.event_status === "sold_out" || (spotsLeft !== null && spotsLeft === 0),
-        hasMemberPricing: !!(ticket.required_entitlement || ticket.discount_entitlement || ticket.free_entitlement),
+        hasMemberPricing: ticket.member_price !== null || !!(ticket.required_entitlement || ticket.discount_entitlement || ticket.free_entitlement),
       };
     });
 
@@ -235,20 +239,6 @@ export const reserveFreePlace = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireUser } = await import("./auth.server");
     const user = await requireUser();
-    const { getReadClient } = await import("./database.server");
-    const db = getReadClient();
-    const { data: ticket, error: ticketError } = await db.from("ticket_types")
-      .select("events(slug)").eq("id", data.ticketTypeId).single();
-    if (ticketError || !ticket?.events) throw new Error("This ticket is not available.");
-    // Authentication, entitlements, duplicate protection and seats are checked in one transaction.
-    const { data: created, error } = await db.rpc("register_prototype_ticket", { p_ticket_type_id: data.ticketTypeId });
-
-    if (error) {
-      if (error.code === "23505") throw new Error("You are already registered for this event.");
-      if (error.code === "P0001") throw new Error(error.message);
-      if (error.code === "PGRST202") throw new Error("Registration is not ready yet. Please contact CometX.");
-      throw new Error("We could not save your registration. Please try again.");
-    }
-
-    return { registrationId: created, eventSlug: ticket.events.slug, reason: "Your place is confirmed" };
+    const { startTicketPayment } = await import("./ticket-payments.server");
+    return startTicketPayment(user, data.ticketTypeId,data.quantity);
   });

@@ -39,6 +39,10 @@ export type TicketDraft = {
   name: string;
   description: string;
   base_price: string;
+  member_price: string;
+  sale_start: string;
+  sale_end: string;
+  currency: string;
   capacity: string;
   required_entitlement: string;
   discount_entitlement: string;
@@ -82,6 +86,10 @@ export const emptyTicket: TicketDraft = {
   name: "",
   description: "",
   base_price: "0",
+  member_price: "",
+  sale_start: "",
+  sale_end: "",
+  currency: "CHF",
   capacity: "",
   required_entitlement: "",
   discount_entitlement: "",
@@ -159,7 +167,10 @@ export function EventForm({
               name: ticket.name.trim(),
               description: nullable(ticket.description),
               base_price: Number(ticket.base_price || 0),
-              currency: "CHF",
+              currency: ticket.currency,
+              member_price: ticket.member_price.trim()==="" ? null : Number(ticket.member_price),
+              sale_start: isoOrNull(ticket.sale_start),
+              sale_end: isoOrNull(ticket.sale_end),
               capacity: ticket.capacity.trim() === "" ? null : Number(ticket.capacity),
               required_entitlement: nullable(ticket.required_entitlement),
               discount_entitlement: nullable(ticket.discount_entitlement),
@@ -172,6 +183,8 @@ export function EventForm({
       }),
     onSuccess: (saved, publishState) => {
       toast.success("Event saved");
+      if (!saved.paymentSyncReady) toast.warning("Content saved. Online payments are not ready; save again to retry payment setup.");
+      setTickets(previous => previous.filter(t=>t.name.trim()!=="").map((t,i)=>({...(saved.ticketIds[i] ? {id:saved.ticketIds[i]} : {}),...t})));
       setEvent((previous) => ({ ...previous, id: saved.id, publish_state: publishState }));
       queryClient.invalidateQueries({ queryKey: ["admin", "events"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
@@ -431,11 +444,11 @@ export function EventForm({
                   onChange={(e) => setTicket(index, "name", e.target.value)}
                 />
               </Field>
-              <Field label="Base price (CHF)">
+              <Field label="Public price">
                 <input
                   type="number"
                   min={0}
-                  step="1"
+                  step="0.01"
                   className={inputClass}
                   value={ticket.base_price}
                   onChange={(e) => setTicket(index, "base_price", e.target.value)}
@@ -466,6 +479,13 @@ export function EventForm({
                 onChange={(e) => setTicket(index, "description", e.target.value)}
               />
             </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Member price (blank: existing membership benefits)"><input type="number" min="0" step="0.01" className={inputClass} value={ticket.member_price} onChange={e=>setTicket(index,"member_price",e.target.value)} /></Field>
+              <Field label="Currency"><select className={inputClass} value={ticket.currency} onChange={e=>setTicket(index,"currency",e.target.value)}>{["CHF","EUR","USD","GBP","CZK"].map(c=><option key={c}>{c}</option>)}</select></Field>
+              <Field label="Ticket sales start"><input type="datetime-local" className={inputClass} value={ticket.sale_start} onChange={e=>setTicket(index,"sale_start",e.target.value)} /></Field>
+              <Field label="Ticket sales end"><input type="datetime-local" className={inputClass} value={ticket.sale_end} onChange={e=>setTicket(index,"sale_end",e.target.value)} /></Field>
+            </div>
+            <p className="text-xs text-muted-foreground">An explicit member price applies to an active membership, subject to the required benefit below. Blank sale dates use the event registration window.</p>
             <div className="grid gap-4 sm:grid-cols-3">
               {(
                 [

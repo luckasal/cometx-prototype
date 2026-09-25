@@ -10,6 +10,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import type { EventDetail } from "@/lib/events.functions";
 import { splitEventContent } from "@/lib/event-content";
 import { formatMoney } from "@/lib/pricing";
@@ -21,13 +22,14 @@ import { StatusPill } from "./Bits";
 type Props = {
   data: EventDetail;
   pending: boolean;
-  onReserve: (ticketId: string) => void;
+  onReserve: (ticketId: string, quantity:number) => void;
   onLogin: () => void;
 };
 
 export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props) {
   const { language } = useLanguage();
   const cs = language === "cs";
+  const [quantities,setQuantities]=useState<Record<string,number>>({});
   const { event, tickets, speakers, workshops, partners } = data;
   const locale = cs ? "cs-CZ" : "en-GB";
   // Events are scheduled in Switzerland; do not shift the advertised date in a visitor's timezone.
@@ -306,7 +308,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                     <strong className="text-foreground">{data.membershipName}</strong>
                   </p>
                 )}
-                {data.myRegistration ? (
+                {data.myRegistration && (
                   <div className="mt-5 space-y-4">
                     <p className="flex items-center gap-2 font-semibold">
                       <CheckCircle2 className="size-5 text-accent" />
@@ -317,13 +319,18 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                       <Link to="/account/events">{cs ? "Moje registrace" : "My registration"}</Link>
                     </Button>
                   </div>
-                ) : tickets.length === 0 ? (
+                )}
+                {tickets.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
                     {cs ? "Vstupenky zatím nejsou k dispozici." : "No tickets are available yet."}
                   </p>
                 ) : (
                   <div className="mt-5 space-y-6">
-                    {tickets.map((ticket) => (
+                    {tickets.map((ticket) => {
+                      const saleOpen=(!ticket.saleStart || Date.parse(ticket.saleStart)<=Date.now()) && (!ticket.saleEnd || Date.parse(ticket.saleEnd)>Date.now());
+                      const maxQuantity=Math.max(1,Math.min(ticket.spotsLeft ?? 10,data.spotsLeft ?? 10,10));
+                      const quantity=quantities[ticket.id] ?? 1;
+                      return (
                       <div key={ticket.id} className="rounded-2xl bg-card/60 py-4">
                         <h4 className="font-bold">{ticket.name}</h4>
                         {ticket.description && (
@@ -352,12 +359,20 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                               </dd>
                             </div>
                           ) : null}
+                          {!data.membershipName && ticket.memberPrice !== null && (
+                            <div className="flex flex-wrap justify-between gap-2 text-accent">
+                              <dt>{cs ? "Cena pro členy" : "Member price"}</dt>
+                              <dd className="font-bold">
+                                {formatMoney(ticket.memberPrice, ticket.price.currency)}
+                              </dd>
+                            </div>
+                          )}
                         </dl>
-                        {!data.isSignedIn && ticket.hasMemberPricing && (
+                        {!data.membershipName && ticket.hasMemberPricing && (
                           <p className="mt-2 text-xs text-muted-foreground">
                             {cs
-                              ? "Přihlaste se pro cenu podle vašeho členství."
-                              : "Sign in to see pricing for your membership."}
+                              ? "Přihlaste se nebo se přidejte do CometX pro členskou cenu."
+                              : "Log in or join CometX to access member pricing."}
                           </p>
                         )}
                         {ticket.spotsLeft !== null && (
@@ -373,9 +388,9 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                             <Button disabled className="w-full" variant="outline">
                               {cs ? "Registrace v náhledu vypnuta" : "Booking disabled in preview"}
                             </Button>
-                          ) : !open || ticket.soldOut ? (
+                          ) : !open || ticket.soldOut || !saleOpen ? (
                             <Button disabled className="w-full" variant="outline">
-                              {ticket.soldOut || soldOut ? (cs ? "Vyprodáno" : "Sold out") : status}
+                              {ticket.soldOut || soldOut ? (cs ? "Vyprodáno" : "Sold out") : !saleOpen ? (cs ? "Prodej vstupenek uzavřen" : "Ticket sales closed") : status}
                             </Button>
                           ) : !data.isSignedIn ? (
                             <Button variant="signal" className="w-full" onClick={onLogin}>
@@ -396,32 +411,41 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                               </Button>
                             </>
                           ) : (
+                            <>
+                            <label className="flex items-center justify-between gap-3 text-sm">
+                              <span>{cs ? "Počet vstupenek" : "Quantity"}</span>
+                              <select aria-label={cs ? `Počet vstupenek: ${ticket.name}` : `Ticket quantity: ${ticket.name}`} className="min-h-10 rounded-full bg-background px-4" value={quantity}
+                                onChange={e=>setQuantities(previous=>({...previous,[ticket.id]:Number(e.target.value)}))}>
+                                {Array.from({length:maxQuantity},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}</option>)}
+                              </select>
+                            </label>
                             <Button
                               variant="signal"
                               className="w-full"
                               disabled={pending}
-                              onClick={() => onReserve(ticket.id)}
+                              onClick={() => onReserve(ticket.id,quantity)}
                             >
                               {pending
                                 ? cs
                                   ? "Rezervujeme…"
-                                  : "Reserving…"
+                                  : "Opening checkout…"
                                 : cs
-                                  ? "Rezervovat místo"
-                                  : "Reserve your place"}
+                                  ? "Koupit vstupenky"
+                                  : "Buy tickets"}
                               <ArrowRight className="size-4" />
                             </Button>
+                            </>
                           )}
                         </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 )}
                 {!data.myRegistration && tickets.length > 0 && open && (
                   <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
                     {cs
-                      ? "Při této rezervaci se neprovádí online platba."
-                      : "No online payment is collected with this reservation."}
+                      ? "Platba proběhne bezpečně přes Stripe."
+                      : "Secure payment is handled by Stripe Checkout."}
                   </p>
                 )}
               </div>

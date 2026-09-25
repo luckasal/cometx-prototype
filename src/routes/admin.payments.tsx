@@ -10,8 +10,8 @@ export const Route = createFileRoute("/admin/payments")({ component: PaymentsPag
 function PaymentsPage() {
   const fetchPayments = useServerFn(adminListPayments);
   const { data, isLoading, error } = useQuery({ queryKey: ["admin", "payments"], queryFn: () => fetchPayments() });
-  return <AdminPage title="Payments" description="Stripe payment records and receipt links. Live charging remains disabled until Stripe is configured.">
+  return <AdminPage title="Payments" description="Payment records, statuses and receipts.">
     {isLoading && <LoadingBlock label="Loading payments" />}{error && <ErrorBlock error={error} />}{data?.length === 0 && <EmptyBlock title="No payment records yet" />}
-    {data && data.length > 0 && <AdminTable head={["Amount", "Status", "Stripe session", "Documents", "Created"]}>{data.map((payment) => <tr key={payment.id} className="[&>td]:px-4 [&>td]:py-3"><td className="font-medium">{formatMoney(Number(payment.amount), payment.currency)}</td><td><StatusPill tone={payment.status === "paid" ? "success" : "muted"}>{payment.status}</StatusPill></td><td className="max-w-48 truncate text-muted-foreground">{payment.stripe_checkout_session_id ?? "-"}</td><td>{payment.invoice_url || payment.receipt_url ? <a className="underline" href={payment.receipt_url ?? payment.invoice_url ?? "#"} target="_blank" rel="noreferrer">Receipt</a> : "-"}</td><td>{new Date(payment.created_at).toLocaleDateString("en-GB")}</td></tr>)}</AdminTable>}
+    {data && data.length > 0 && <AdminTable head={["Amount", "Status", "Documents", "Created"]}>{data.map((payment) => <tr key={payment.id} className="[&>td]:px-4 [&>td]:py-3"><td className="font-medium">{formatMoney(Number(payment.amount), payment.currency)}</td><td><StatusPill tone={payment.status === "paid" ? "success" : "muted"}>{payment.status}</StatusPill></td><td>{payment.invoice_url || payment.receipt_url ? <a className="underline" href={payment.receipt_url ?? payment.invoice_url ?? "#"} target="_blank" rel="noreferrer">Receipt</a> : "-"}</td><td>{new Date(payment.created_at).toLocaleDateString("en-GB")}</td></tr>)}</AdminTable>}
   </AdminPage>;
 }

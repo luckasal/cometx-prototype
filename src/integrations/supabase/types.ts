@@ -539,6 +539,9 @@ export type Database = {
       }
       ticket_types: {
         Row: {
+          member_price: number | null
+          sale_start: string | null
+          sale_end: string | null
           active: boolean
           base_price: number
           capacity: number | null
@@ -554,6 +557,9 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          member_price?: number | null
+          sale_start?: string | null
+          sale_end?: string | null
           active?: boolean
           base_price?: number
           capacity?: number | null
@@ -569,6 +575,9 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          member_price?: number | null
+          sale_start?: string | null
+          sale_end?: string | null
           active?: boolean
           base_price?: number
           capacity?: number | null
@@ -705,6 +714,9 @@ export type Database = {
       select_prototype_membership: { Args: { p_plan_slug: string }; Returns: string };
       reserve_free_ticket: { Args: { p_ticket_type_id: string }; Returns: string }
       fulfill_cometx_checkout: { Args: { p_session: Json }; Returns: undefined }
+      begin_ticket_checkout: { Args: { p_user_id: string; p_ticket_id: string; p_quantity:number; p_payments_ready?: boolean }; Returns: Json }
+      release_unstarted_ticket_checkout: { Args: { p_checkout_id: string }; Returns: undefined }
+      apply_ticket_checkout_event: { Args: { p_type: string; p_session: Json }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

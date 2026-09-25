@@ -112,12 +112,16 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
               name: z.string().min(1).max(160),
               description: z.string().max(500).nullable().default(null),
               base_price: z.number().min(0),
-              currency: z.string().length(3).default("CHF"),
+              member_price: z.number().min(0).nullable().default(null),
+              sale_start: z.string().datetime().nullable().default(null),
+              sale_end: z.string().datetime().nullable().default(null),
+              currency: z.enum(["CHF","EUR","USD","GBP","CZK"]).default("CHF"),
               capacity: z.number().int().positive().nullable().default(null),
               required_entitlement: z.string().nullable().default(null),
               discount_entitlement: z.string().nullable().default(null),
               free_entitlement: z.string().nullable().default(null),
-            }),
+            }).refine(t => t.member_price === null || t.member_price <= t.base_price, "Member price cannot exceed public price")
+              .refine(t => !t.sale_start || !t.sale_end || Date.parse(t.sale_end)>Date.parse(t.sale_start), "Sale end must follow sale start"),
           )
           .default([]),
         workshops: z.array(z.object({
@@ -184,7 +188,17 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
       else assertDatabaseResult(await db.from("workshops").insert(payload));
     }
 
-    return { id: saved.id, slug: saved.slug };
+    let paymentSyncReady = false;
+    try {
+      const { syncEventPayments } = await import("./ticket-payments.server");
+      paymentSyncReady = await syncEventPayments(saved.id);
+    } catch {
+      // Content is saved in Supabase even during a provider outage. A retry is safe.
+      paymentSyncReady = false;
+    }
+    const updatedTickets = await db.from("ticket_types").select("id,sort_order").eq("event_id",saved.id).eq("active",true).order("sort_order");
+    assertDatabaseResult(updatedTickets);
+    return { id: saved.id, slug: saved.slug, paymentSyncReady, ticketIds:(updatedTickets.data ?? []).map(t=>t.id) };
   });
 
 export const adminDeleteEvent = createServerFn({ method: "POST" })
@@ -510,7 +524,7 @@ export const adminSaveContact = createServerFn({ method: "POST" })
 
 export const adminListPayments = createServerFn({ method: "GET" }).handler(async () => {
   const db = await admin();
-  const { data, error } = await db.from("payments").select("id,user_id,registration_id,membership_id,amount,currency,status,invoice_url,receipt_url,stripe_checkout_session_id,created_at").order("created_at", { ascending: false }).limit(300);
+  const { data, error } = await db.from("payments").select("id,user_id,registration_id,membership_id,amount,currency,status,invoice_url,receipt_url,created_at").order("created_at", { ascending: false }).limit(300);
   if (error) throw new Error(error.message);
   return data ?? [];
 });

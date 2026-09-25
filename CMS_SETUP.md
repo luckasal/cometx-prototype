@@ -13,7 +13,7 @@ Set these in Vercel for the production and preview environments:
 - `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` when payments are enabled
 - `VITE_GA_MEASUREMENT_ID` and/or `VITE_GTM_CONTAINER_ID` after analytics tags are added
 
-The current checkout remains prototype-only. Do not configure live Stripe prices or webhooks until CometX has decided its payment and invoice flow. The CMS stores the corresponding Stripe and receipt fields so the integration can be enabled without changing the content model.
+The sandbox-only event checkout code is on `codex-dev`; migration 0005 is not applied and the checkout is not deployed. Apply migration 0005 only in coordination with deploying that code because it replaces the older ticket-registration RPCs. Configure only Stripe test-mode server secrets and a test webhook after the reviewed release. Do not enable live payments. Membership Billing, Connect, Terminal, and automated tax remain out of scope.
 
 ## Staff workflow
 

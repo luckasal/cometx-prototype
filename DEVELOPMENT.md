@@ -1,5 +1,9 @@
 # Development status — 23 September 2026
 
+## Update — 25 September 2026: hidden Stripe event checkout
+
+The `codex-dev` branch now contains backend-only Stripe test Checkout for event tickets. Admin ticket edits sync Products/Prices; server checkout calculates membership pricing and holds capacity; a verified test webhook confirms registrations. Quantity supports up to ten tickets of one ticket type. Migration `0005_hidden_ticket_payments.sql` is not applied and the implementation is not deployed. Supabase production schema was checked read-only; Vercel secret variable names are configured, but values were not inspected. Stripe sandbox has no webhook destination yet. No payment was tested. See `STRIPE_INTEGRATION_PLAN.md` and `.ai/HANDOFF.md` for release steps.
+
 Active application: this `imported-cometx` directory. The parent directory contains the earlier Next.js scaffold and is not the current application.
 
 ## Verified
