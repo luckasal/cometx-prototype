@@ -19,7 +19,7 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 - Last agent: Codex
 - Branch: `codex-dev`
-- Commit: pending
+- Commit: `0111c80` (`Add hidden sandbox checkout for event tickets`)
 - What changed: added server-side sandbox Checkout, Stripe Product/Price sync from admin event saves, quantity-based orders, atomic Supabase seat holds, membership-aware server pricing, idempotent webhook fulfillment, and generic payment/admin UI. Quantity is 1–10 for one ticket type; explicit member price applies per ticket.
 - Files changed: `src/lib/ticket-payments.server.ts`, `src/lib/stripe.server.ts`, `src/lib/events.functions.ts`, `src/lib/admin.functions.ts`, `src/components/admin/EventForm.tsx`, `src/components/site/EventDetailTemplate.tsx`, `src/routes/admin.events.$id.tsx`, `src/routes/admin.payments.tsx`, `src/routes/api/public/stripe-webhook.ts`, `src/integrations/supabase/types.ts`, `drizzle/migrations/0005_hidden_ticket_payments.sql`, `STRIPE_INTEGRATION_PLAN.md`.
 - Migrations: 0005 added, not applied. Read-only preflight on `vlcssswzlvamtscyobbv` confirmed expected starting schema. Do not apply until new server code can be released in a coordinated deploy; migration replaces old registration RPCs.
