@@ -9,7 +9,7 @@ import {
   type PriceResult,
 } from "./pricing";
 
-const slugSchema = z.object({ slug: z.string().min(1).max(200) });
+const slugSchema = z.object({ slug: z.string().min(1).max(200), preview: z.boolean().optional() });
 const ticketSchema = z.object({ ticketTypeId: z.string().uuid() });
 
 export type EventTicketOption = {
@@ -19,6 +19,7 @@ export type EventTicketOption = {
   price: PriceResult;
   spotsLeft: number | null;
   soldOut: boolean;
+  hasMemberPricing: boolean;
 };
 
 export type EventDetail = {
@@ -38,6 +39,9 @@ export type EventDetail = {
     capacity: number | null;
     status: string;
     featured: boolean;
+    registrationStart: string | null;
+    registrationEnd: string | null;
+    publishState: string;
   };
   speakers: {
     id: string;
@@ -60,6 +64,7 @@ export type EventDetail = {
   partners: { id: string; name: string; tier: string | null; websiteUrl: string | null }[];
   tickets: EventTicketOption[];
   registrationOpen: boolean;
+  isPreview: boolean;
   spotsLeft: number | null;
   membershipName: string | null;
   isSignedIn: boolean;
@@ -151,6 +156,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
         ),
         spotsLeft,
         soldOut: event.event_status === "sold_out" || (spotsLeft !== null && spotsLeft === 0),
+        hasMemberPricing: !!(ticket.required_entitlement || ticket.discount_entitlement || ticket.free_entitlement),
       };
     });
 
@@ -173,6 +179,9 @@ export const getEventDetail = createServerFn({ method: "GET" })
         capacity: event.capacity,
         status: event.event_status,
         featured: event.featured,
+        registrationStart: event.registration_start,
+        registrationEnd: event.registration_end,
+        publishState: event.publish_state,
       },
       speakers: (speakersRes.data ?? [])
         .map((row) => row.speakers)
@@ -200,6 +209,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
         .filter(Boolean)
         .map((p) => ({ id: p!.id, name: p!.name, tier: p!.tier, websiteUrl: p!.website_url })),
       tickets,
+      isPreview: isAdminViewer && (!!data.preview || event.publish_state !== "published"),
       registrationOpen: isRegistrationOpen({
         status: event.event_status,
         registrationStart: event.registration_start,

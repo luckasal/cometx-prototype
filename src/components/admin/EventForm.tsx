@@ -176,6 +176,12 @@ export function EventForm({
       queryClient.invalidateQueries({ queryKey: ["admin", "events"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["home"] });
+      queryClient.invalidateQueries({ queryKey: ["event"] });
+      if (typeof BroadcastChannel !== "undefined") {
+        const channel = new BroadcastChannel("cometx-event-saved");
+        channel.postMessage({ id: saved.id });
+        channel.close();
+      }
       if (!event.id) navigate({ to: "/admin/events/$id", params: { id: saved.id } });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -260,6 +266,7 @@ export function EventForm({
           />
         </Field>
         <Field label="Long description">
+          <p className="mb-2 text-xs text-muted-foreground">Optional sections: start a line with ## What to expect, ## Who is this event for? or ## Practical information (Czech headings also work). Use - for bullet points. Empty sections stay hidden. Save to update an open preview.</p>
           <textarea
             className={textareaClass}
             rows={8}
@@ -496,7 +503,7 @@ export function EventForm({
       <div className="flex flex-wrap gap-3">
         {event.id && event.slug && (
           <Button asChild type="button" variant="outlineInk" size="lg">
-            <a href={`/events/${encodeURIComponent(event.slug)}`} target="_blank" rel="noreferrer">Preview</a>
+            <a href={`/events/${encodeURIComponent(event.slug)}?preview=1`} target="_blank" rel="noreferrer">Preview</a>
           </Button>
         )}
         <Button type="submit" variant="outlineInk" size="lg" disabled={mutation.isPending}>

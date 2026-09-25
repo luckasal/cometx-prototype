@@ -1,15 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { EventDetailTemplate } from "@/components/site/EventDetailTemplate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowRight, CalendarDays, CheckCircle2, Languages, MapPin, Sparkles, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, CheckCircle2, Languages, MapPin, Sparkles } from "lucide-react";
 import { getEventDetail, reserveFreePlace } from "@/lib/events.functions";
-import { formatMoney } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import {
   ErrorBlock,
   LoadingBlock,
-  Prose,
   Section,
   SectionHeading,
   StatusPill,
@@ -19,6 +19,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/events/$slug")({
+  validateSearch: (search: Record<string, unknown>): { preview?: boolean } => ({ preview: search["preview"] === true || search["preview"] === 1 || search["preview"] === "1" || search["preview"] === "true" }),
   head: ({ params }) => ({
     meta: [
       { title: `${params.slug.replace(/-/g, " ")} - CometX event` },
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/events/$slug")({
 
 function EventDetailPage() {
   const { slug } = Route.useParams();
+  const { preview } = Route.useSearch();
   const { language, toggleLanguage } = useLanguage();
   const cs = language === "cs";
   const { user } = useAuth();
@@ -48,9 +50,17 @@ function EventDetailPage() {
   const reserve = useServerFn(reserveFreePlace);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["event", slug, user?.id ?? "guest"],
-    queryFn: () => fetchDetail({ data: { slug } }),
+    queryKey: ["event", slug, user?.id ?? "guest", preview ?? false],
+    queryFn: () => fetchDetail({ data: { slug, preview } }),
+    refetchOnWindowFocus: "always",
   });
+
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel("cometx-event-saved");
+    channel.onmessage = () => { void queryClient.invalidateQueries({ queryKey: ["event", slug] }); };
+    return () => channel.close();
+  }, [queryClient, slug]);
 
   const reserveMutation = useMutation({
     mutationFn: (ticketTypeId: string) => reserve({ data: { ticketTypeId } }),
@@ -253,239 +263,7 @@ function EventDetailPage() {
     );
   }
 
-  return (
-    <>
-      <section className="bg-ink text-ink-foreground">
-        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:px-8 lg:py-24">
-          <div>
-            {event.featured && <StatusPill tone="signal">{cs ? "Hlavní akce" : "Flagship event"}</StatusPill>}
-            <h1 className="display-xl mt-5">{event.title}</h1>
-            <p className="mt-6 max-w-xl text-lg text-ink-foreground/70">{event.shortDescription}</p>
-            <dl className="mt-10 grid gap-5 sm:grid-cols-3">
-              <Meta icon={<CalendarDays className="size-4" />} label={cs ? "Datum" : "Date"}>
-                {start.toLocaleDateString(cs ? "cs-CZ" : "en-GB", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </Meta>
-              <Meta icon={<MapPin className="size-4" />} label={cs ? "Místo" : "Where"}>
-                {event.venue ?? (cs ? "Bude upřesněno" : "To be announced")}
-                {event.address && (
-                  <span className="block text-ink-foreground/50">{event.address}</span>
-                )}
-              </Meta>
-              <Meta icon={<Users className="size-4" />} label={cs ? "Volná místa" : "Places left"}>
-                {data.spotsLeft === null ? (data.event.capacity === null ? (cs ? "Bez omezení" : "Open capacity") : (cs ? "Ověří se při rezervaci" : "Checked when booking")) : data.spotsLeft}
-              </Meta>
-            </dl>
-          </div>
-          <div className="aspect-[4/3] bg-ink-foreground/10">
-            {event.heroImageUrl && (
-              <img src={event.heroImageUrl} alt={event.title} className="size-full object-cover" />
-            )}
-          </div>
-        </div>
-      </section>
-
-      <Section>
-        <div className="grid gap-14 lg:grid-cols-[1.3fr_0.7fr]">
-          <div>
-            <SectionHeading eyebrow={cs ? "O akci" : "About"} title={cs ? "Program" : "The programme"} />
-            <Prose text={event.description} />
-
-            {event.galleryUrls.length > 0 && (
-              <div className="mt-16">
-                <SectionHeading eyebrow={cs ? "Z akce" : "From the event"} title={cs ? "Galerie" : "Gallery"} />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {event.galleryUrls.map((url, index) => (
-                    <img key={url} src={url} alt={`${event.title} ${index + 1}`} className="aspect-[4/3] w-full object-cover" loading="lazy" />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {workshops.length > 0 && (
-              <div className="mt-16">
-                <SectionHeading eyebrow={cs ? "Prakticky" : "Workshop floor"} title={cs ? "Workshopy" : "Workshops"} />
-                <ul className="divide-y divide-border border-y border-border">
-                  {workshops.map((w) => (
-                    <li key={w.id} className="flex flex-wrap justify-between gap-4 py-5">
-                      <div>
-                        <p className="font-display text-lg font-bold">{w.title}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{w.description}</p>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {w.speakerName ? `${w.speakerName} - ` : ""}
-                          {w.location}
-                          {w.startTime
-                            ? ` - ${new Date(w.startTime).toLocaleTimeString("en-GB", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}`
-                            : ""}
-                        </p>
-                      </div>
-                      <p className="font-display text-base font-bold">
-                        {formatMoney(w.basePrice)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {speakers.length > 0 && (
-              <div className="mt-16">
-                <SectionHeading eyebrow={cs ? "Na pódiu" : "On stage"} title={cs ? "Řečníci" : "Speakers"} />
-                <div className="grid gap-8 sm:grid-cols-2">
-                  {speakers.map((s) => (
-                    <div key={s.id} className="flex gap-4">
-                      <div className="size-20 shrink-0 bg-muted">
-                        {s.photoUrl && (
-                          <img
-                            src={s.photoUrl}
-                            alt={s.name}
-                            className="size-full object-cover"
-                            loading="lazy"
-                          />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-display font-bold">{s.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {s.jobTitle}
-                          {s.company ? `, ${s.company}` : ""}
-                        </p>
-                        <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{s.bio}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {partners.length > 0 && (
-              <div className="mt-16">
-                <SectionHeading eyebrow={cs ? "S podporou" : "Supported by"} title={cs ? "Partneři akce" : "Event partners"} />
-                <div className="flex flex-wrap gap-x-10 gap-y-4">
-                  {partners.map((p) => (
-                    <span key={p.id} className="font-display font-bold text-muted-foreground">
-                      {p.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* TICKETS */}
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="border border-ink">
-              <div className="border-b border-ink bg-ink px-6 py-4 text-ink-foreground">
-                <p className="eyebrow text-accent">{cs ? "Registrace" : "Registration"}</p>
-                <p className="mt-1 font-display text-lg font-bold">
-                  {data.myRegistration
-                    ? (cs ? "Jste registrováni" : "You are registered")
-                    : data.registrationOpen
-                      ? (cs ? "Otevřeno" : "Open")
-                      : (cs ? "Uzavřeno" : "Closed")}
-                </p>
-              </div>
-
-              <div className="space-y-6 p-6">
-                {data.membershipName && (
-                  <p className="text-xs text-muted-foreground">
-                    {cs ? "Cena odpovídá vašemu členství" : "Pricing shown for your"} <strong>{data.membershipName}</strong>{cs ? "." : " membership."}
-                  </p>
-                )}
-
-                {data.myRegistration ? (
-                  <div className="space-y-4">
-                    <StatusPill tone="success">{data.myRegistration.status}</StatusPill>
-                    <p className="text-sm text-muted-foreground">
-                      {cs ? "Zaplaceno" : "Paid"}: {formatMoney(data.myRegistration.pricePaid, data.myRegistration.currency)}
-                    </p>
-                    <Button asChild variant="outlineInk" className="w-full">
-                      <Link to="/account/events">{cs ? "Zobrazit v Můj CometX" : "See it in My CometX"}</Link>
-                    </Button>
-                  </div>
-                ) : tickets.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {cs ? "Na tuto akci nejsou v prodeji žádné vstupenky." : "No tickets are on sale for this event."}
-                  </p>
-                ) : (
-                  tickets.map((ticket) => (
-                    <div key={ticket.id} className="border-t border-border pt-5 first:border-0 first:pt-0">
-                      <p className="font-display font-bold">{ticket.name}</p>
-                      {ticket.description && (
-                        <p className="mt-1 text-xs text-muted-foreground">{ticket.description}</p>
-                      )}
-
-                      <div className="mt-3 flex items-baseline gap-3">
-                        {ticket.price.includedInMembership ? (
-                          <span className="font-display text-xl font-extrabold">{cs ? "Zahrnuto" : "Included"}</span>
-                        ) : (
-                          <>
-                            <span className="font-display text-xl font-extrabold">
-                              {formatMoney(ticket.price.finalPrice, ticket.price.currency)}
-                            </span>
-                            {ticket.price.discount > 0 && (
-                              <span className="text-sm text-muted-foreground line-through">
-                                {formatMoney(ticket.price.basePrice, ticket.price.currency)}
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">{ticket.price.reason}</p>
-                      <p className="mt-2 text-xs text-muted-foreground">{cs ? "Prototyp: registrace se uloží, platba se neprovádí." : "Prototype: registration is saved; no payment is collected."}</p>
-
-                      <div className="mt-4">
-                        {!user ? (
-                          <Button
-                            variant="ink"
-                            className="w-full"
-                            onClick={() =>
-                              navigate({ to: "/login", search: { redirect: `/events/${slug}` } })
-                            }
-                          >
-                            {cs ? "Pro registraci se přihlaste" : "Log in to register"}
-                          </Button>
-                        ) : !ticket.price.eligible ? (
-                          <Button asChild variant="outlineInk" className="w-full">
-                            <Link to="/membership">{cs ? "Změnit členství" : "Upgrade membership"}</Link>
-                          </Button>
-                        ) : ticket.soldOut || !data.registrationOpen ? (
-                          <Button disabled className="w-full" variant="ink">
-                            {ticket.soldOut ? (cs ? "Vyprodáno" : "Sold out") : (cs ? "Registrace uzavřena" : "Registration closed")}
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="signal"
-                            className="w-full"
-                            disabled={reserveMutation.isPending}
-                            onClick={() => reserveMutation.mutate(ticket.id)}
-                          >
-                            {reserveMutation.isPending ? (cs ? "Rezervujeme…" : "Reserving...") : (cs ? "Rezervovat místo" : "Reserve your place")}
-                          </Button>
-                        )}
-                      </div>
-
-                      {ticket.spotsLeft !== null && ticket.spotsLeft <= 10 && !ticket.soldOut && (
-                        <p className="mt-2 text-xs text-destructive">
-                          {cs ? `Zbývá pouze ${ticket.spotsLeft} míst` : `Only ${ticket.spotsLeft} places left`}
-                        </p>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </aside>
-        </div>
-      </Section>
-    </>
-  );
+  return <EventDetailTemplate data={data} pending={reserveMutation.isPending} onReserve={(id) => reserveMutation.mutate(id)} onLogin={() => navigate({ to: "/login", search: { redirect: `/events/${slug}` } })} />;
 }
 
 function Meta({
