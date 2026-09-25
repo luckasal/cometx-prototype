@@ -26,6 +26,17 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Unresolved issues: Stripe sandbox Workbench has no webhook destination. Runtime Vercel secret env entries exist but values were not inspected; local `.env` lacks service-role/Stripe settings. No end-to-end checkout was executed. Mixed ticket types in one basket are not supported. Preview has intentionally not been connected to Production Supabase, to avoid admin edits against live records. npm launcher is broken on this host, though direct TypeScript/Vite binaries work.
 - What needs review: migration grants/RLS and RPC lock/capacity behavior; payment replay/expiry handling; explicit member price semantics for multi-quantity orders; Stripe test-key enforcement; deployment and migration ordering. Build and typecheck pass; no payment or deploy performed.
 
+## 2026-09-25: make event pages purchase-first
+
+- Last agent: Codex
+- Branch: `codex-dev`
+- Commit: `954768e` (`Show ticket purchase options after prior purchase`)
+- What changed: event ticket CTAs now say “Buy tickets” and scroll to ticket options even if the account already has a ticket. Prior ticket status remains visible as “You already have a ticket,” with a “My tickets” link. Removed reservation wording from the purchase flow; button submits to the server-side Stripe checkout action.
+- Files changed: `src/components/site/EventDetailTemplate.tsx`, `src/lib/events.functions.ts`, `src/routes/events.$slug.tsx`.
+- Migrations: none in this change. Migration 0005 from `0111c80` is still unapplied; Production still runs the older app.
+- Unresolved issues: this updates only `codex-dev`, not the Production URL in the screenshot. Checkout is not live until review, migration 0005, test webhook, and coordinated deployment are complete. Vercel Preview lacks Supabase public config.
+- What needs review: CTA scroll behavior for logged-in/purchased users, Czech/English purchase wording, and confirmation that a previously purchased seat does not hide additional paid quantity choices.
+
 ## Stripe connection and quantity-pricing groundwork
 
 - Codex on `codex-dev`, after `709954d`: verified Stripe plugin access to CometX sandbox (test mode), accepted planner recommendation for hosted Checkout. No live Stripe changes.
