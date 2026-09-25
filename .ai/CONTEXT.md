@@ -7,5 +7,6 @@
 - Contacts and newsletter subscribers are separate from authenticated members. Payment and invoice fields are prepared for Stripe; live charging is not enabled by this setup.
 - Event pages and pricing should read Supabase records. Keep registration capacity and permission checks on the server/database side.
 - Official CometX logos and brand elements live in `public/brand/cometx/`; use the current UI and brandbook rather than redesigning pages.
+- Read `BRAND_ASSETS.md` for the full official identity package inventory and source discrepancies. Reuse `src/lib/brand-assets.ts`, `CometXLogo`, `BrandXElement`, and named CSS palette tokens. The main logo is the CometX wordmark, not the separate X-with-claim composition.
 - SQL migrations live in `drizzle/migrations/`. Check migration order and `CMS_SETUP.md` before database changes.
 - The original checkout had unfinished local edits based on an older `main`. They were preserved in local branch `codex/wip-pre-parallel-20260925` at commit `b293f60`; compare with current code before reusing them.
