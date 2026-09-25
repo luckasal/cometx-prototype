@@ -1,12 +1,15 @@
 import { Link } from "@tanstack/react-router";
+import { brandAssets } from "@/lib/brand-assets";
 
 export function CometXLogo({ footer = false }: { footer?: boolean }) {
   return (
-    <Link to="/" aria-label="CometX - Come and Meet Expats" className="block shrink-0">
+    <Link to="/" aria-label="CometX - Come and Meet Expats" className={footer ? "brand-logo brand-logo-footer" : "brand-logo"}>
       <img
-        src={footer ? "/brand/cometx/cometx-logo-cloud.svg" : "/brand/cometx/cometx-logo-lime.svg"}
+        src={footer ? brandAssets.footerLogo : brandAssets.logo}
         alt="CometX"
-        className={footer ? "h-auto w-44" : "h-auto w-32 lg:w-36"}
+        width={382.7}
+        height={footer ? 184.3 : 127.6}
+        className="block h-auto w-full"
       />
     </Link>
   );

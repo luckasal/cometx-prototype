@@ -25,10 +25,10 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-ink-foreground/10 bg-ink/95 text-ink-foreground backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-5 lg:px-8">
+      <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-4 px-5 lg:px-8">
         <CometXLogo />
 
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-6 xl:flex">
           {NAV.map((item) => (
             <Link
               key={item.to}
@@ -43,7 +43,7 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 xl:flex">
           <button type="button" onClick={toggleLanguage} className="inline-flex items-center gap-1.5 border border-ink-foreground/25 px-2.5 py-1.5 text-xs font-bold hover:border-accent hover:text-accent" aria-label={cs ? "Switch to English" : "Přepnout do češtiny"}>
             <Languages className="size-3.5" /> {cs ? "EN" : "CZ"}
           </button>
@@ -68,7 +68,7 @@ export function SiteHeader() {
 
         <button
           type="button"
-          className="text-ink-foreground md:hidden"
+          className="text-ink-foreground xl:hidden"
           aria-label={cs ? "Otevřít menu" : "Toggle menu"}
           onClick={() => setOpen((v) => !v)}
         >
@@ -77,7 +77,7 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div className="border-t border-ink-foreground/15 bg-ink text-ink-foreground md:hidden">
+        <div className="border-t border-ink-foreground/15 bg-ink text-ink-foreground xl:hidden">
           <div className="flex flex-col px-5 py-4">
             {NAV.map((item) => (
               <Link

@@ -17,7 +17,7 @@ export function SiteFooter() {
   return (
     <footer className="mt-24 bg-ink text-ink-foreground">
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-        <div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[1.4fr_0.8fr_1.3fr_0.9fr_0.8fr] [&>div]:min-w-0">
           <div>
             <CometXLogo footer />
             <p className="mt-4 max-w-sm text-sm text-ink-foreground/65">

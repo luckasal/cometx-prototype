@@ -91,7 +91,7 @@ function Home() {
           </dl>
         </div>
       </section>
-      <div className="brush-divider" aria-hidden />
+      <div className="brand-divider" aria-hidden="true"><BrandXElement variant="fullDark" className="brand-divider-art" /></div>
 
       {isLoading && (
         <Section>

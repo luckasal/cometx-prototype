@@ -62,84 +62,73 @@
 }
 
 :root {
+  /* Brandbook pp. 45-49. Keep brand names separate from UI roles. */
+  --brand-deep-space: #212020;
+  --brand-connection-lime: #e1f03c;
+  --brand-cloud-white: #ececec;
+  --brand-night-gray: #515151;
+  --brand-bright-white: #ffffff;
+  --brand-network-violet: #8b60e6;
+  --brand-impact-orange: #ff5333;
+  --brand-electric-cyan: #54e8fa;
+  --brand-logo-clear-space: 0.5rem;
+  --brand-symbol-clear-space: 0.5rem;
   --radius: 0.1875rem;
 
   /* Official palette: Deep Space, Connection Lime and neutral support tones. */
-  --background: #212020;
-  --foreground: #ffffff;
+  --background: var(--brand-deep-space);
+  --foreground: var(--brand-bright-white);
 
   --card: #2b2a2a;
-  --card-foreground: #ffffff;
+  --card-foreground: var(--brand-bright-white);
   --popover: #2b2a2a;
-  --popover-foreground: #ffffff;
+  --popover-foreground: var(--brand-bright-white);
 
-  --ink: #212020;
-  --ink-foreground: #ffffff;
+  --ink: var(--brand-deep-space);
+  --ink-foreground: var(--brand-bright-white);
   --paper: #292828;
 
-  --primary: #e1f03c;
-  --primary-foreground: #212020;
+  --primary: var(--brand-connection-lime);
+  --primary-foreground: var(--brand-deep-space);
 
-  --secondary: #515151;
-  --secondary-foreground: #ffffff;
+  --secondary: var(--brand-night-gray);
+  --secondary-foreground: var(--brand-bright-white);
 
-  --muted: #515151;
-  --muted-foreground: #ececec;
+  --muted: var(--brand-night-gray);
+  --muted-foreground: var(--brand-cloud-white);
 
-  --accent: #e1f03c;
-  --accent-foreground: #212020;
+  --accent: var(--brand-connection-lime);
+  --accent-foreground: var(--brand-deep-space);
 
-  --mint: #54e8fa;
-  --mint-foreground: #212020;
+  --mint: var(--brand-electric-cyan);
+  --mint-foreground: var(--brand-deep-space);
 
-  --destructive: #ff5333;
-  --destructive-foreground: #212020;
-  --success: #54e8fa;
-  --success-foreground: #212020;
+  --destructive: var(--brand-impact-orange);
+  --destructive-foreground: var(--brand-deep-space);
+  --success: var(--brand-electric-cyan);
+  --success-foreground: var(--brand-deep-space);
 
   --border: rgb(236 236 236 / 18%);
   --input: rgb(236 236 236 / 24%);
-  --ring: #e1f03c;
+  --ring: var(--brand-connection-lime);
 
-  --chart-1: #e1f03c;
-  --chart-2: #54e8fa;
-  --chart-3: #8b60e6;
-  --chart-4: #ff5333;
-  --chart-5: #515151;
+  --chart-1: var(--brand-connection-lime);
+  --chart-2: var(--brand-electric-cyan);
+  --chart-3: var(--brand-network-violet);
+  --chart-4: var(--brand-impact-orange);
+  --chart-5: var(--brand-night-gray);
 
-  --sidebar: #212020;
-  --sidebar-foreground: #ececec;
-  --sidebar-primary: #e1f03c;
-  --sidebar-primary-foreground: #212020;
-  --sidebar-accent: #515151;
-  --sidebar-accent-foreground: #ffffff;
+  --sidebar: var(--brand-deep-space);
+  --sidebar-foreground: var(--brand-cloud-white);
+  --sidebar-primary: var(--brand-connection-lime);
+  --sidebar-primary-foreground: var(--brand-deep-space);
+  --sidebar-accent: var(--brand-night-gray);
+  --sidebar-accent-foreground: var(--brand-bright-white);
   --sidebar-border: rgb(236 236 236 / 18%);
-  --sidebar-ring: #e1f03c;
+  --sidebar-ring: var(--brand-connection-lime);
 }
 
-/* The CometX site is dark by default; .dark keeps the same palette. */
-.dark {
-  --background: #212020;
-  --foreground: #ffffff;
-  --card: #2b2a2a;
-  --card-foreground: #ffffff;
-  --popover: #2b2a2a;
-  --popover-foreground: #ffffff;
-  --ink: #212020;
-  --ink-foreground: #ffffff;
-  --paper: #292828;
-  --primary: #e1f03c;
-  --primary-foreground: #212020;
-  --secondary: #515151;
-  --secondary-foreground: #ffffff;
-  --muted: #515151;
-  --muted-foreground: #ececec;
-  --accent: #e1f03c;
-  --accent-foreground: #212020;
-  --border: rgb(236 236 236 / 18%);
-  --input: rgb(236 236 236 / 24%);
-  --ring: #e1f03c;
-}
+/* Dark is the default; nested .dark surfaces inherit the same brand tokens. */
 
 @layer base {
   * {
@@ -159,16 +148,50 @@
   h3,
   h4 {
     font-family: var(--font-display);
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.01em;
   }
 }
 
-/* Lime brush stroke divider, as on cometx.ch */
-@utility brush-divider {
+/* Original export margins plus padding meet the logo/X exclusion zones
+   at these supported sizes (brandbook pp. 18, 20, 22, 33 and 37). */
+.brand-logo {
+  display: block;
+  flex-shrink: 0;
+  box-sizing: content-box;
+  width: 8rem;
+  padding: var(--brand-logo-clear-space);
+}
+
+.brand-logo-footer {
+  width: 11rem;
+  --brand-logo-clear-space: 0.75rem;
+}
+
+.brand-symbol {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: var(--brand-symbol-clear-space);
+}
+
+.brand-divider {
+  position: relative;
   height: 2.25rem;
-  background-color: var(--color-accent);
-  clip-path: polygon(0 28%, 12% 8%, 27% 34%, 43% 6%, 61% 30%, 78% 8%, 92% 32%, 100% 14%, 100% 100%, 0 100%);
+  overflow: hidden;
+  background: var(--brand-connection-lime);
+}
+
+.brand-divider-art {
+  position: absolute;
+  width: max(100%, 48rem);
+  height: auto;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -25%);
+}
+
+@media (min-width: 80rem) {
+  .brand-logo:not(.brand-logo-footer) { width: 9rem; }
 }
 
 @utility eyebrow {
@@ -185,7 +208,7 @@
 
 @utility display-xl {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.005em;
   line-height: 1.05;
   font-size: clamp(2.5rem, 6vw, 4.75rem);
@@ -193,7 +216,7 @@
 
 @utility display-lg {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.01em;
   line-height: 1.12;
   font-size: clamp(1.875rem, 4vw, 3rem);
@@ -201,5 +224,6 @@
 
 @utility brand-photo {
   object-fit: cover;
-  filter: saturate(0.92) contrast(1.05);
+  /* Keep supplied photos' natural skin tones; do not impose a global filter. */
+  object-position: center;
 }

@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { BrandXElement } from "./BrandXElement";
+import { brandAssets } from "@/lib/brand-assets";
 
 export function PageHero({
   eyebrow,
@@ -54,7 +55,7 @@ export function SectionHeading({
     <div className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
       <div>
         <div className="flex items-center gap-3">
-          <img src="/brand/cometx/cometx-symbol-lime.svg" alt="" aria-hidden="true" className="size-5" />
+          <span className="brand-symbol"><img src={brandAssets.symbol} alt="" aria-hidden="true" width="28" height="28" /></span>
           {eyebrow && <p className="eyebrow text-muted-foreground">{eyebrow}</p>}
         </div>
         <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight">{title}</h2>

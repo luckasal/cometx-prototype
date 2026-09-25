@@ -18,6 +18,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { initializeAnalytics } from "@/lib/analytics";
+import { brandAssets } from "@/lib/brand-assets";
 
 function NotFoundComponent() {
   return (
@@ -94,22 +95,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "preconnect", href: "https://api.fontshare.com" },
+      { rel: "preconnect", href: "https://cdn.fontshare.com", crossOrigin: "anonymous" },
       {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap",
+        rel: "icon",
+        type: "image/svg+xml",
+        sizes: "any",
+        href: brandAssets.favicon,
       },
       {
         rel: "icon",
-        type: "image/png",
-        sizes: "32x32",
-        href: "https://static.wixstatic.com/media/41f758_6dcf92b6241641769010a6a4545a7646%7Emv2.png/v1/fill/w_32%2Ch_32%2Clg_1%2Cusm_0.66_1.00_0.01/41f758_6dcf92b6241641769010a6a4545a7646%7Emv2.png",
+        type: "image/svg+xml",
+        sizes: "any",
+        media: "(prefers-color-scheme: dark)",
+        href: brandAssets.faviconDark,
       },
       {
         rel: "apple-touch-icon",
-        sizes: "180x180",
-        href: "https://static.wixstatic.com/media/41f758_6dcf92b6241641769010a6a4545a7646%7Emv2.png/v1/fill/w_180%2Ch_180%2Clg_1%2Cusm_0.66_1.00_0.01/41f758_6dcf92b6241641769010a6a4545a7646%7Emv2.png",
+        href: brandAssets.touchIcon,
       },
     ],
   }),
