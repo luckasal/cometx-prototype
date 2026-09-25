@@ -14,13 +14,16 @@ async function admin() {
 
 export const getAdminDashboard = createServerFn({ method: "GET" }).handler(async () => {
   const db = await admin();
-  const [events, registrations, members, articles, partners, speakers] = await Promise.all([
+  const [events, registrations, members, articles, partners, speakers, contacts, payments, content] = await Promise.all([
     db.from("events").select("id", { count: "exact", head: true }),
     db.from("registrations").select("id", { count: "exact", head: true }),
     db.from("memberships").select("id", { count: "exact", head: true }).eq("status", "active"),
     db.from("articles").select("id", { count: "exact", head: true }),
     db.from("partners").select("id", { count: "exact", head: true }),
     db.from("speakers").select("id", { count: "exact", head: true }),
+    db.from("contacts").select("id", { count: "exact", head: true }),
+    db.from("payments").select("id", { count: "exact", head: true }),
+    db.from("content_entries").select("id", { count: "exact", head: true }),
   ]);
   return {
     events: events.count ?? 0,
@@ -29,6 +32,9 @@ export const getAdminDashboard = createServerFn({ method: "GET" }).handler(async
     articles: articles.count ?? 0,
     partners: partners.count ?? 0,
     speakers: speakers.count ?? 0,
+    contacts: contacts.count ?? 0,
+    payments: payments.count ?? 0,
+    content: content.count ?? 0,
   };
 });
 
@@ -37,6 +43,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" }).handler(async
 const eventSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().min(2).max(200),
+  event_type: z.string().min(2).max(80).default("event"),
   slug: z
     .string()
     .min(2)
@@ -45,6 +52,7 @@ const eventSchema = z.object({
   short_description: z.string().max(400).nullable().default(null),
   description: z.string().max(20000).nullable().default(null),
   hero_image_url: z.string().url().nullable().default(null),
+  gallery_urls: z.array(z.string().url()).default([]),
   start_date: z.string().min(1),
   end_date: z.string().nullable().default(null),
   venue: z.string().max(200).nullable().default(null),
@@ -52,10 +60,11 @@ const eventSchema = z.object({
   capacity: z.number().int().positive().nullable().default(null),
   registration_start: z.string().nullable().default(null),
   registration_end: z.string().nullable().default(null),
-  status: z.enum([
-    "draft",
-    "published",
+  publish_state: z.enum(["draft", "published", "unpublished"]),
+  event_status: z.enum([
+    "upcoming",
     "registration_open",
+    "registration_closed",
     "sold_out",
     "completed",
     "cancelled",
@@ -67,7 +76,7 @@ export const adminListEvents = createServerFn({ method: "GET" }).handler(async (
   const db = await admin();
   const { data } = await db
     .from("events")
-    .select("id,title,slug,status,start_date,capacity,featured")
+    .select("id,title,slug,event_type,publish_state,event_status,start_date,capacity,featured")
     .order("start_date", { ascending: false });
   return data ?? [];
 });
@@ -76,15 +85,17 @@ export const adminGetEvent = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => {
     const db = await admin();
-    const [{ data: event }, { data: tickets }, { data: speakers }] = await Promise.all([
+    const [{ data: event }, { data: tickets }, { data: speakers }, { data: workshops }] = await Promise.all([
       db.from("events").select("*").eq("id", data.id).maybeSingle(),
-      db.from("ticket_types").select("*").eq("event_id", data.id).order("sort_order"),
+      db.from("ticket_types").select("*").eq("event_id", data.id).eq("active", true).order("sort_order"),
       db.from("event_speakers").select("speaker_id").eq("event_id", data.id),
+      db.from("workshops").select("*").eq("event_id", data.id).order("start_time"),
     ]);
     return {
       event,
       tickets: tickets ?? [],
       speakerIds: (speakers ?? []).map((s) => s.speaker_id),
+      workshops: workshops ?? [],
     };
   });
 
@@ -95,7 +106,7 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
         event: eventSchema,
         speakerIds: z.array(z.string().uuid()).default([]),
         tickets: z
-          .array(
+        .array(
             z.object({
               id: z.string().uuid().optional(),
               name: z.string().min(1).max(160),
@@ -109,6 +120,18 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
             }),
           )
           .default([]),
+        workshops: z.array(z.object({
+          id: z.string().uuid().optional(),
+          title: z.string().min(1).max(240),
+          description: z.string().max(5000).nullable().default(null),
+          speaker_id: z.string().uuid().nullable().default(null),
+          start_time: z.string().nullable().default(null),
+          end_time: z.string().nullable().default(null),
+          location: z.string().max(240).nullable().default(null),
+          capacity: z.number().int().positive().nullable().default(null),
+          base_price: z.number().min(0).default(0),
+          separate_registration_required: z.boolean().default(false),
+        })).default([]),
       })
       .parse(d),
   )
@@ -133,11 +156,32 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
         .insert(data.speakerIds.map((sid, i) => ({ event_id: saved.id, speaker_id: sid, sort_order: i }))));
     }
 
+    const { data: existingTickets } = await db.from("ticket_types").select("id").eq("event_id", saved.id);
+    const submittedTicketIds = new Set(data.tickets.flatMap((ticket) => ticket.id ? [ticket.id] : []));
+    for (const ticket of existingTickets ?? []) {
+      if (!submittedTicketIds.has(ticket.id)) {
+        assertDatabaseResult(await db.from("ticket_types").update({ active: false }).eq("id", ticket.id));
+      }
+    }
     for (const [index, ticket] of data.tickets.entries()) {
       const { id: ticketId, ...ticketFields } = ticket;
-      const payload = { ...ticketFields, event_id: saved.id, sort_order: index };
+      const payload = { ...ticketFields, event_id: saved.id, sort_order: index, active: true };
       if (ticketId) assertDatabaseResult(await db.from("ticket_types").update(payload).eq("id", ticketId).eq("event_id", saved.id));
       else assertDatabaseResult(await db.from("ticket_types").insert(payload));
+    }
+
+    const { data: existingWorkshops } = await db.from("workshops").select("id").eq("event_id", saved.id);
+    const submittedWorkshopIds = new Set(data.workshops.flatMap((workshop) => workshop.id ? [workshop.id] : []));
+    for (const workshop of existingWorkshops ?? []) {
+      if (!submittedWorkshopIds.has(workshop.id)) {
+        assertDatabaseResult(await db.from("workshops").delete().eq("id", workshop.id));
+      }
+    }
+    for (const workshop of data.workshops) {
+      const { id: workshopId, ...workshopFields } = workshop;
+      const payload = { ...workshopFields, event_id: saved.id };
+      if (workshopId) assertDatabaseResult(await db.from("workshops").update(payload).eq("id", workshopId).eq("event_id", saved.id));
+      else assertDatabaseResult(await db.from("workshops").insert(payload));
     }
 
     return { id: saved.id, slug: saved.slug };
@@ -147,6 +191,13 @@ export const adminDeleteEvent = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => {
     const db = await admin();
+    const { count, error: registrationsError } = await db
+      .from("registrations")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", data.id);
+    if (registrationsError) throw new Error(registrationsError.message);
+    if ((count ?? 0) > 0)
+      throw new Error("Events with registrations cannot be deleted. Unpublish or cancel the event instead.");
     const { error } = await db.from("events").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -367,3 +418,141 @@ export const adminListEntitlements = createServerFn({ method: "GET" }).handler(a
   const { data } = await db.from("entitlements").select("key,name").order("key");
   return data ?? [];
 });
+
+const partnerSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(2).max(200),
+  tier: z.string().max(100).nullable().default(null),
+  website_url: z.string().url().nullable().default(null),
+  logo_url: z.string().url().nullable().default(null),
+  description: z.string().max(3000).nullable().default(null),
+  active: z.boolean().default(true),
+});
+
+export const adminSavePartner = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => partnerSchema.parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin();
+    const { id, ...fields } = data;
+    const { error } = id ? await db.from("partners").update(fields).eq("id", id) : await db.from("partners").insert(fields);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminDeletePartner = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => idSchema.parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin();
+    const { error } = await db.from("partners").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminListMemberOptions = createServerFn({ method: "GET" }).handler(async () => {
+  const db = await admin();
+  const { data, error } = await db.from("profiles").select("id,first_name,last_name,email").order("email").limit(500);
+  if (error) throw new Error(error.message);
+  return data ?? [];
+});
+
+export const getAdminIntegrationStatus = createServerFn({ method: "GET" }).handler(async () => ({
+  resend: Boolean(process.env["RESEND_API_KEY"]),
+  stripe: Boolean(process.env["STRIPE_SECRET_KEY"]),
+  stripeWebhook: Boolean(process.env["STRIPE_WEBHOOK_SECRET"]),
+  gaMeasurementId: Boolean(process.env["VITE_GA_MEASUREMENT_ID"]),
+  gtmContainerId: Boolean(process.env["VITE_GTM_CONTAINER_ID"]),
+}));
+
+/* ---------------------- contacts, newsletter and payments --------------------- */
+
+const contactSchema = z.object({
+  id: z.string().uuid().optional(),
+  email: z.string().email().max(320),
+  first_name: z.string().max(120).nullable().default(null),
+  last_name: z.string().max(120).nullable().default(null),
+  phone: z.string().max(80).nullable().default(null),
+  company: z.string().max(160).nullable().default(null),
+  source: z.string().min(2).max(80).default("manual"),
+  newsletter_status: z.enum(["subscribed", "unsubscribed", "pending"]),
+  member_id: z.string().uuid().nullable().default(null),
+  notes: z.string().max(5000).nullable().default(null),
+});
+
+export const adminListContacts = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => z.object({ query: z.string().max(160).default(""), status: z.enum(["all", "subscribed", "unsubscribed", "pending"]).default("all") }).parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin();
+    let request = db.from("contacts").select("*").order("created_at", { ascending: false }).limit(500);
+    if (data.status !== "all") request = request.eq("newsletter_status", data.status);
+    if (data.query.trim()) {
+      const term = data.query.trim().replace(/[,%()]/g, "");
+      request = request.or(`email.ilike.%${term}%,first_name.ilike.%${term}%,last_name.ilike.%${term}%,company.ilike.%${term}%`);
+    }
+    const { data: contacts, error } = await request;
+    if (error) throw new Error(error.message);
+    return contacts ?? [];
+  });
+
+export const adminSaveContact = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => contactSchema.parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin();
+    const { id, ...fields } = data;
+    const payload = {
+      ...fields,
+      email: fields.email.trim().toLowerCase(),
+      ...(fields.newsletter_status === "subscribed" ? { consent_at: new Date().toISOString() } : {}),
+    };
+    const { error } = id ? await db.from("contacts").update(payload).eq("id", id) : await db.from("contacts").insert(payload);
+    if (error) throw new Error(error.code === "23505" ? "A contact with this email already exists." : error.message);
+    return { ok: true };
+  });
+
+export const adminListPayments = createServerFn({ method: "GET" }).handler(async () => {
+  const db = await admin();
+  const { data, error } = await db.from("payments").select("id,user_id,registration_id,membership_id,amount,currency,status,invoice_url,receipt_url,stripe_checkout_session_id,created_at").order("created_at", { ascending: false }).limit(300);
+  if (error) throw new Error(error.message);
+  return data ?? [];
+});
+
+/* ------------------------------ structured content ---------------------------- */
+
+const contentSchema = z.object({
+  id: z.string().uuid().optional(),
+  content_type: z.enum(["video", "gallery", "opinion", "open_position", "symposium"]),
+  title: z.string().min(2).max(240),
+  slug: z.string().min(2).max(240).regex(/^[a-z0-9-]+$/),
+  summary: z.string().max(600).nullable().default(null),
+  body: z.string().max(60000).nullable().default(null),
+  hero_image_url: z.string().url().nullable().default(null),
+  media_urls: z.array(z.string().url()).default([]),
+  status: z.enum(["draft", "published"]),
+  published_at: z.string().nullable().default(null),
+});
+
+export const adminListContent = createServerFn({ method: "GET" }).handler(async () => {
+  const db = await admin();
+  const { data, error } = await db.from("content_entries").select("*").order("updated_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+});
+
+export const adminSaveContent = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => contentSchema.parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin();
+    const { id, ...fields } = data;
+    const payload = { ...fields, published_at: fields.status === "published" ? (fields.published_at ?? new Date().toISOString()) : null };
+    const { error } = id ? await db.from("content_entries").update(payload).eq("id", id) : await db.from("content_entries").insert(payload);
+    if (error) throw new Error(error.code === "23505" ? "Content with this slug already exists." : error.message);
+    return { ok: true };
+  });
+
+export const adminDeleteContent = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => idSchema.parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin();
+    const { error } = await db.from("content_entries").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

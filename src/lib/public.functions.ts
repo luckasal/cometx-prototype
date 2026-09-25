@@ -1,4 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+
+export const subscribeNewsletter = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ email: z.string().email().max(320), firstName: z.string().max(120).optional() }).parse(data))
+  .handler(async ({ data }) => {
+    const { getPublicClient } = await import("./database.server");
+    const { error } = await getPublicClient().rpc("subscribe_newsletter", { p_email: data.email, p_first_name: data.firstName ?? null });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
 
 export const getHomeData = createServerFn({ method: "GET" }).handler(async () => {
   const { getPublicClient, assertDatabaseResult } = await import("./database.server");
@@ -8,16 +18,18 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
   const [events, featured, articles, partners, plans] = await Promise.all([
     supabaseAdmin
       .from("events")
-      .select("title,slug,short_description,hero_image_url,start_date,venue,status,featured")
-      .in("status", ["published", "registration_open", "sold_out"])
+      .select("title,slug,short_description,hero_image_url,start_date,venue,event_status,featured")
+      .eq("publish_state", "published")
+      .in("event_status", ["upcoming", "registration_open", "registration_closed", "sold_out"])
       .gte("start_date", nowIso)
       .order("start_date")
       .limit(3),
     supabaseAdmin
       .from("events")
-      .select("title,slug,short_description,description,hero_image_url,start_date,venue,status")
+      .select("title,slug,short_description,description,hero_image_url,start_date,venue,event_status")
       .eq("featured", true)
-      .in("status", ["published", "registration_open", "sold_out", "completed"])
+      .eq("publish_state", "published")
+      .in("event_status", ["upcoming", "registration_open", "registration_closed", "sold_out", "completed", "cancelled"])
       .order("start_date", { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -37,8 +49,8 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
 
   [events, featured, articles, partners, plans].forEach(assertDatabaseResult);
   return {
-    upcoming: events.data ?? [],
-    featured: featured.data ?? null,
+    upcoming: (events.data ?? []).map((event) => ({ ...event, status: event.event_status })),
+    featured: featured.data ? { ...featured.data, status: featured.data.event_status } : null,
     articles: articles.data ?? [],
     partners: partners.data ?? [],
     plans: plans.data ?? [],
@@ -50,20 +62,22 @@ export const listEvents = createServerFn({ method: "GET" }).handler(async () => 
   const { data, error } = await getPublicClient()
     .from("events")
     .select(
-      "title,slug,short_description,hero_image_url,start_date,venue,status,featured,capacity",
+      "title,slug,short_description,hero_image_url,start_date,venue,event_status,featured,capacity",
     )
-    .in("status", ["published", "registration_open", "sold_out", "completed"])
+    .eq("publish_state", "published")
     .order("start_date", { ascending: false });
 
   assertDatabaseResult({ error });
   const now = Date.now();
-  const all = data ?? [];
+  const all = (data ?? []).map((event) => ({ ...event, status: event.event_status }));
+  const featured = all.filter((event) => event.featured);
+  const standardEvents = all.filter((event) => !event.featured);
   return {
-    upcoming: all
-      .filter((e) => new Date(e.start_date).getTime() >= now && e.status !== "completed")
+    upcoming: standardEvents
+      .filter((e) => new Date(e.start_date).getTime() >= now && !["completed", "cancelled"].includes(e.event_status))
       .sort((a, b) => +new Date(a.start_date) - +new Date(b.start_date)),
-    past: all.filter((e) => new Date(e.start_date).getTime() < now || e.status === "completed"),
-    featured: all.filter((e) => e.featured),
+    past: standardEvents.filter((e) => new Date(e.start_date).getTime() < now || ["completed", "cancelled"].includes(e.event_status)),
+    featured,
   };
 });
 

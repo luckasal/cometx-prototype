@@ -94,7 +94,8 @@ export const getAccountOverview = createServerFn({ method: "GET" }).handler(
       supabaseAdmin
         .from("events")
         .select("title,slug,start_date")
-        .in("status", ["published", "registration_open"])
+        .eq("publish_state", "published")
+        .in("event_status", ["upcoming", "registration_open", "registration_closed", "sold_out"])
         .gte("start_date", new Date().toISOString())
         .order("start_date")
         .limit(4),
@@ -182,12 +183,15 @@ export const updateMyProfile = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Stakeholder prototype: persist plan selection without collecting payment. */
+/** Temporary guarded path for controlled preview environments only. */
 export const selectPrototypeMembership = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ planSlug: z.string().min(1).max(80) }).parse(data))
   .handler(async ({ data }) => {
     const { requireUser } = await import("./auth.server");
     await requireUser();
+    if (process.env["ALLOW_UNPAID_PROTOTYPE_MEMBERSHIP"] !== "true") {
+      throw new Error("Online membership checkout is not available yet.");
+    }
     const { getReadClient } = await import("./database.server");
     const { error } = await getReadClient().rpc("select_prototype_membership", { p_plan_slug: data.planSlug });
     if (error) throw new Error(error.code === "P0001" ? error.message : "Could not save your membership.");

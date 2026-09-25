@@ -26,9 +26,11 @@ export type EventDetail = {
     id: string;
     title: string;
     slug: string;
+    eventType: string;
     shortDescription: string | null;
     description: string | null;
     heroImageUrl: string | null;
+    galleryUrls: string[];
     startDate: string;
     endDate: string | null;
     venue: string | null;
@@ -95,7 +97,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
           .then((r) => r.data))
       : false;
 
-    if (!["published", "registration_open", "sold_out", "completed"].includes(event.status) && !isAdminViewer) return null;
+    if (event.publish_state !== "published" && !isAdminViewer) return null;
 
     const [speakersRes, workshopsRes, partnersRes, ticketsRes, regsRes] = await Promise.all([
       supabaseAdmin
@@ -148,7 +150,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
           entitlements,
         ),
         spotsLeft,
-        soldOut: event.status === "sold_out" || (spotsLeft !== null && spotsLeft === 0),
+        soldOut: event.event_status === "sold_out" || (spotsLeft !== null && spotsLeft === 0),
       };
     });
 
@@ -159,15 +161,17 @@ export const getEventDetail = createServerFn({ method: "GET" })
         id: event.id,
         title: event.title,
         slug: event.slug,
+        eventType: event.event_type,
         shortDescription: event.short_description,
         description: event.description,
         heroImageUrl: event.hero_image_url,
+        galleryUrls: Array.isArray(event.gallery_urls) ? event.gallery_urls.filter((url): url is string => typeof url === "string") : [],
         startDate: event.start_date,
         endDate: event.end_date,
         venue: event.venue,
         address: event.address,
         capacity: event.capacity,
-        status: event.status,
+        status: event.event_status,
         featured: event.featured,
       },
       speakers: (speakersRes.data ?? [])
@@ -197,7 +201,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
         .map((p) => ({ id: p!.id, name: p!.name, tier: p!.tier, websiteUrl: p!.website_url })),
       tickets,
       registrationOpen: isRegistrationOpen({
-        status: event.status,
+        status: event.event_status,
         registrationStart: event.registration_start,
         registrationEnd: event.registration_end,
       }),
