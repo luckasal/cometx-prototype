@@ -82,11 +82,32 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
       : "My registration"
     : open && tickets.length
       ? cs
-        ? "Registrovat se"
-        : "Get a ticket"
+        ? "Vybrat vstupenku"
+        : "Choose a ticket"
       : cs
         ? "Informace o vstupenkách"
         : "Ticket information";
+  const ticketAction = (icon?: ReactNode) =>
+    data.myRegistration ? (
+      <Link to="/account/events">
+        {ticketCta}
+        {icon && <ArrowRight className="size-4" />}
+      </Link>
+    ) : (
+      <a
+        href="#event-ticket-options"
+        onClick={(e) => {
+          const target = document.getElementById("event-ticket-options");
+          if (!target) return;
+          e.preventDefault();
+          target.focus({ preventScroll: true });
+          target.scrollIntoView({ block: "center", behavior: "instant" });
+        }}
+      >
+        {ticketCta}
+        {icon}
+      </a>
+    );
   const portrait = speakers.find((s) => s.photoUrl);
   const heroImage = event.heroImageUrl || portrait?.photoUrl;
   const content = splitEventContent(event.description);
@@ -191,10 +212,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                 </p>
               )}
               <Button asChild variant="signal" size="lg" className="mt-9 rounded-full px-8">
-                <a href="#event-tickets">
-                  {ticketCta}
-                  <ArrowDown className="size-4" />
-                </a>
+                {ticketAction(<ArrowDown className="size-4" />)}
               </Button>
               {heroImage && (
                 <figure className="mt-12 overflow-hidden rounded-[2rem] bg-paper">
@@ -275,7 +293,12 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                     </Info>
                   )}
               </dl>
-              <div className="mt-9 rounded-3xl bg-background/40 p-5">
+              <div
+                id="event-ticket-options"
+                tabIndex={-1}
+                aria-label={cs ? "Výběr vstupenky" : "Ticket options"}
+                className="mt-9 scroll-mt-28 rounded-3xl bg-background/40 p-5 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-4 focus:ring-offset-card"
+              >
                 <h3 className="text-lg font-bold">{cs ? "Vstupenky" : "Tickets"}</h3>
                 {data.membershipName && (
                   <p className="mt-2 text-sm text-muted-foreground">
@@ -552,10 +575,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                   variant="signal"
                   className="mt-7 rounded-full bg-ink px-7 text-ink-foreground hover:bg-ink/90"
                 >
-                  <a href="#event-tickets">
-                    {ticketCta}
-                    <ArrowRight className="size-4" />
-                  </a>
+                  {ticketAction(<ArrowRight className="size-4" />)}
                 </Button>
               </div>
             )}
@@ -573,7 +593,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
           )}
         </div>
         <Button asChild variant="signal" size="sm" className="shrink-0">
-          <a href="#event-tickets">{ticketCta}</a>
+          {ticketAction()}
         </Button>
       </div>
     </article>

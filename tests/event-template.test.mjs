@@ -102,6 +102,23 @@ test("absent optional data stays hidden; no invented speakers or prices", () => 
   assert.match(html, /No tickets are available yet/);
   assert.doesNotMatch(html, /Meet the speakers|Programme|About this event|Regular price/);
 });
+test("registered visitors go to account registrations instead of a same-page jump", () => {
+  const html = render({
+    ...base,
+    tickets: [ticket],
+    myRegistration: { id: "registration", status: "confirmed", pricePaid: 0, currency: "CHF" },
+  });
+  assert.doesNotMatch(html, /href="#event-ticket-options"/);
+  assert.match(html, /to="\/account\/events"/);
+  assert.match(html, /My registration/);
+});
+test("ticket shortcuts identify and focus the actual booking options", () => {
+  const html = render({ ...base, tickets: [ticket] });
+  assert.match(html, /Choose a ticket/);
+  assert.match(html, /href="#event-ticket-options"/);
+  assert.match(html, /id="event-ticket-options" tabindex="-1"/);
+  assert.doesNotMatch(html, /Get a ticket/);
+});
 test("ticket card renders all ticket types and server-calculated member price", () => {
   const html = render({
     ...base,

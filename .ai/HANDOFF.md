@@ -15,6 +15,12 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## Setup note
 
+## Event CTA correction
+
+- Codex on `codex-dev`, following `1ec8ca6`: all My registration shortcuts now navigate to `/account/events` rather than the same-page ticket anchor. Unregistered visitors see Choose a ticket; clicking scrolls to and focuses/highlights the actual ticket options, including repeated clicks.
+- Preview remains non-bookable; registration/payment logic and database unchanged. Added regression coverage for registered navigation and ticket targets. Typecheck and template tests pass; deployment verification reported in the task.
+- Review: keyboard focus, sticky desktop/mobile ticket panel, account navigation. No main merge.
+
 ## 2026-09-25: official workshop content sync
 
 - Last agent: Codex; branch: `codex-dev`; follows `ed8620b`.
