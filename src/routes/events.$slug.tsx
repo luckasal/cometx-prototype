@@ -195,7 +195,7 @@ function EventDetailPage() {
               <button
                 type="button"
                 onClick={toggleLanguage}
-                className="inline-flex items-center gap-2 border border-ink-foreground/30 px-4 py-2 text-sm font-semibold hover:bg-ink-foreground/10"
+                className="inline-flex items-center gap-2 rounded-full border border-ink-foreground/30 px-4 py-2 text-sm font-semibold hover:bg-ink-foreground/10"
               >
                 <Languages className="size-4" /> {cs ? "English" : "Česky"}
               </button>
@@ -217,20 +217,20 @@ function EventDetailPage() {
           <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div><p className="eyebrow text-signal">{cs ? "Ohlédnutí" : "The experience"}</p><h2 className="display-lg mt-3">{copy.recap}</h2><p className="mt-6 text-lg leading-relaxed text-muted-foreground">{copy.recapText}</p></div>
             <div className="grid gap-4 sm:grid-cols-2">
-              {copy.programme.map(([title, description]) => <div key={title} className="border border-border bg-card p-6"><Sparkles className="size-5 text-signal" /><h3 className="mt-5 font-display text-xl font-bold">{title}</h3><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p></div>)}
+              {copy.programme.map(([title, description]) => <div key={title} className="rounded-2xl border border-border/60 bg-card p-6"><Sparkles className="size-5 text-signal" /><h3 className="mt-5 font-display text-xl font-bold">{title}</h3><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p></div>)}
             </div>
           </div>
-          <a href="https://www.cometx.ch/_files/ugd/41f758_e0c14abc95f14c25a35f71d07293165f.pdf" target="_blank" rel="noreferrer noopener" className="mt-8 inline-flex border border-ink px-5 py-3 text-sm font-bold hover:bg-ink hover:text-ink-foreground">{copy.programmePdf}</a>
+          <a href="https://www.cometx.ch/_files/ugd/41f758_e0c14abc95f14c25a35f71d07293165f.pdf" target="_blank" rel="noreferrer noopener" className="mt-8 inline-flex rounded-full border border-ink px-5 py-3 text-sm font-bold hover:bg-ink hover:text-ink-foreground">{copy.programmePdf}</a>
 
-          {speakers.length > 0 && <div className="mt-20"><SectionHeading eyebrow={cs ? "Na pódiu" : "On stage"} title={copy.speakers} /><div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{speakers.map((s) => <article key={s.id} className="group border border-border bg-card"><div className="aspect-square overflow-hidden bg-muted">{s.photoUrl && <img src={s.photoUrl} alt={s.name} className="size-full object-cover grayscale transition duration-300 group-hover:grayscale-0" loading="lazy" />}</div><div className="p-4"><h3 className="font-display text-lg font-bold">{s.name}</h3><p className="mt-1 text-xs text-muted-foreground">{s.jobTitle}{s.company ? ` · ${s.company}` : ""}</p></div></article>)}</div></div>}
+          {speakers.length > 0 && <div className="mt-20"><SectionHeading eyebrow={cs ? "Na pódiu" : "On stage"} title={copy.speakers} /><div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{speakers.map((s) => <article key={s.id} className="group overflow-hidden rounded-2xl border border-border/60 bg-card"><div className="aspect-square overflow-hidden bg-muted">{s.photoUrl && <img src={s.photoUrl} alt={s.name} className="size-full object-cover grayscale transition duration-300 group-hover:grayscale-0" loading="lazy" />}</div><div className="p-4"><h3 className="font-display text-lg font-bold">{s.name}</h3><p className="mt-1 text-xs text-muted-foreground">{s.jobTitle}{s.company ? ` · ${s.company}` : ""}</p></div></article>)}</div></div>}
 
-          {workshops.length > 0 && <div className="mt-20"><SectionHeading eyebrow={cs ? "Prakticky" : "Hands-on"} title={copy.workshops} /><div className="grid gap-4 lg:grid-cols-2">{workshops.map((w, index) => <article key={w.id} className="flex gap-5 border border-border p-6"><span className="font-display text-3xl font-extrabold text-accent">{String(index + 1).padStart(2, "0")}</span><div><h3 className="font-display text-lg font-bold">{w.title}</h3><p className="mt-2 text-sm text-muted-foreground">{w.description}</p><p className="mt-3 text-xs font-semibold uppercase tracking-wider">{w.speakerName}</p></div></article>)}</div></div>}
+          {workshops.length > 0 && <div className="mt-20"><SectionHeading eyebrow={cs ? "Prakticky" : "Hands-on"} title={copy.workshops} /><div className="grid gap-4 lg:grid-cols-2">{workshops.map((w, index) => <article key={w.id} className="flex gap-5 rounded-2xl border border-border/60 p-6"><span className="font-display text-3xl font-extrabold text-accent">{String(index + 1).padStart(2, "0")}</span><div><h3 className="font-display text-lg font-bold">{w.title}</h3><p className="mt-2 text-sm text-muted-foreground">{w.description}</p><p className="mt-3 text-xs font-semibold uppercase tracking-wider">{w.speakerName}</p></div></article>)}</div></div>}
         </Section>
 
         <section className="bg-muted/50">
           <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-[1fr_0.8fr] lg:px-8">
-            <div><SectionHeading eyebrow={cs ? "Archiv akce" : "Event archive"} title={copy.tickets} /><p className="max-w-2xl text-sm text-muted-foreground">{copy.ticketNote}</p><div className="mt-8 grid gap-4">{copy.ticketTypes.map(([name, description]) => <div key={name} className="border border-border bg-background p-5"><p className="font-display text-lg font-bold">{name}</p><p className="mt-1 text-sm text-muted-foreground">{description}</p></div>)}</div></div>
-            <aside className="border border-ink bg-ink p-8 text-ink-foreground lg:self-start"><p className="eyebrow text-accent">CometX 2027</p><h2 className="mt-3 font-display text-3xl font-extrabold">{copy.next}</h2><p className="mt-4 text-sm leading-relaxed text-ink-foreground/70">{copy.nextText}</p><div className="mt-8 grid gap-3"><Button asChild variant="signal"><Link to="/membership">{copy.membership}<ArrowRight className="size-4" /></Link></Button><Button asChild variant="outlineInk" className="border-ink-foreground/40 text-ink-foreground hover:bg-ink-foreground/10"><Link to="/events">{copy.events}</Link></Button></div></aside>
+            <div><SectionHeading eyebrow={cs ? "Archiv akce" : "Event archive"} title={copy.tickets} /><p className="max-w-2xl text-sm text-muted-foreground">{copy.ticketNote}</p><div className="mt-8 grid gap-4">{copy.ticketTypes.map(([name, description]) => <div key={name} className="rounded-2xl border border-border/60 bg-background p-5"><p className="font-display text-lg font-bold">{name}</p><p className="mt-1 text-sm text-muted-foreground">{description}</p></div>)}</div></div>
+            <aside className="rounded-3xl bg-ink p-8 text-ink-foreground lg:self-start"><p className="eyebrow text-accent">CometX 2027</p><h2 className="mt-3 font-display text-3xl font-extrabold">{copy.next}</h2><p className="mt-4 text-sm leading-relaxed text-ink-foreground/70">{copy.nextText}</p><div className="mt-8 grid gap-3"><Button asChild variant="signal"><Link to="/membership">{copy.membership}<ArrowRight className="size-4" /></Link></Button><Button asChild variant="outlineInk" className="border-ink-foreground/40 text-ink-foreground hover:bg-ink-foreground/10"><Link to="/events">{copy.events}</Link></Button></div></aside>
           </div>
         </section>
 
@@ -244,14 +244,14 @@ function EventDetailPage() {
                   ["Silver", cs ? "1 vstup zdarma · logo na materiálech · sociální sítě · networking · distribuce materiálů" : "1 free entry · logo on materials · social visibility · networking · material distribution"],
                   ["Golden", cs ? "2 vstupy zdarma · Silver balíček · roll-up · 5minutový vstup nebo networkingový stůl" : "2 free entries · Silver package · roll-up display · 5-minute talk or networking table"],
                   ["Diamond", cs ? "3 vstupy zdarma · Golden balíček · 15minutová přednáška · networkingový stůl" : "3 free entries · Golden package · 15-minute talk · networking table"],
-                ].map(([name, details]) => <article key={name} className="border border-border p-5"><h3 className="font-display text-xl font-bold">{name}</h3><p className="mt-2 text-sm text-muted-foreground">{details}</p></article>)}
+                ].map(([name, details]) => <article key={name} className="rounded-2xl border border-border/60 p-5"><h3 className="font-display text-xl font-bold">{name}</h3><p className="mt-2 text-sm text-muted-foreground">{details}</p></article>)}
               </div>
               <p className="mt-6 text-sm"><a href="mailto:adam.pruska@cometx.ch" className="underline underline-offset-4">adam.pruska@cometx.ch</a>{" · "}<a href="mailto:michaela.dohnalkova@cometx.ch" className="underline underline-offset-4">michaela.dohnalkova@cometx.ch</a></p>
             </div>
             <div>
               <SectionHeading eyebrow={cs ? "Archiv" : "Archive"} title={copy.previous} />
               <div className="grid grid-cols-2 gap-3">
-                {[["2025", "https://www.cometx.ch/symposium-2025"], ["2024", "https://www.cometx.ch/symposium-2024"], ["2023", "https://www.cometx.ch/symposium-2023"], ["2022", "https://www.cometx.ch/symposium-2022"]].map(([year, href]) => <a key={year} href={href} target="_blank" rel="noreferrer noopener" className="border border-border p-5 font-display text-2xl font-extrabold hover:bg-paper">{year}</a>)}
+                {[["2025", "https://www.cometx.ch/symposium-2025"], ["2024", "https://www.cometx.ch/symposium-2024"], ["2023", "https://www.cometx.ch/symposium-2023"], ["2022", "https://www.cometx.ch/symposium-2022"]].map(([year, href]) => <a key={year} href={href} target="_blank" rel="noreferrer noopener" className="rounded-2xl border border-border/60 p-5 font-display text-2xl font-extrabold hover:bg-paper">{year}</a>)}
               </div>
               <a href="https://www.cometx.ch/gallery" target="_blank" rel="noreferrer noopener" className="mt-4 inline-flex text-sm underline underline-offset-4">{cs ? "Fotografie a videa z akcí" : "Event photos and videos"}</a>
             </div>

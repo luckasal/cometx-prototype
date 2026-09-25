@@ -44,8 +44,8 @@ export function SiteFooter() {
             <h4 className="eyebrow text-ink-foreground/45">{cs ? "Newsletter" : "Newsletter"}</h4>
             <p className="mt-4 text-sm text-ink-foreground/65">{cs ? "Novinky o akcích a komunitě, přímo do schránky." : "Event and community news, straight to your inbox."}</p>
             <form className="mt-4 flex gap-2" onSubmit={(event) => { event.preventDefault(); signup.mutate(); }}>
-              <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="min-w-0 flex-1 border border-ink-foreground/30 bg-transparent px-3 py-2 text-sm text-ink-foreground placeholder:text-ink-foreground/35" />
-              <button disabled={signup.isPending} className="bg-accent px-3 py-2 text-xs font-bold text-accent-foreground">{signup.isPending ? "…" : (cs ? "Odebírat" : "Subscribe")}</button>
+              <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="min-w-0 flex-1 rounded-full border border-ink-foreground/30 bg-transparent px-3 py-2 text-sm text-ink-foreground placeholder:text-ink-foreground/35" />
+              <button disabled={signup.isPending} className="rounded-full bg-accent px-3 py-2 text-xs font-bold text-accent-foreground">{signup.isPending ? "…" : (cs ? "Odebírat" : "Subscribe")}</button>
             </form>
           </div>
           <FooterColumn

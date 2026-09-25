@@ -89,8 +89,8 @@ function MembershipPage() {
                 key={plan.slug}
                 className={
                   index === 1
-                    ? "flex flex-col border-2 border-ink bg-card p-8"
-                    : "flex flex-col border border-border bg-card p-8"
+                    ? "flex flex-col rounded-3xl border-2 border-accent/50 bg-card p-8"
+                    : "flex flex-col rounded-3xl border border-border/60 bg-card p-8"
                 }
               >
                 {index === 1 && <p className="eyebrow mb-3 text-accent-foreground">{cs ? "Nejčastější volba" : "Most chosen"}</p>}

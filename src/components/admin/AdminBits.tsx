@@ -34,7 +34,7 @@ export function AdminTable({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-x-auto border border-border bg-card">
+    <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card">
       <table className="w-full min-w-[640px] text-sm">
         <thead className="bg-paper text-left">
           <tr>

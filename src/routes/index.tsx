@@ -109,7 +109,7 @@ function Home() {
           {/* FEATURED SYMPOSIUM */}
           {data.featured && (
             <Section>
-              <div className="grid gap-10 border border-border bg-card lg:grid-cols-2">
+              <div className="grid gap-10 overflow-hidden rounded-2xl border border-border/60 bg-card lg:grid-cols-2">
                 <div className="min-h-[320px] bg-muted">
                   {data.featured.hero_image_url && (
                     <img
@@ -198,7 +198,7 @@ function Home() {
             <SectionHeading eyebrow={cs ? "Členství" : "Membership"} title={cs ? "Tři možnosti, jak být součástí" : "Three ways to be part of it"} />
             <div className="grid gap-6 md:grid-cols-3">
               {data.plans.map((plan) => (
-                <div key={plan.slug} className="flex flex-col border border-border p-8">
+                <div key={plan.slug} className="flex flex-col rounded-3xl border border-border/60 p-8">
                   <h3 className="font-display text-2xl font-extrabold">{plan.name}</h3>
                   <p className="mt-3 flex-1 text-sm text-muted-foreground">{plan.description}</p>
                   <p className="mt-6 font-display text-xl font-bold">
@@ -232,7 +232,7 @@ function Home() {
                   key={article.slug}
                   to="/community/articles/$slug"
                   params={{ slug: article.slug }}
-                  className="group border border-border bg-card"
+                  className="group overflow-hidden rounded-2xl border border-border/60 bg-card"
                 >
                   <div className="aspect-[16/9] overflow-hidden bg-muted">
                     {article.hero_image_url && (

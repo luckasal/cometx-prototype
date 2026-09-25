@@ -38,7 +38,7 @@ function AccountEventsPage() {
         />
       )}
       {data && data.registrations.length > 0 && (
-        <div className="overflow-x-auto border border-border">
+        <div className="overflow-x-auto rounded-2xl border border-border/60">
           <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-paper text-left">
               <tr className="[&>th]:px-5 [&>th]:py-3 [&>th]:text-xs [&>th]:uppercase [&>th]:tracking-widest [&>th]:text-muted-foreground">

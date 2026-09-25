@@ -53,9 +53,9 @@ function PartnersPage() {
         {error && <ErrorBlock error={error} />}
         {data && data.length === 0 && <EmptyBlock title={cs ? "Zatím nejsou uvedeni žádní partneři" : "No partners listed yet"} />}
         {data && data.length > 0 && (
-          <div className="grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {data.map((partner) => (
-              <div key={partner.id} className="flex flex-col bg-card p-8">
+              <div key={partner.id} className="flex flex-col rounded-3xl bg-card p-8">
                 {partner.logo_url && (
                   <div className="mb-6 flex h-32 items-center justify-center rounded-lg bg-white p-4">
                     <img src={partner.logo_url} alt={`${partner.name} logo`} className="max-h-full max-w-full object-contain" />

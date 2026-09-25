@@ -44,7 +44,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 xl:flex">
-          <button type="button" onClick={toggleLanguage} className="inline-flex items-center gap-1.5 border border-ink-foreground/25 px-2.5 py-1.5 text-xs font-bold hover:border-accent hover:text-accent" aria-label={cs ? "Switch to English" : "Přepnout do češtiny"}>
+          <button type="button" onClick={toggleLanguage} className="inline-flex items-center gap-1.5 rounded-full border border-ink-foreground/25 px-2.5 py-1.5 text-xs font-bold hover:border-accent hover:text-accent" aria-label={cs ? "Switch to English" : "Přepnout do češtiny"}>
             <Languages className="size-3.5" /> {cs ? "EN" : "CZ"}
           </button>
           {!loading && user ? (

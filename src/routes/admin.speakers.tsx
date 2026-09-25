@@ -130,7 +130,7 @@ function AdminSpeakersPage() {
         </div>
 
         <form
-          className="space-y-5 border border-border bg-card p-6"
+          className="space-y-5 rounded-2xl border border-border/60 bg-card p-6"
           onSubmit={(e) => {
             e.preventDefault();
             if (!form.name.trim() || !form.slug.trim()) {

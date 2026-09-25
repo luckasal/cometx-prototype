@@ -73,7 +73,7 @@ function ArticlePage() {
 
       {article.heroImageUrl && (
         <div className="mx-auto mt-10 max-w-5xl px-5">
-          <img src={article.heroImageUrl} alt={article.title} className="w-full object-cover" />
+          <img src={article.heroImageUrl} alt={article.title} className="w-full rounded-3xl object-cover" />
         </div>
       )}
 
@@ -83,7 +83,7 @@ function ArticlePage() {
         {locked && (
           <>
             <div className="pointer-events-none absolute inset-x-0 bottom-32 h-40 bg-gradient-to-b from-transparent to-background" />
-            <div className="relative mt-10 border border-ink bg-paper p-8 text-center">
+            <div className="relative mt-10 rounded-2xl border border-border/60 bg-paper p-8 text-center">
               <Lock className="mx-auto size-5" />
               <h2 className="mt-4 font-display text-2xl font-extrabold">{lockReason}</h2>
               <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">

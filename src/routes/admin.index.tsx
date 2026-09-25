@@ -30,7 +30,7 @@ function AdminDashboard() {
       {isLoading && <LoadingBlock label="Loading numbers" />}
       {error && <ErrorBlock error={error} />}
       {data && (
-        <div className="grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-px overflow-hidden rounded-3xl border border-border/60 bg-border sm:grid-cols-2 lg:grid-cols-3">
           {[
             ["Events", data.events, "/admin/events"],
             ["Registrations", data.registrations, "/admin/registrations"],

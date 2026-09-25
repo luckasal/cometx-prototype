@@ -34,7 +34,7 @@ function GetInvolvedPage() {
           <ul className="space-y-3">{benefits.map((item) => <li key={item} className="flex gap-3 text-sm"><Check className="mt-0.5 size-4 shrink-0 text-signal" />{item}</li>)}</ul>
         </div>
         <div><SectionHeading eyebrow={cs ? "Otevřené role" : "Open roles"} title={cs ? "Kde můžete pomoci" : "Where you can help"} />
-          <div className="space-y-4">{roles.map(([title, text]) => <article key={title} className="border border-border p-6"><h2 className="font-display text-xl font-bold">{title}</h2><p className="mt-2 text-sm text-muted-foreground">{text}</p></article>)}</div>
+          <div className="space-y-4">{roles.map(([title, text]) => <article key={title} className="rounded-2xl border border-border/60 p-6"><h2 className="font-display text-xl font-bold">{title}</h2><p className="mt-2 text-sm text-muted-foreground">{text}</p></article>)}</div>
           <p className="mt-7 text-sm text-muted-foreground">{cs ? "Pošlete CV a pár slov o své motivaci přímo Adamovi." : "Send your CV and a few words about your motivation directly to Adam."}</p>
           <a href="mailto:adam.pruska@cometx.ch" className="mt-4 inline-flex bg-ink px-5 py-3 text-sm font-bold text-ink-foreground">adam.pruska@cometx.ch</a>
         </div>

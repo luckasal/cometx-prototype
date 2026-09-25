@@ -62,7 +62,7 @@ function CommunityPage() {
                 params={{ slug: article.slug }}
                 className="group flex flex-col"
               >
-                <div className="aspect-[16/10] overflow-hidden bg-muted">
+                <div className="aspect-[16/10] overflow-hidden rounded-3xl bg-muted">
                   {article.heroImageUrl && (
                     <img
                       src={article.heroImageUrl}
@@ -107,7 +107,7 @@ function CommunityPage() {
               { title: cs ? "Fotogalerie" : "Gallery", text: cs ? "Atmosféra, setkání a nezapomenutelné momenty z minulých akcí." : "Atmosphere, encounters and memorable moments from previous events.", href: "https://www.cometx.ch/gallery" },
               { title: cs ? "Názory komunity" : "Community opinions", text: cs ? "Skutečné zkušenosti a názory lidí, kteří tvoří CometX." : "Real experiences and opinions from the people who make CometX.", href: "https://www.cometx.ch/opinions" },
             ].map((item) => (
-              <a key={item.title} href={item.href} target="_blank" rel="noreferrer noopener" className="group border border-border bg-background p-7">
+              <a key={item.title} href={item.href} target="_blank" rel="noreferrer noopener" className="group overflow-hidden rounded-2xl border border-border/60 bg-background p-7">
                 <h2 className="font-display text-xl font-bold group-hover:underline">{item.title}</h2>
                 <p className="mt-3 text-sm text-muted-foreground">{item.text}</p>
               </a>
@@ -125,7 +125,7 @@ function CommunityPage() {
           <div>
             <h2 className="font-display text-2xl font-extrabold">{cs ? "CometX newsletter" : "CometX newsletter"}</h2>
             <p className="mt-2 text-sm">{cs ? "Nové akce, nové kontakty, nová perspektiva. Přihlášení zatím dokončíte na oficiálním webu CometX." : "New events, new contacts, new perspective. For now, complete signup on the official CometX website."}</p>
-            <a href="https://www.cometx.ch/" target="_blank" rel="noreferrer noopener" className="mt-5 inline-flex border border-ink px-5 py-3 text-sm font-bold">{cs ? "Přihlásit newsletter" : "Subscribe"}</a>
+            <a href="https://www.cometx.ch/" target="_blank" rel="noreferrer noopener" className="mt-5 inline-flex rounded-full border border-ink px-5 py-3 text-sm font-bold">{cs ? "Přihlásit newsletter" : "Subscribe"}</a>
           </div>
         </div>
       </section>

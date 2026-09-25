@@ -132,7 +132,7 @@ function AccountOverviewPage() {
         </div>
 
         <aside className="space-y-6">
-          <div className="border border-ink">
+          <div className="overflow-hidden rounded-3xl border border-ink/40">
             <div className="bg-ink px-6 py-4 text-ink-foreground">
               <p className="eyebrow text-accent">Membership</p>
               <p className="mt-1 font-display text-xl font-extrabold">
@@ -177,7 +177,7 @@ function AccountOverviewPage() {
           </div>
 
           {data.isAdmin && (
-            <div className="border border-border p-6">
+            <div className="rounded-2xl border border-border/60 p-6">
               <p className="eyebrow text-muted-foreground">Staff</p>
               <p className="mt-2 text-sm text-muted-foreground">
                 You have admin access to the CometX back office.

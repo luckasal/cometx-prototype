@@ -224,7 +224,7 @@ export function EventForm({
         saveAs("draft");
       }}
     >
-      <section className="space-y-5 border border-border bg-card p-6">
+      <section className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
         <h2 className="font-display text-lg font-bold">Basics</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Title">
@@ -287,7 +287,7 @@ export function EventForm({
         </Field>
       </section>
 
-      <section className="space-y-5 border border-border bg-card p-6">
+      <section className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
         <h2 className="font-display text-lg font-bold">When and where</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Start">
@@ -323,7 +323,7 @@ export function EventForm({
         </div>
       </section>
 
-      <section className="space-y-5 border border-border bg-card p-6">
+      <section className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
         <h2 className="font-display text-lg font-bold">Registration</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Capacity" hint="Leave empty for unlimited.">
@@ -382,7 +382,7 @@ export function EventForm({
         </label>
       </section>
 
-      <section className="space-y-4 border border-border bg-card p-6">
+      <section className="space-y-4 rounded-2xl border border-border/60 bg-card p-6">
         <h2 className="font-display text-lg font-bold">Speakers</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {speakers.map((speaker) => (
@@ -404,7 +404,7 @@ export function EventForm({
         </div>
       </section>
 
-      <section className="space-y-6 border border-border bg-card p-6">
+      <section className="space-y-6 rounded-2xl border border-border/60 bg-card p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-bold">Ticket types</h2>
           <Button
@@ -494,7 +494,7 @@ export function EventForm({
         ))}
       </section>
 
-      <section className="space-y-6 border border-border bg-card p-6">
+      <section className="space-y-6 rounded-2xl border border-border/60 bg-card p-6">
         <div className="flex items-center justify-between"><h2 className="font-display text-lg font-bold">Programme and workshops</h2><Button type="button" variant="outlineInk" size="sm" onClick={() => setWorkshops((previous) => [...previous, { ...emptyWorkshop }])}>Add workshop</Button></div>
         {workshops.length === 0 && <p className="text-sm text-muted-foreground">Optional. Add workshops or programme sessions shown on the public event page.</p>}
         {workshops.map((workshop, index) => <div key={workshop.id ?? index} className="space-y-4 border-t border-border pt-5"><div className="grid gap-4 sm:grid-cols-2"><Field label="Title"><input className={inputClass} value={workshop.title} onChange={(event) => setWorkshop(index, "title", event.target.value)} /></Field><Field label="Speaker"><select className={inputClass} value={workshop.speaker_id} onChange={(event) => setWorkshop(index, "speaker_id", event.target.value)}><option value="">No speaker</option>{speakers.map((speaker) => <option key={speaker.id} value={speaker.id}>{speaker.name}</option>)}</select></Field><Field label="Start"><input type="datetime-local" className={inputClass} value={workshop.start_time} onChange={(event) => setWorkshop(index, "start_time", event.target.value)} /></Field><Field label="End"><input type="datetime-local" className={inputClass} value={workshop.end_time} onChange={(event) => setWorkshop(index, "end_time", event.target.value)} /></Field><Field label="Location"><input className={inputClass} value={workshop.location} onChange={(event) => setWorkshop(index, "location", event.target.value)} /></Field><Field label="Capacity"><input type="number" min={1} className={inputClass} value={workshop.capacity} onChange={(event) => setWorkshop(index, "capacity", event.target.value)} /></Field></div><Field label="Description"><textarea className={textareaClass} value={workshop.description} onChange={(event) => setWorkshop(index, "description", event.target.value)} /></Field><div className="flex flex-wrap items-end justify-between gap-4"><Field label="Price (CHF)" className="w-40"><input type="number" min={0} className={inputClass} value={workshop.base_price} onChange={(event) => setWorkshop(index, "base_price", event.target.value)} /></Field><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={workshop.separate_registration_required} onChange={(event) => setWorkshop(index, "separate_registration_required", event.target.checked)} />Separate registration required</label><button type="button" className="text-xs text-destructive underline" onClick={() => setWorkshops((previous) => previous.filter((_, workshopIndex) => workshopIndex !== index))}>Remove</button></div></div>)}

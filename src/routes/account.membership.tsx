@@ -65,7 +65,7 @@ function AccountMembershipPage() {
 
       {data?.membership && (
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="border border-ink">
+          <div className="overflow-hidden rounded-3xl border border-ink/40">
             <div className="bg-ink px-6 py-5 text-ink-foreground">
               <p className="eyebrow text-accent">Current plan</p>
               <p className="mt-1 font-display text-2xl font-extrabold">{data.membership.planName}</p>

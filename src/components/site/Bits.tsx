@@ -16,7 +16,7 @@ export function PageHero({
   children?: ReactNode;
 }) {
   return (
-    <section className="relative overflow-hidden border-b border-border bg-paper">
+    <section className="relative overflow-hidden rounded-b-4xl bg-paper">
       <BrandXElement half className="absolute -right-20 -top-36 hidden h-[33rem] w-auto opacity-20 lg:block" />
       <div className="relative mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
         {eyebrow && <p className="eyebrow text-muted-foreground">{eyebrow}</p>}
@@ -52,7 +52,7 @@ export function SectionHeading({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
+    <div className="mb-12 flex flex-wrap items-end justify-between gap-4 pb-5">
       <div>
         <div className="flex items-center gap-3">
           <span className="brand-symbol"><img src={brandAssets.symbol} alt="" aria-hidden="true" width="28" height="28" /></span>
@@ -76,7 +76,7 @@ export function LoadingBlock({ label = "Loading" }: { label?: string }) {
 
 export function EmptyBlock({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="border border-dashed border-border px-6 py-14 text-center">
+    <div className="rounded-3xl bg-card px-6 py-14 text-center">
       <p className="font-display text-lg font-bold">{title}</p>
       {hint && <p className="mt-2 text-sm text-muted-foreground">{hint}</p>}
     </div>
@@ -87,7 +87,7 @@ export function ErrorBlock({ error }: { error: unknown }) {
   const message =
     error instanceof Error ? error.message : "Something went wrong. Please try again.";
   return (
-    <div className="border-l-2 border-destructive bg-destructive/5 px-5 py-4 text-sm text-destructive">
+    <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive">
       {message}
     </div>
   );
@@ -103,7 +103,7 @@ export function StatusPill({
   return (
     <span
       className={cn(
-        "eyebrow inline-flex items-center px-2.5 py-1",
+        "eyebrow inline-flex items-center rounded-full px-3.5 py-1.5",
         tone === "default" && "bg-ink text-ink-foreground",
         tone === "signal" && "bg-accent text-accent-foreground",
         tone === "muted" && "bg-muted text-muted-foreground",
@@ -134,7 +134,7 @@ export function EventCard({
     <Link
       to="/events/$slug"
       params={{ slug: event.slug }}
-      className="group flex flex-col border border-border bg-card transition-colors hover:border-ink"
+      className="group flex flex-col overflow-hidden rounded-3xl bg-card transition-colors hover:bg-paper"
     >
       <div className="aspect-[16/10] overflow-hidden bg-muted">
         {event.hero_image_url && (

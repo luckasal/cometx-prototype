@@ -82,7 +82,7 @@ function AdminPlansPage() {
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-5">
           {data?.map((plan) => (
-            <div key={plan.id} className="border border-border bg-card p-6">
+            <div key={plan.id} className="rounded-2xl border border-border/60 bg-card p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="font-display text-xl font-bold">{plan.name}</h2>
@@ -124,7 +124,7 @@ function AdminPlansPage() {
         </div>
 
         <form
-          className="space-y-5 border border-border bg-card p-6"
+          className="space-y-5 rounded-2xl border border-border/60 bg-card p-6"
           onSubmit={(e) => {
             e.preventDefault();
             if (!form.name.trim() || !form.slug.trim()) {

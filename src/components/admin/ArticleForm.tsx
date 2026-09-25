@@ -76,7 +76,7 @@ export function ArticleForm({ initial }: { initial: ArticleFormValues }) {
 
   return (
     <form
-      className="max-w-3xl space-y-6 border border-border bg-card p-6"
+      className="max-w-3xl space-y-6 rounded-2xl border border-border/60 bg-card p-6"
       onSubmit={(e) => {
         e.preventDefault();
         if (!form.title.trim() || !form.slug.trim()) {

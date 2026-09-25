@@ -212,7 +212,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
           <aside
             id="event-tickets"
             aria-label={cs ? "Informace a registrace" : "Event information and tickets"}
-            className="scroll-mt-28 min-w-0 overflow-hidden rounded-[2rem] bg-card shadow-xl shadow-black/10 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto"
+            className="scroll-mt-28 min-w-0 overflow-hidden rounded-[2rem] bg-card shadow-xl shadow-black/10 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-2"
           >
             <div className="relative overflow-hidden bg-accent px-8 py-10 text-accent-foreground">
               <BrandXElement

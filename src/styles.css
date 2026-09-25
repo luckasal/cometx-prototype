@@ -73,7 +73,7 @@
   --brand-electric-cyan: #54e8fa;
   --brand-logo-clear-space: 0.5rem;
   --brand-symbol-clear-space: 0.5rem;
-  --radius: 0.1875rem;
+  --radius: 1rem;
 
   /* Official palette: Deep Space, Connection Lime and neutral support tones. */
   --background: var(--brand-deep-space);
@@ -108,7 +108,7 @@
   --success: var(--brand-electric-cyan);
   --success-foreground: var(--brand-deep-space);
 
-  --border: rgb(236 236 236 / 18%);
+  --border: rgb(236 236 236 / 12%);
   --input: rgb(236 236 236 / 24%);
   --ring: var(--brand-connection-lime);
 
@@ -141,6 +141,13 @@
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "cv05";
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* Shared form controls, including native controls in the staff CMS. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    border-radius: var(--radius);
   }
 
   h1,
