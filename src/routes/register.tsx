@@ -54,7 +54,7 @@ function RegisterPage() {
       email: form.email,
       password: form.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/account`,
+        emailRedirectTo: `${window.location.origin}${safeReturnPath(redirect)}`,
         data: { first_name: form.firstName, last_name: form.lastName },
       },
     });
@@ -78,7 +78,7 @@ function RegisterPage() {
       <p className="mt-4 text-sm text-muted-foreground">
         {cs ? "Účet je zdarma. Členství je volitelné a můžete si ho přidat později." : "An account is free. Membership is optional and can be added afterwards."}
       </p>
-      {confirmationSent ? <p role="status" className="mt-8 rounded-lg border border-border p-5">{cs ? "Potvrďte účet v e-mailu a poté se vraťte k přihlášení." : "Check your email to confirm your account, then return to log in."}</p> : <form onSubmit={onSubmit} className="mt-10 space-y-5">
+      {confirmationSent ? <p role="status" className="mt-8 rounded-lg border border-border p-5">{cs ? "Potvrďte účet v e-mailu. Poté budete přesměrováni zpět ke vstupenkám." : "Confirm your account in the email. You will then return to your tickets."}</p> : <form onSubmit={onSubmit} className="mt-10 space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="firstName">{cs ? "Jméno" : "First name"}</Label>

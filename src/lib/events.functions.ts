@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
   calculateTicketPrice,
@@ -10,7 +11,13 @@ import {
 } from "./pricing";
 
 const slugSchema = z.object({ slug: z.string().min(1).max(200), preview: z.boolean().optional() });
-const ticketSchema = z.object({ ticketTypeId: z.string().uuid(), quantity:z.number().int().min(1).max(10).default(1) });
+const checkoutSchema = z.object({
+  lines: z.array(z.object({ ticketTypeId: z.string().uuid(), quantity: z.number().int().min(1).max(10) })).min(1).max(10),
+  buyerName: z.string().max(240).optional(), buyerEmail: z.string().email().max(320).optional(),
+}).superRefine((value, ctx) => {
+  if (new Set(value.lines.map((line) => line.ticketTypeId)).size !== value.lines.length) ctx.addIssue({ code: "custom", message: "Choose each ticket type once." });
+  if (value.lines.reduce((sum, line) => sum + line.quantity, 0) > 10) ctx.addIssue({ code: "custom", message: "Choose no more than 10 tickets per order." });
+});
 
 export type EventTicketOption = {
   id: string;
@@ -107,7 +114,8 @@ export const getEventDetail = createServerFn({ method: "GET" })
 
     if (event.publish_state !== "published" && !isAdminViewer) return null;
 
-    const [speakersRes, workshopsRes, partnersRes, ticketsRes, regsRes] = await Promise.all([
+    const privateOrderDb = supabaseAdmin as unknown as SupabaseClient;
+    const [speakersRes, workshopsRes, partnersRes, ticketsRes, regsRes, attendeesRes, openOrdersRes] = await Promise.all([
       supabaseAdmin
         .from("event_speakers")
         .select("sort_order,speakers(id,name,slug,job_title,company,photo_url,bio)")
@@ -133,15 +141,22 @@ export const getEventDetail = createServerFn({ method: "GET" })
         .select("id,status,ticket_type_id,user_id,price_paid,currency")
         .eq("event_id", event.id)
         .in("status", ["pending", "confirmed", "checked_in"]) : Promise.resolve({ data: [], error: null }),
+      canReadAllRegistrations ? privateOrderDb.from("ticket_attendees").select("ticket_type_id").eq("event_id", event.id).in("status", ["valid", "checked_in"]) : Promise.resolve({ data: [], error: null }),
+      canReadAllRegistrations ? privateOrderDb.from("ticket_orders").select("ticket_order_items(ticket_type_id,quantity)").eq("event_id", event.id).in("status", ["pending", "processing"]).gt("expires_at", new Date().toISOString()) : Promise.resolve({ data: [], error: null }),
     ]);
 
-    [speakersRes, workshopsRes, partnersRes, ticketsRes, regsRes].forEach(assertDatabaseResult);
+    [speakersRes, workshopsRes, partnersRes, ticketsRes, regsRes, attendeesRes, openOrdersRes].forEach(assertDatabaseResult);
     const registrations = regsRes.data ?? [];
+    const issuedAttendees = attendeesRes.data ?? [];
+    const openOrderItems = (openOrdersRes.data ?? []).flatMap((row) => row.ticket_order_items ?? []);
+    const openQuantity = openOrderItems.reduce((sum, item) => sum + Number(item.quantity), 0);
     const entitlements = await getUserEntitlements(user?.userId);
     const membership = await getCurrentMembership(user?.userId);
 
     const tickets: EventTicketOption[] = (ticketsRes.data ?? []).map((ticket) => {
-      const taken = registrations.filter((r) => r.ticket_type_id === ticket.id).length;
+      const taken = registrations.filter((r) => r.ticket_type_id === ticket.id).length
+        + issuedAttendees.filter((a) => a.ticket_type_id === ticket.id).length
+        + openOrderItems.filter((item) => item.ticket_type_id === ticket.id).reduce((sum, item) => sum + Number(item.quantity), 0);
       const spotsLeft = !canReadAllRegistrations || ticket.capacity === null ? null : Math.max(ticket.capacity - taken, 0);
       const regularPrice = calculateTicketPrice(
         { basePrice:Number(ticket.base_price),currency:ticket.currency,requiredEntitlement:ticket.required_entitlement,
@@ -219,7 +234,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
         registrationStart: event.registration_start,
         registrationEnd: event.registration_end,
       }),
-      spotsLeft: !canReadAllRegistrations || event.capacity === null ? null : Math.max(event.capacity - registrations.length, 0),
+      spotsLeft: !canReadAllRegistrations || event.capacity === null ? null : Math.max(event.capacity - registrations.length - issuedAttendees.length - openQuantity, 0),
       membershipName: membership?.plan.name ?? null,
       isSignedIn: !!user,
       myRegistration: mine
@@ -233,12 +248,17 @@ export const getEventDetail = createServerFn({ method: "GET" })
     };
   });
 
-/** Starts a server-validated ticket checkout. Free/entitled tickets are issued immediately. */
+/** Client submits ticket IDs and quantities only. Prices and entitlements are calculated server-side. */
 export const startTicketCheckout = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => ticketSchema.parse(data))
+  .inputValidator((data: unknown) => checkoutSchema.parse(data))
   .handler(async ({ data }) => {
-    const { requireUser } = await import("./auth.server");
-    const user = await requireUser();
-    const { startTicketPayment } = await import("./ticket-payments.server");
-    return startTicketPayment(user, data.ticketTypeId,data.quantity);
+    const { getOptionalUser } = await import("./auth.server");
+    const user = await getOptionalUser();
+    if (!user && (!data.buyerName || !data.buyerEmail)) throw new Error("Enter your name and email to continue as a guest.");
+    const { startTicketOrder } = await import("./ticket-orders.server");
+    return startTicketOrder({ userId: user?.userId ?? null,
+      lines: data.lines.map((line) => ({ ticketId: line.ticketTypeId, quantity: line.quantity })),
+      ...(data.buyerName ? { buyerName: data.buyerName } : {}),
+      ...(data.buyerEmail ? { buyerEmail: data.buyerEmail } : {}),
+    });
   });

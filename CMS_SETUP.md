@@ -10,10 +10,17 @@ Set these in Vercel for the production and preview environments:
 
 - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`
 - `RESEND_API_KEY` when newsletter delivery is ready
-- `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` when payments are enabled
+- `RESEND_FROM_EMAIL` with a sender/domain verified in Resend, for guest ticket confirmations
+- `GUEST_TICKET_TOKEN_SECRET` (at least 32 random characters) to sign/encrypt private guest ticket access links
+- `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in **test mode only** for sandbox purchases
+- `SITE_URL` set to the exact HTTPS site origin used for Checkout redirects and guest ticket links
 - `VITE_GA_MEASUREMENT_ID` and/or `VITE_GTM_CONTAINER_ID` after analytics tags are added
 
-The sandbox-only event checkout code is on `codex-dev`; migration 0005 is not applied and the checkout is not deployed. Apply migration 0005 only in coordination with deploying that code because it replaces the older ticket-registration RPCs. Configure only Stripe test-mode server secrets and a test webhook after the reviewed release. Do not enable live payments. Membership Billing, Connect, Terminal, and automated tax remain out of scope.
+The guest/member ticket-order code is on `codex-dev`; migrations 0005 and 0006 are not applied and checkout is not deployed. After Claude review is clean, apply migrations 0005 then 0006 and deploy the matching code as one coordinated release. Migration 0005 replaces older ticket-registration RPCs; 0006 adds private orders, contacts linked without newsletter consent, ticket items/attendees and guest ticket access. Never apply either migration independently to Production while the old app is running. Configure the Stripe test webhook at `/api/public/stripe-webhook` after the reviewed release. Do not enable live payments. Membership Billing, Connect, Terminal, automated tax and initiating refunds remain out of scope.
+
+Guest checkout is disabled until `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are configured, so the promised guest access email can be delivered. Resend confirmation is sent after paid/free issuance. Keep `GUEST_TICKET_TOKEN_SECRET` stable: rotating it does not invalidate existing access links (the database stores a token hash), but it prevents email delivery for older unmailed orders whose token was encrypted with the previous key.
+
+For optional guest-to-account linking, allow the deployed `/tickets/guest` return URL in Supabase Auth's redirect URL allowlist so new-account confirmation can return to the secure order link.
 
 ## Staff workflow
 

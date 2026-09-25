@@ -470,7 +470,7 @@ export const adminListMemberOptions = createServerFn({ method: "GET" }).handler(
 });
 
 export const getAdminIntegrationStatus = createServerFn({ method: "GET" }).handler(async () => ({
-  resend: Boolean(process.env["RESEND_API_KEY"]),
+  resend: Boolean(process.env["RESEND_API_KEY"] && process.env["RESEND_FROM_EMAIL"]),
   stripe: Boolean(process.env["STRIPE_SECRET_KEY"]),
   stripeWebhook: Boolean(process.env["STRIPE_WEBHOOK_SECRET"]),
   gaMeasurementId: Boolean(process.env["VITE_GA_MEASUREMENT_ID"]),
@@ -527,6 +527,12 @@ export const adminListPayments = createServerFn({ method: "GET" }).handler(async
   const { data, error } = await db.from("payments").select("id,user_id,registration_id,membership_id,amount,currency,status,invoice_url,receipt_url,created_at").order("created_at", { ascending: false }).limit(300);
   if (error) throw new Error(error.message);
   return data ?? [];
+});
+
+export const adminListTicketOrders = createServerFn({ method: "GET" }).handler(async () => {
+  await admin();
+  const { listAdminTicketOrders } = await import("./ticket-orders.server");
+  return listAdminTicketOrders();
 });
 
 /* ------------------------------ structured content ---------------------------- */

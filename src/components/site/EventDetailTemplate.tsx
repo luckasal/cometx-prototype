@@ -22,7 +22,7 @@ import { StatusPill } from "./Bits";
 type Props = {
   data: EventDetail;
   pending: boolean;
-  onPurchase: (ticketId: string, quantity:number) => void;
+  onPurchase: (lines: { ticketId: string; quantity: number }[], buyer?: { name: string; email: string }) => void;
   onLogin: () => void;
 };
 
@@ -30,6 +30,8 @@ export function EventDetailTemplate({ data, pending, onPurchase, onLogin }: Prop
   const { language } = useLanguage();
   const cs = language === "cs";
   const [quantities,setQuantities]=useState<Record<string,number>>({});
+  const [buyerName,setBuyerName]=useState("");
+  const [buyerEmail,setBuyerEmail]=useState("");
   const { event, tickets, speakers, workshops, partners } = data;
   const locale = cs ? "cs-CZ" : "en-GB";
   // Events are scheduled in Switzerland; do not shift the advertised date in a visitor's timezone.
@@ -131,6 +133,8 @@ export function EventDetailTemplate({ data, pending, onPurchase, onLogin }: Prop
         ? `${cs ? "Kapacita" : "Capacity"}: ${event.capacity}`
         : null;
   const eligible = tickets.filter((t) => t.price.eligible && !t.soldOut);
+  const selectedCurrencies = new Set(tickets.filter((ticket) => (quantities[ticket.id] ?? 0) > 0).map((ticket) => ticket.price.currency.toUpperCase()));
+  const currencyConflict = selectedCurrencies.size > 1;
   const firstEligible = eligible[0];
   const sameCurrency =
     firstEligible && eligible.every((t) => t.price.currency === firstEligible.price.currency);
@@ -321,8 +325,10 @@ export function EventDetailTemplate({ data, pending, onPurchase, onLogin }: Prop
                   <div className="mt-5 space-y-6">
                     {tickets.map((ticket) => {
                       const saleOpen=(!ticket.saleStart || Date.parse(ticket.saleStart)<=Date.now()) && (!ticket.saleEnd || Date.parse(ticket.saleEnd)>Date.now());
-                      const maxQuantity=Math.max(1,Math.min(ticket.spotsLeft ?? 10,data.spotsLeft ?? 10,10));
-                      const quantity=quantities[ticket.id] ?? 1;
+                      const maxQuantity=Math.max(0,Math.min(ticket.spotsLeft ?? 10,data.spotsLeft ?? 10,10));
+                      const quantity=quantities[ticket.id] ?? 0;
+                      const otherQuantity=tickets.reduce((sum,other)=>sum+(other.id===ticket.id?0:quantities[other.id]??0),0);
+                      const basketMax=Math.min(maxQuantity,Math.max(0,10-otherQuantity));
                       return (
                       <div key={ticket.id} className="rounded-2xl bg-card/60 py-4">
                         <h4 className="font-bold">{ticket.name}</h4>
@@ -385,11 +391,6 @@ export function EventDetailTemplate({ data, pending, onPurchase, onLogin }: Prop
                             <Button disabled className="w-full" variant="outline">
                               {ticket.soldOut || soldOut ? (cs ? "Vyprodáno" : "Sold out") : !saleOpen ? (cs ? "Prodej vstupenek uzavřen" : "Ticket sales closed") : status}
                             </Button>
-                          ) : !data.isSignedIn ? (
-                            <Button variant="signal" className="w-full" onClick={onLogin}>
-                              {cs ? "Přihlásit a koupit" : "Log in to buy"}
-                              <ArrowRight className="size-4" />
-                            </Button>
                           ) : !ticket.price.eligible ? (
                             <>
                               <p className="mb-3 text-xs text-muted-foreground">
@@ -408,37 +409,51 @@ export function EventDetailTemplate({ data, pending, onPurchase, onLogin }: Prop
                             <label className="flex items-center justify-between gap-3 text-sm">
                               <span>{cs ? "Počet vstupenek" : "Quantity"}</span>
                               <select aria-label={cs ? `Počet vstupenek: ${ticket.name}` : `Ticket quantity: ${ticket.name}`} className="min-h-10 rounded-full bg-background px-4" value={quantity}
-                                onChange={e=>setQuantities(previous=>({...previous,[ticket.id]:Number(e.target.value)}))}>
-                                {Array.from({length:maxQuantity},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}</option>)}
+                                onChange={e=>setQuantities(previous=>({...previous,[ticket.id]:Math.min(Number(e.target.value),Math.max(0,10-tickets.reduce((sum,other)=>sum+(other.id===ticket.id?0:previous[other.id]??0),0)))}))}>
+                                {Array.from({length:basketMax + 1},(_,i)=>i).map(n=><option key={n} value={n}>{n}</option>)}
                               </select>
                             </label>
-                            <Button
-                              variant="signal"
-                              className="w-full"
-                              disabled={pending}
-                              onClick={() => onPurchase(ticket.id,quantity)}
-                            >
-                              {pending
-                                ? cs
-                                  ? "Otevíráme platbu…"
-                                  : "Opening checkout…"
-                                : cs
-                                  ? "Koupit vstupenky"
-                                  : "Buy tickets"}
-                              <ArrowRight className="size-4" />
-                            </Button>
                             </>
                           )}
                         </div>
                       </div>
                     )})}
+                    {tickets.some((ticket) => (quantities[ticket.id] ?? 0) > 0) && (
+                      <div className="space-y-4 border-t border-border/40 pt-5">
+                        {!data.isSignedIn && (
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="text-sm font-medium">
+                              {cs ? "Jméno kupujícího" : "Buyer name"}
+                              <input value={buyerName} onChange={(event) => setBuyerName(event.target.value)} autoComplete="name" required maxLength={240} className="mt-2 min-h-11 w-full rounded-2xl bg-background px-4 text-foreground" />
+                            </label>
+                            <label className="text-sm font-medium">
+                              {cs ? "E-mail pro vstupenky" : "Email for your tickets"}
+                              <input value={buyerEmail} onChange={(event) => setBuyerEmail(event.target.value)} type="email" autoComplete="email" required maxLength={320} className="mt-2 min-h-11 w-full rounded-2xl bg-background px-4 text-foreground" />
+                            </label>
+                          </div>
+                        )}
+                        <div className="flex justify-between gap-3 text-sm font-semibold">
+                          <span>{cs ? "Celkem" : "Total"} · {tickets.reduce((sum, ticket) => sum + (quantities[ticket.id] ?? 0), 0)} {cs ? "vstupenek" : "tickets"}</span>
+                          <span>{formatMoney(tickets.reduce((sum, ticket) => sum + (quantities[ticket.id] ?? 0) * ticket.price.finalPrice, 0), firstEligible?.price.currency ?? tickets[0]?.price.currency ?? "CHF")}</span>
+                        </div>
+                        {currencyConflict && <p role="alert" className="text-sm text-destructive">{cs ? "V jednom nákupu lze kombinovat vstupenky pouze ve stejné měně." : "Tickets in one purchase must use the same currency."}</p>}
+                        <Button variant="signal" className="w-full" disabled={pending || currencyConflict || (!data.isSignedIn && (!buyerName.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(buyerEmail.trim())))}
+                          onClick={() => onPurchase(tickets.filter((ticket) => (quantities[ticket.id] ?? 0) > 0).map((ticket) => ({ ticketId: ticket.id, quantity: quantities[ticket.id] ?? 0 })), data.isSignedIn ? undefined : { name: buyerName.trim(), email: buyerEmail.trim() })}>
+                          {pending ? (cs ? "Otevíráme platbu…" : "Opening checkout…") : cs ? "Koupit vstupenky" : "Buy tickets"}
+                          <ArrowRight className="size-4" />
+                        </Button>
+                        {!data.isSignedIn && tickets.some((ticket) => ticket.hasMemberPricing) && (
+                          <p className="text-center text-xs text-muted-foreground">{cs ? "Členové se mohou přihlásit a využít členské ceny." : "Members can log in to use member pricing."} <button type="button" className="underline underline-offset-2" onClick={onLogin}>{cs ? "Přihlásit se" : "Log in"}</button></p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
                 {tickets.length > 0 && open && (
                   <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
                     {cs
-                      ? "Další vstupenky koupíte bezpečně přes Stripe."
-                      : "Additional tickets are purchased securely through Stripe Checkout."}
+                      ? "Vstupenky jsou potvrzeny po úspěšném nákupu. Vstupenky zdarma se vydávají ihned."
+                      : "Tickets are confirmed after successful checkout. Free tickets are issued immediately."}
                   </p>
                 )}
               </div>

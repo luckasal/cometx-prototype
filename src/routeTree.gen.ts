@@ -28,6 +28,7 @@ import { Route as AdminContactsRouteImport } from './routes/admin.contacts'
 import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AdminMembersRouteImport } from './routes/admin.members'
 import { Route as AdminNewsletterRouteImport } from './routes/admin.newsletter'
+import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminPartnersRouteImport } from './routes/admin.partners'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPlansRouteImport } from './routes/admin.plans'
@@ -38,6 +39,7 @@ import { Route as AdminWorkshopsRouteImport } from './routes/admin.workshops'
 import { Route as CommunityIndexRouteImport } from './routes/community.index'
 import { Route as EventsIndexRouteImport } from './routes/events.index'
 import { Route as EventsSlugRouteImport } from './routes/events.$slug'
+import { Route as TicketsGuestRouteImport } from './routes/tickets.guest'
 import { Route as AdminArticlesIndexRouteImport } from './routes/admin.articles.index'
 import { Route as AdminArticlesIdRouteImport } from './routes/admin.articles.$id'
 import { Route as AdminArticlesNewRouteImport } from './routes/admin.articles.new'
@@ -142,6 +144,11 @@ const AdminNewsletterRoute = AdminNewsletterRouteImport.update({
   path: '/newsletter',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPartnersRoute = AdminPartnersRouteImport.update({
   id: '/partners',
   path: '/partners',
@@ -190,6 +197,11 @@ const EventsIndexRoute = EventsIndexRouteImport.update({
 const EventsSlugRoute = EventsSlugRouteImport.update({
   id: '/events/$slug',
   path: '/events/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TicketsGuestRoute = TicketsGuestRouteImport.update({
+  id: '/tickets/guest',
+  path: '/tickets/guest',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminArticlesIndexRoute = AdminArticlesIndexRouteImport.update({
@@ -251,6 +263,7 @@ export interface FileRoutesByFullPath {
   '/admin/content': typeof AdminContentRoute
   '/admin/members': typeof AdminMembersRoute
   '/admin/newsletter': typeof AdminNewsletterRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/partners': typeof AdminPartnersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
@@ -259,6 +272,7 @@ export interface FileRoutesByFullPath {
   '/admin/speakers': typeof AdminSpeakersRoute
   '/admin/workshops': typeof AdminWorkshopsRoute
   '/events/$slug': typeof EventsSlugRoute
+  '/tickets/guest': typeof TicketsGuestRoute
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/community/': typeof CommunityIndexRoute
@@ -288,6 +302,7 @@ export interface FileRoutesByTo {
   '/admin/content': typeof AdminContentRoute
   '/admin/members': typeof AdminMembersRoute
   '/admin/newsletter': typeof AdminNewsletterRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/partners': typeof AdminPartnersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
@@ -296,6 +311,7 @@ export interface FileRoutesByTo {
   '/admin/speakers': typeof AdminSpeakersRoute
   '/admin/workshops': typeof AdminWorkshopsRoute
   '/events/$slug': typeof EventsSlugRoute
+  '/tickets/guest': typeof TicketsGuestRoute
   '/account': typeof AccountIndexRoute
   '/admin': typeof AdminIndexRoute
   '/community': typeof CommunityIndexRoute
@@ -328,6 +344,7 @@ export interface FileRoutesById {
   '/admin/content': typeof AdminContentRoute
   '/admin/members': typeof AdminMembersRoute
   '/admin/newsletter': typeof AdminNewsletterRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/partners': typeof AdminPartnersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
@@ -336,6 +353,7 @@ export interface FileRoutesById {
   '/admin/speakers': typeof AdminSpeakersRoute
   '/admin/workshops': typeof AdminWorkshopsRoute
   '/events/$slug': typeof EventsSlugRoute
+  '/tickets/guest': typeof TicketsGuestRoute
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/community/': typeof CommunityIndexRoute
@@ -369,6 +387,7 @@ export interface FileRouteTypes {
     | '/admin/content'
     | '/admin/members'
     | '/admin/newsletter'
+    | '/admin/orders'
     | '/admin/partners'
     | '/admin/payments'
     | '/admin/plans'
@@ -377,6 +396,7 @@ export interface FileRouteTypes {
     | '/admin/speakers'
     | '/admin/workshops'
     | '/events/$slug'
+    | '/tickets/guest'
     | '/account/'
     | '/admin/'
     | '/community/'
@@ -406,6 +426,7 @@ export interface FileRouteTypes {
     | '/admin/content'
     | '/admin/members'
     | '/admin/newsletter'
+    | '/admin/orders'
     | '/admin/partners'
     | '/admin/payments'
     | '/admin/plans'
@@ -414,6 +435,7 @@ export interface FileRouteTypes {
     | '/admin/speakers'
     | '/admin/workshops'
     | '/events/$slug'
+    | '/tickets/guest'
     | '/account'
     | '/admin'
     | '/community'
@@ -445,6 +467,7 @@ export interface FileRouteTypes {
     | '/admin/content'
     | '/admin/members'
     | '/admin/newsletter'
+    | '/admin/orders'
     | '/admin/partners'
     | '/admin/payments'
     | '/admin/plans'
@@ -453,6 +476,7 @@ export interface FileRouteTypes {
     | '/admin/speakers'
     | '/admin/workshops'
     | '/events/$slug'
+    | '/tickets/guest'
     | '/account/'
     | '/admin/'
     | '/community/'
@@ -479,6 +503,7 @@ export interface RootRouteChildren {
   PartnersRoute: typeof PartnersRoute
   RegisterRoute: typeof RegisterRoute
   EventsSlugRoute: typeof EventsSlugRoute
+  TicketsGuestRoute: typeof TicketsGuestRoute
   CommunityIndexRoute: typeof CommunityIndexRoute
   EventsIndexRoute: typeof EventsIndexRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
@@ -620,6 +645,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminNewsletterRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/partners': {
       id: '/admin/partners'
       path: '/partners'
@@ -688,6 +720,13 @@ declare module '@tanstack/react-router' {
       path: '/events/$slug'
       fullPath: '/events/$slug'
       preLoaderRoute: typeof EventsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tickets/guest': {
+      id: '/tickets/guest'
+      path: '/tickets/guest'
+      fullPath: '/tickets/guest'
+      preLoaderRoute: typeof TicketsGuestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/articles/': {
@@ -771,6 +810,7 @@ interface AdminRouteChildren {
   AdminContentRoute: typeof AdminContentRoute
   AdminMembersRoute: typeof AdminMembersRoute
   AdminNewsletterRoute: typeof AdminNewsletterRoute
+  AdminOrdersRoute: typeof AdminOrdersRoute
   AdminPartnersRoute: typeof AdminPartnersRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminPlansRoute: typeof AdminPlansRoute
@@ -792,6 +832,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContentRoute: AdminContentRoute,
   AdminMembersRoute: AdminMembersRoute,
   AdminNewsletterRoute: AdminNewsletterRoute,
+  AdminOrdersRoute: AdminOrdersRoute,
   AdminPartnersRoute: AdminPartnersRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminPlansRoute: AdminPlansRoute,
@@ -822,6 +863,7 @@ const rootRouteChildren: RootRouteChildren = {
   PartnersRoute: PartnersRoute,
   RegisterRoute: RegisterRoute,
   EventsSlugRoute: EventsSlugRoute,
+  TicketsGuestRoute: TicketsGuestRoute,
   CommunityIndexRoute: CommunityIndexRoute,
   EventsIndexRoute: EventsIndexRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,

@@ -717,6 +717,11 @@ export type Database = {
       begin_ticket_checkout: { Args: { p_user_id: string; p_ticket_id: string; p_quantity:number; p_payments_ready?: boolean }; Returns: Json }
       release_unstarted_ticket_checkout: { Args: { p_checkout_id: string }; Returns: undefined }
       apply_ticket_checkout_event: { Args: { p_type: string; p_session: Json }; Returns: undefined }
+      begin_ticket_order: { Args: { p_user_id: string | null; p_guest_name: string | null; p_guest_email: string | null; p_lines: Json; p_payments_ready: boolean; p_guest_token_hash?: string | null; p_guest_token_ciphertext?: string | null }; Returns: Json }
+      apply_ticket_order_event: { Args: { p_type: string; p_session: Json }; Returns: undefined }
+      save_ticket_checkout_session: { Args: { p_order_id: string; p_session_id: string }; Returns: undefined }
+      fail_unstarted_ticket_order: { Args: { p_order_id: string }; Returns: undefined }
+      claim_guest_ticket_order: { Args: { p_order_id: string; p_token_hash: string; p_user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

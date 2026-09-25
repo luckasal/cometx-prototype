@@ -63,10 +63,13 @@ function EventDetailPage() {
   }, [queryClient, slug]);
 
   const purchaseMutation = useMutation({
-    mutationFn: ({ticketTypeId,quantity}: {ticketTypeId:string;quantity:number}) => startCheckout({ data: { ticketTypeId,quantity } }),
+    mutationFn: ({lines,buyer}: {lines:{ticketTypeId:string;quantity:number}[];buyer?:{name:string;email:string}}) => startCheckout({ data: {
+      lines, buyerName: buyer?.name, buyerEmail: buyer?.email,
+    } }),
     onSuccess: (result) => {
       trackEvent(result.url ? "ticket_checkout_started" : "free_ticket_issued", { event_slug: slug });
       if (result.url) { window.location.assign(result.url); return; }
+      if (result.accessUrl) { window.location.assign(result.accessUrl); return; }
       toast.success(cs ? "Vstupenka je potvrzena. Najdete ji v Můj CometX." : "Your ticket is confirmed. See it in My CometX.");
       queryClient.invalidateQueries({ queryKey: ["event", slug] });
       queryClient.invalidateQueries({ queryKey: ["account"] });
@@ -264,7 +267,7 @@ function EventDetailPage() {
     );
   }
 
-  return <EventDetailTemplate data={data} pending={purchaseMutation.isPending} onPurchase={(id,quantity) => purchaseMutation.mutate({ticketTypeId:id,quantity})} onLogin={() => navigate({ to: "/login", search: { redirect: `/events/${slug}` } })} />;
+  return <EventDetailTemplate data={data} pending={purchaseMutation.isPending} onPurchase={(lines,buyer) => purchaseMutation.mutate({lines:lines.map((line)=>({ticketTypeId:line.ticketId,quantity:line.quantity})),...(buyer ? { buyer } : {})})} onLogin={() => navigate({ to: "/login", search: { redirect: `/events/${slug}` } })} />;
 }
 
 function Meta({
