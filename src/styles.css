@@ -1,31 +1,11 @@
+@import url("https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap");
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
-@font-face {
-  font-family: "CometX Caviar Dreams";
-  src: url("/fonts/cometx-caviar-dreams.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
-.cometx-wordmark {
-  display: inline-block;
-  font-family: "CometX Caviar Dreams", "Century Gothic", sans-serif;
-  font-size: 19px;
-  font-weight: 400;
-  line-height: 1.35;
-  letter-spacing: normal;
-}
-
-/*
- * CometX design system.
- * Ink-dark editorial base, signal-lime accent (from cometx.ch), warm paper surfaces.
- * All colors are oklch tokens. Never hardcode colors in components.
- */
+/* Official CometX brand system: Satoshi primary, Inter fallback. */
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 2px);
@@ -36,8 +16,8 @@
   --radius-3xl: calc(var(--radius) + 14px);
   --radius-4xl: calc(var(--radius) + 18px);
 
-  --font-display: "Quicksand", "Century Gothic", "Helvetica Neue", Arial, sans-serif;
-  --font-sans: "Quicksand", "Century Gothic", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Satoshi", "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Satoshi", "Inter", "Helvetica Neue", Arial, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -82,86 +62,83 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.1875rem;
 
-  /* cometx.ch base: #282828 with white type */
-  --background: oklch(0.288 0 0);
-  --foreground: oklch(1 0 0);
+  /* Official palette: Deep Space, Connection Lime and neutral support tones. */
+  --background: #212020;
+  --foreground: #ffffff;
 
-  --card: oklch(0.33 0 0);
-  --card-foreground: oklch(1 0 0);
-  --popover: oklch(0.33 0 0);
-  --popover-foreground: oklch(1 0 0);
+  --card: #2b2a2a;
+  --card-foreground: #ffffff;
+  --popover: #2b2a2a;
+  --popover-foreground: #ffffff;
 
-  /* Ink - the deepest surface (#1c1c1c), paper - the second surface (#212121) */
-  --ink: oklch(0.21 0 0);
-  --ink-foreground: oklch(1 0 0);
-  --paper: oklch(0.248 0 0);
+  --ink: #212020;
+  --ink-foreground: #ffffff;
+  --paper: #292828;
 
-  --primary: oklch(0.876 0.176 108);
-  --primary-foreground: oklch(0.21 0 0);
+  --primary: #e1f03c;
+  --primary-foreground: #212020;
 
-  --secondary: oklch(0.36 0 0);
-  --secondary-foreground: oklch(1 0 0);
+  --secondary: #515151;
+  --secondary-foreground: #ffffff;
 
-  --muted: oklch(0.36 0 0);
-  --muted-foreground: oklch(0.78 0 0);
+  --muted: #515151;
+  --muted-foreground: #ececec;
 
-  /* Signal lime - cometx.ch #D6DD28 */
-  --accent: oklch(0.876 0.176 108);
-  --accent-foreground: oklch(0.21 0 0);
+  --accent: #e1f03c;
+  --accent-foreground: #212020;
 
-  /* Mint - cometx.ch #64CEBB */
-  --mint: oklch(0.78 0.093 179);
-  --mint-foreground: oklch(0.21 0 0);
+  --mint: #54e8fa;
+  --mint-foreground: #212020;
 
-  --destructive: oklch(0.62 0.21 27);
-  --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.78 0.093 179);
-  --success-foreground: oklch(0.21 0 0);
+  --destructive: #ff5333;
+  --destructive-foreground: #212020;
+  --success: #54e8fa;
+  --success-foreground: #212020;
 
-  --border: oklch(1 0 0 / 14%);
-  --input: oklch(1 0 0 / 18%);
-  --ring: oklch(0.876 0.176 108);
+  --border: rgb(236 236 236 / 18%);
+  --input: rgb(236 236 236 / 24%);
+  --ring: #e1f03c;
 
-  --chart-1: oklch(0.876 0.176 108);
-  --chart-2: oklch(0.78 0.093 179);
-  --chart-3: oklch(0.6 0.08 100);
-  --chart-4: oklch(0.75 0.12 80);
-  --chart-5: oklch(0.65 0 0);
+  --chart-1: #e1f03c;
+  --chart-2: #54e8fa;
+  --chart-3: #8b60e6;
+  --chart-4: #ff5333;
+  --chart-5: #515151;
 
-  --sidebar: oklch(0.21 0 0);
-  --sidebar-foreground: oklch(0.88 0 0);
-  --sidebar-primary: oklch(0.876 0.176 108);
-  --sidebar-primary-foreground: oklch(0.21 0 0);
-  --sidebar-accent: oklch(0.33 0 0);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 14%);
-  --sidebar-ring: oklch(0.876 0.176 108);
+  --sidebar: #212020;
+  --sidebar-foreground: #ececec;
+  --sidebar-primary: #e1f03c;
+  --sidebar-primary-foreground: #212020;
+  --sidebar-accent: #515151;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(236 236 236 / 18%);
+  --sidebar-ring: #e1f03c;
 }
 
 /* The CometX site is dark by default; .dark keeps the same palette. */
 .dark {
-  --background: oklch(0.288 0 0);
-  --foreground: oklch(1 0 0);
-  --card: oklch(0.33 0 0);
-  --card-foreground: oklch(1 0 0);
-  --popover: oklch(0.33 0 0);
-  --popover-foreground: oklch(1 0 0);
-  --ink: oklch(0.21 0 0);
-  --ink-foreground: oklch(1 0 0);
-  --paper: oklch(0.248 0 0);
-  --primary: oklch(0.876 0.176 108);
-  --primary-foreground: oklch(0.21 0 0);
-  --secondary: oklch(0.36 0 0);
-  --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.36 0 0);
-  --muted-foreground: oklch(0.78 0 0);
-  --accent: oklch(0.876 0.176 108);
-  --accent-foreground: oklch(0.21 0 0);
-  --border: oklch(1 0 0 / 14%);
-  --input: oklch(1 0 0 / 18%);
-  --ring: oklch(0.876 0.176 108);
+  --background: #212020;
+  --foreground: #ffffff;
+  --card: #2b2a2a;
+  --card-foreground: #ffffff;
+  --popover: #2b2a2a;
+  --popover-foreground: #ffffff;
+  --ink: #212020;
+  --ink-foreground: #ffffff;
+  --paper: #292828;
+  --primary: #e1f03c;
+  --primary-foreground: #212020;
+  --secondary: #515151;
+  --secondary-foreground: #ffffff;
+  --muted: #515151;
+  --muted-foreground: #ececec;
+  --accent: #e1f03c;
+  --accent-foreground: #212020;
+  --border: rgb(236 236 236 / 18%);
+  --input: rgb(236 236 236 / 24%);
+  --ring: #e1f03c;
 }
 
 @layer base {
@@ -220,4 +197,9 @@
   letter-spacing: 0.01em;
   line-height: 1.12;
   font-size: clamp(1.875rem, 4vw, 3rem);
+}
+
+@utility brand-photo {
+  object-fit: cover;
+  filter: saturate(0.92) contrast(1.05);
 }
