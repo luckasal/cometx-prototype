@@ -1,5 +1,7 @@
 # Official CometX assets
 
+The 2026 identity ZIP and brandbook now govern the site logo, X elements and palette. See `../BRAND_ASSETS.md` and `../docs/brand/asset-manifest.json` for the complete recursive inventory. The Wix logo/font below are retained as historical sources, not the active wordmark.
+
 Verified 23 September 2026, requested by the CometX prototype owner.
 
 - Graphic logo: https://www.cometx.ch/annual-symposium (image labelled "logo Cometx")

@@ -1,0 +1,682 @@
+{
+  "archive": "Vizuální identita-20260924T135506Z-1-001.zip",
+  "archiveSha256": "1d4d942870a08eca98e21c996466ef2ee297af514780c589f5a71f17e98d1b27",
+  "notes": [
+    "Every ZIP entry is classified; Illustrator source remains in the original archive.",
+    "Original SVG and PNG bytes are preserved; filename corrections are recorded in this importer."
+  ],
+  "files": [
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Deep Space/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 6148,
+      "sha256": "d65165279105ca6773180500688df4bdc69a2c7b771752f0a46ef120b7fd8ec3"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/B&W/černá/CometX_LOGA-20.svg",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/black.svg",
+      "bytes": 6693,
+      "sha256": "82353582643d4525290fb0c57fb4bb774f77d97bd8053bcf9fa2e8e01f028ff9"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Electric Cyan/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 6148,
+      "sha256": "d65165279105ca6773180500688df4bdc69a2c7b771752f0a46ef120b7fd8ec3"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Cloud White/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 6148,
+      "sha256": "d65165279105ca6773180500688df4bdc69a2c7b771752f0a46ef120b7fd8ec3"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Night Gray/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 6148,
+      "sha256": "d65165279105ca6773180500688df4bdc69a2c7b771752f0a46ef120b7fd8ec3"
+    },
+    {
+      "source": "Vizuální identita/Prvek X/PNG/Bez názvu-2 [obnovený]-06.png",
+      "kind": "x-element",
+      "destination": "public/brand/cometx/elements/x-06.png",
+      "bytes": 205888,
+      "sha256": "7fb4d8a4c921d4584da186c158ca51f4a54e27f2a2946ae04fca940660a342db"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/B&W/černá/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 6148,
+      "sha256": "d65165279105ca6773180500688df4bdc69a2c7b771752f0a46ef120b7fd8ec3"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/B&W/bílá/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 6148,
+      "sha256": "d65165279105ca6773180500688df4bdc69a2c7b771752f0a46ef120b7fd8ec3"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Connection Lime/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 6148,
+      "sha256": "d65165279105ca6773180500688df4bdc69a2c7b771752f0a46ef120b7fd8ec3"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Connection Lime/Symbol.png",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/connection-lime.png",
+      "bytes": 15168,
+      "sha256": "06e5a2ebef79f8d70f4fb77ef4c46dd12c401671d05c47d3e27cf71a6eb08d71"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Electric Cyan/CometX_LOGA-45.svg",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/electric-cyan.svg",
+      "bytes": 8350,
+      "sha256": "fde04f9fd336e297b11562fc5777023982be70a9724deed229a777fbce40356b"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Impact Orange/CometX_LOGA-41.svg",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/impact-orange.svg",
+      "bytes": 7009,
+      "sha256": "db584c45d8b267133ce93cd73e3ba36a3b802acccb1045210d6e7d093df511be"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Impact Orange/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 6148,
+      "sha256": "d65165279105ca6773180500688df4bdc69a2c7b771752f0a46ef120b7fd8ec3"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Night Gray/Logo + claim.png",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/night-gray.png",
+      "bytes": 40295,
+      "sha256": "b44395556dbac15deec8a6b9728d05b125f0b8be3ca019ce33fe4edc667243fa"
+    },
+    {
+      "source": "Vizuální identita/Prvek X/SVG/Bez názvu-2 [obnovený] kopie-07.svg",
+      "kind": "x-element",
+      "destination": "public/brand/cometx/elements/x-07.svg",
+      "bytes": 442,
+      "sha256": "43ccb016f34e50ae004973f2f59435b2bab454605e877d72794a28ea398c00a4"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/B&W/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 8196,
+      "sha256": "db12d64e491c0271627fa9a7335abaf1b30fdea21171e0af87f9402a95d49446"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Connection Lime/CometX_LOGA-29.svg",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/connection-lime.svg",
+      "bytes": 7009,
+      "sha256": "3fa17096aa0f32c8df8e705a4489226b8565682a0324a86db02418e96397537b"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Connection Lime/Symbol + claim.png",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/connection-lime.png",
+      "bytes": 34286,
+      "sha256": "5824d4950228aa133679c059793cb4343a1de4ea4d445a3a7cd3422057726451"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Electric Cyan/CometX_LOGA-44.svg",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/electric-cyan.svg",
+      "bytes": 7009,
+      "sha256": "0ac5c6dcada9260ec26fb624279dfe8dd12105d117cab06699ffbc0f81de178e"
+    },
+    {
+      "source": "Vizuální identita/Prvek X/PNG/Bez názvu-2 [obnovený]-05.png",
+      "kind": "x-element",
+      "destination": "public/brand/cometx/elements/x-05.png",
+      "bytes": 392931,
+      "sha256": "0e6f3ec11f33c57f8c59cbe009c78c204e40130532f4e67706ced7480ec2bdb0"
+    },
+    {
+      "source": "Vizuální identita/Prvek X/PNG/Bez názvu-2 [obnovený]-04.png",
+      "kind": "x-element",
+      "destination": "public/brand/cometx/elements/x-04.png",
+      "bytes": 399847,
+      "sha256": "75da729fcb5ed135a1a94664d44217bd135b30e758c75891d60ef55863a31fa3"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Deep Space/Logo.png",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/deep-space.png",
+      "bytes": 23871,
+      "sha256": "4f1b7049e461266be865225b30cb96c925c89f646fa801a7b6b4ac74c0177011"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 8196,
+      "sha256": "b5cae250e539ef4a7112ad2a3ce82c85b6b96c5c94ebb4ab129ea208216a2932"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Deep Space/Symbol.png",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/deep-space.png",
+      "bytes": 15162,
+      "sha256": "8d5b2d30c9c2ee9906c710dd7e00c1e346bc9c827a4949d86ba687d16fbd924f"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Impact Orange/Symbol.png",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/impact-orange.png",
+      "bytes": 15060,
+      "sha256": "3b0718317d820c190c6abe9c26301942123f643d168e21db197ce38aedf918e9"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Deep Space/Symbol + claim.png",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/deep-space.png",
+      "bytes": 34190,
+      "sha256": "45087644da401987750b55e2d56690ef2f58c9e68289a1981d73e1c5c340506f"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Deep Space/CometX_LOGA-27.svg",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/deep-space.svg",
+      "bytes": 8350,
+      "sha256": "21a96e1aa33e4932aea1774549e2d665c7cc3642850075172c7fc59df5acaf6f"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Electric Cyan/Logo + claim.png",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/electric-cyan.png",
+      "bytes": 40745,
+      "sha256": "c0aca7882855d43153b45c6b9e3f699e2b61ddcbb133e560c46fded5cddde205"
+    },
+    {
+      "source": "Vizuální identita/Prvek X/PNG/Bez názvu-2 [obnovený]-07.png",
+      "kind": "x-element",
+      "destination": "public/brand/cometx/elements/x-07.png",
+      "bytes": 199311,
+      "sha256": "6645cda1caa4545fb82fd68f216ae3b5b929f12968052fca545ff44355c28ce1"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/B&W/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 8196,
+      "sha256": "2aa887fd0e641406749d27c49991af5bbc77fd093047f28aa07d38fa5bf769cf"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Deep Space/Symbol.svg",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/deep-space.svg",
+      "bytes": 582,
+      "sha256": "8712ec74d078595ab94c646f56f2624fd5af3a8e9f0e04ff6bd8d2a07a7856d1"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Deep Space/CometX_LOGA-28.svg",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/deep-space.svg",
+      "bytes": 2168,
+      "sha256": "54c55d109365055a3a9c324a99a9168a5a989ccf66f4a2b263728eb3d24731e0"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Night Gray/CometX_LOGA-34.svg",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/night-gray.svg",
+      "bytes": 2168,
+      "sha256": "98c4f1d846e88e726e9a4b4a70d3ffdf799dccc9ad00202557c31b7ad4e14b53"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Night Gray/Symbol.png",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/night-gray.png",
+      "bytes": 15124,
+      "sha256": "2f0217eed243f77ab559011b05f75192556a91bb24a77b276bd52975a688c6b5"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Network Violet/Symbol + claim.png",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/network-violet.png",
+      "bytes": 34306,
+      "sha256": "2a9ecf4fb7475c2e3602eb97fdb9f7cc091362f0e6ab393ff6e753d44dafa0f1"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Electric Cyan/Symbol.png",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/electric-cyan.png",
+      "bytes": 15295,
+      "sha256": "a44bf4b65abb90bb364daa62bc6aee7efba75e9b2ca0639c8c063b58c323bc80"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Impact Orange/Logo + claim.png",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/impact-orange.png",
+      "bytes": 40189,
+      "sha256": "73cbc9a09feb5f501e86a54e99ac7c7f911c795ec19037c20a956cbcc4016f75"
+    },
+    {
+      "source": "Vizuální identita/Prvek X/SVG/Bez názvu-2 [obnovený] kopie-06.svg",
+      "kind": "x-element",
+      "destination": "public/brand/cometx/elements/x-06.svg",
+      "bytes": 442,
+      "sha256": "433035d06a0e98e84af092590e37471783226a1f5793c831ca79be1bfe2e2fa1"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Electric Cyan/Symbol + claim.png",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/electric-cyan.png",
+      "bytes": 23995,
+      "sha256": "682311fc15fe6db6375a2bff8c49550f83a7a68482f8fcf973b3bc01cb494557"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 14340,
+      "sha256": "62dd91836e3281949bbbf774735bdb83097ba9070c786f67bb6bdddda9f79ce4"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Impact Orange/Symbol.svg",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/impact-orange.svg",
+      "bytes": 582,
+      "sha256": "dd26134344e0073d1d663b1f005513742084ad10ea459389ca6d9f63447291f4"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Night Gray/CometX_LOGA-32.svg",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/night-gray.svg",
+      "bytes": 7009,
+      "sha256": "2b62c5f61c8f58442f97f996b76d7e60c5981c16adfaf23263e6d9c984e624c1"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Electric Cyan/CometX_LOGA-46.svg",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/electric-cyan.svg",
+      "bytes": 2168,
+      "sha256": "49229d8b91fa59e07b1dc0b6ec0fc4f22bbc20e7af28b872afe445b34fce687a"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Electric Cyan/Logo.png",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/electric-cyan.png",
+      "bytes": 34450,
+      "sha256": "1e955e3ae7b980b7f04df89ce1a2a8a8320fb82099f4b3a4ee3f1d882b5df20c"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Electric Cyan/Symbol.svg",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/electric-cyan.svg",
+      "bytes": 582,
+      "sha256": "5d059fff81514051bf2f3e79b63fca3884a4f175fbd954a0081bad7199b678d6"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Night Gray/Symbol.svg",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/night-gray.svg",
+      "bytes": 582,
+      "sha256": "6693c129a77a229db19d06a1ed36976cf7b66845dc767b55331f38c70ea64a62"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 14340,
+      "sha256": "9681f3b4956572789cabd8bb0dd07d37059c593a4be9497a120a30e7f4b493a9"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Impact Orange/Symbol + claim.png",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/impact-orange.png",
+      "bytes": 33770,
+      "sha256": "ecc066279ec022a47f8ea6837d04283c32c4c31155d4b084d0aa0d47c27a0561"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Cloud White/CometX_LOGA-36.svg",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/cloud-white.svg",
+      "bytes": 8350,
+      "sha256": "3ae8eb16cd05b10e53537ab3e45866036345da3881da92720c8d13dea026c9d0"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Night Gray/Logo.png",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/night-gray.png",
+      "bytes": 23782,
+      "sha256": "4ff05895c4f38fb8163d3c1ba7b51f0ecb1993fe347e6bb9e596c5a055fc14eb"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/B&W/bílá/Symbol.png",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/white.png",
+      "bytes": 14199,
+      "sha256": "d758fc00ab2f6d32c5d4483dc95667d046a36d5ce656f11715ed144b2bff3786"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Network Violet/CometX_LOGA-39.svg",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/network-violet.svg",
+      "bytes": 8350,
+      "sha256": "d530cfec7531b75c7700dc70bf2b45e85342ec0c8577720f2736a2dcae530b62"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Connection Lime/CometX_LOGA-31.svg",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/connection-lime.svg",
+      "bytes": 2168,
+      "sha256": "3b5a057c6c07ec24e796ec71fc7e322642d6280798a0547b0b7e2817abec99b5"
+    },
+    {
+      "source": "Vizuální identita/Prvek X/SVG/Bez názvu-2 [obnovený] kopie-04.svg",
+      "kind": "x-element",
+      "destination": "public/brand/cometx/elements/x-04.svg",
+      "bytes": 1761,
+      "sha256": "469c23c1a1d34988b22299c93d7fa5d854a53505f1b398575aa7301c320b6d65"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Impact Orange/CometX_LOGA-42.svg",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/impact-orange.svg",
+      "bytes": 8350,
+      "sha256": "d93b70004cda858bc377e06ffd48e7dae786328c725fdc6547e109cb12953086"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Cloud White/Symbol + claim.png",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/cloud-white.png",
+      "bytes": 33991,
+      "sha256": "454b071e7fa89786f87be42de015f20afd3eac42085d0a759ea9918a0a8bbe88"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Connection Lime/Logo + claim.png",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/connection-lime.png",
+      "bytes": 40704,
+      "sha256": "819819d4408fc78aa45822113745484ceeeee1a981a32c57cedbebe14639a512"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Impact Orange/Logo.png",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/impact-orange.png",
+      "bytes": 23604,
+      "sha256": "f0f1a1f012c349e5f9dc74cf53a7a5e643831ec3766e55e87681c5c1707461ab"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Night Gray/Symbol + claim.png",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/night-gray.png",
+      "bytes": 33997,
+      "sha256": "708ec82c51b5c7b550d5f1496eb2dd1bbae4e8785397b2d2b0edb6c2d2550133"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Cloud White/CometX_LOGA-35.svg",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/cloud-white.svg",
+      "bytes": 7009,
+      "sha256": "a6759e300525e90ad4c67bf42bef259d39c5ea4cf23437eaf2cc697d49287ebf"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Night Gray/CometX_LOGA-33.svg",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/night-gray.svg",
+      "bytes": 8350,
+      "sha256": "e7e4d31bfdc9e0721b6471d263c2fe6fdfc492e7f36b53b31982ae3f97ee2404"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Cloud White/Symbol.svg",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/cloud-white.svg",
+      "bytes": 582,
+      "sha256": "86d1c6578041560bf493cf7b216c823a63a7a56ed391ca162220b1ced68b9c62"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Connection Lime/Symbol.svg",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/connection-lime.svg",
+      "bytes": 582,
+      "sha256": "48c22b91010dbf7214f8c72976246e13dd0450bb8d7e1e77c96c0fcecbb33ba6"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Cloud White/Symbol.png",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/cloud-white.png",
+      "bytes": 15373,
+      "sha256": "69e46d15d6d5865754ef7c59c246fb8348ccae0d21ad413947147ada7e5897bf"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Connection Lime/Logo.png",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/connection-lime.png",
+      "bytes": 23952,
+      "sha256": "2af4229eb6ca30cf58b4d337b915e1665b19a6182c32eba0bcb89296d4bdc1c9"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Impact Orange/CometX_LOGA-43.svg",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/impact-orange.svg",
+      "bytes": 2168,
+      "sha256": "af0113246740d35dfff3d68eebf7a9e9f25ced3e8d7750f4e8a738e5d2ea316c"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Network Violet/.DS_Store",
+      "kind": "ignored-macos-metadata",
+      "destination": null,
+      "bytes": 6148,
+      "sha256": "d65165279105ca6773180500688df4bdc69a2c7b771752f0a46ef120b7fd8ec3"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/B&W/bílá/Symbol + claim.png",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/white.png",
+      "bytes": 31701,
+      "sha256": "a38ce9098b1ad0a14703f74a3d778964686452f152edf435318fa7b62d922881"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Cloud White/Logo + claim.png",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/cloud-white.png",
+      "bytes": 40366,
+      "sha256": "44286cb5ec779850aac31eee735e78bb3227b1bbbbdbcd534e7bb2263404cd64"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/B&W/bílá/Logo.png",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/white.png",
+      "bytes": 22310,
+      "sha256": "27f0ab63810f1355c4ee5f3dd47da41f170c0e1fcdd469ff83e6f00b96b15cb5"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Network Violet/Logo.png",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/network-violet.png",
+      "bytes": 24033,
+      "sha256": "458f6b8c46ab23e74893dff652442b43d972a40ca9d68c5e067bcc51ad29820b"
+    },
+    {
+      "source": "Vizuální identita/Prvek X/SVG/Bez názvu-2 [obnovený] kopie-05.svg",
+      "kind": "x-element",
+      "destination": "public/brand/cometx/elements/x-05.svg",
+      "bytes": 1812,
+      "sha256": "54a833897083299435359d220a506f2b46c66a00dee06c6067af9a101b2bac2f"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Cloud White/Logo.png",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/cloud-white.png",
+      "bytes": 23764,
+      "sha256": "2e95ad8e3a45c8325a981f6a40e1a82c74f61e7f57383a125a3343106b7b1ff1"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Network Violet/Symbol.png",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/network-violet.png",
+      "bytes": 15244,
+      "sha256": "422f2424c9681a5eb62d05bdf953d60bfa09a2bc1c4c7ca664907b8e7c46a1ff"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Connection Lime/CometX_LOGA-30.svg",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/connection-lime.svg",
+      "bytes": 8350,
+      "sha256": "9f12539ed74902a5985eb6a4a899a9f9589750dd611aaa2c21f8d3251a43712b"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Cloud White/CometX_LOGA-37.svg",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/cloud-white.svg",
+      "bytes": 2168,
+      "sha256": "71cd3f2305d021663a1dfa4aff5ba0ded08460c86cf73a27bbce586d32ccc77f"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Network Violet/CometX_LOGA-38.svg",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/network-violet.svg",
+      "bytes": 7009,
+      "sha256": "d378c2c898d99e0e596efcf5990bf3f52739c7582fc80f439f663e69deeea6e1"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/B&W/černá/CometX_LOGA-21.svg",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/black.svg",
+      "bytes": 7974,
+      "sha256": "8578af1c5696912b91aec979b43faca8b10e1038cc4ab06f26ea3cbf3c79d099"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/B&W/bílá/Logo + claim.png",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/white.png",
+      "bytes": 38151,
+      "sha256": "1e74bf7047d35e69a952d4f24f3f231f02f62c316e9317f1c9c2d63627bc4857"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Deep Space/CometX_LOGA-26.svg",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/deep-space.svg",
+      "bytes": 7009,
+      "sha256": "f611da3fe8f98eff26cf2756f6a17b700fadb6ec4bdbcf9049a5795fb959eedc"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Deep Space/Logo + claim.png",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/deep-space.png",
+      "bytes": 40642,
+      "sha256": "a6af4a393e36a387b34ae04bff8fccf2ae1cc0a425fa77a1bab7e1a0af3992e3"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/B&W/černá/Symbol + claim.png",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/black.png",
+      "bytes": 34052,
+      "sha256": "f68496da113b1cebd8932858b617aaae0dc1d15e6bcd80c028d3b504de21d647"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/B&W/bílá/CometX_LOGA-25.svg",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/white.svg",
+      "bytes": 2165,
+      "sha256": "d8d555fac6f153d10aee640ec62a231ca25d91faf73b58321ffce476351db606"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/Network Violet/Logo + claim.png",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/network-violet.png",
+      "bytes": 40713,
+      "sha256": "22875f1ad3ebb71f1c1ce59dc367033bd955411c9b5d83a1dbdebd0087ee8ae6"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Network Violet/CometX_LOGA-40.svg",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/network-violet.svg",
+      "bytes": 2168,
+      "sha256": "ae6d82077cabbac3cf35a56469aa5408de6958076106f36037eea2d440eb489c"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/Network Violet/Symbol.svg",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/network-violet.svg",
+      "bytes": 582,
+      "sha256": "0099ad7c1e2dfe45d69a5044f36c40c51748cb8351c44fd3c792bdbe36f43f69"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/B&W/bílá/Symbol.svg",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/white.svg",
+      "bytes": 579,
+      "sha256": "8f1179c5efa28ac556ee126383ecfd5907d47c6ae4fd88de0a31ecbed7cf68f2"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/B&W/bílá/CometX_LOGA-24.svg",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/white.svg",
+      "bytes": 8347,
+      "sha256": "13cd52f0ae2e30ac6b7b497425955063436b3241557d2a2202932edc574e41f6"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/B&W/černá/Logo + claim.png",
+      "kind": "logo-claim",
+      "destination": "public/brand/cometx/logo-claim/black.png",
+      "bytes": 40450,
+      "sha256": "6635ac6d3ba144b9034807db5681a38f1667c03df2c0965b348a4a3300989249"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/B&W/bílá/CometX_LOGA-23.svg",
+      "kind": "symbol-claim",
+      "destination": "public/brand/cometx/symbol-claim/white.svg",
+      "bytes": 7006,
+      "sha256": "0cfd14398ff3f6219e150ba3936403d827f30097830cd41b33c4cd508fbbdfb2"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/B&W/černá/Symbol.png",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/black.png",
+      "bytes": 15225,
+      "sha256": "c09eaf42f02d4bf17b8005ca6b72e8dc101ea049f6a8cfc3e4342268ed3a9f1b"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/PNG/B&W/černá/Logo.png",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/black.png",
+      "bytes": 23784,
+      "sha256": "68230b6d000aa0956413882e015ba102c461625273a6c61b6a2727cab6399eb2"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/B&W/černá/Symbol.svg",
+      "kind": "symbol",
+      "destination": "public/brand/cometx/symbol/black.svg",
+      "bytes": 464,
+      "sha256": "aadc4560edffb9ece6b6b3cd7ee5df0eb46712b31f8d79246681eb95c97556b4"
+    },
+    {
+      "source": "Vizuální identita/Logo a Symbol - export/SVG/B&W/černá/CometX_LOGA-22.svg",
+      "kind": "logo",
+      "destination": "public/brand/cometx/logo/black.svg",
+      "bytes": 1996,
+      "sha256": "e37e184ad9704a5a574ae845084174cecc2b5d6faa6aa55782c65aa455eed71b"
+    },
+    {
+      "source": "Vizuální identita/Prvek X/tvar + aplikace.ai",
+      "kind": "illustrator-source-retained-in-original-archive",
+      "destination": null,
+      "bytes": 60691117,
+      "sha256": "0a8f50142745e7609a992d7651c0f2328761a37992102758e9de31d4fade2c4f"
+    },
+    {
+      "source": "Vizuální identita/Brandbook/CometX brandbook 1.0.pdf",
+      "kind": "brandbook",
+      "destination": "docs/brand/cometx-brandbook-1.0.pdf",
+      "bytes": 19470625,
+      "sha256": "80d832e5eed54eeb4f950122d58ea34f5eec8f4e6a0cedf382abc3dead6c1b97"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+# Preserve official export bytes and SHA-256 provenance across Windows/macOS.
+public/brand/cometx/logo/** -text
+public/brand/cometx/logo-claim/** -text
+public/brand/cometx/symbol/** -text
+public/brand/cometx/symbol-claim/** -text
+public/brand/cometx/elements/** -text
+docs/brand/*.pdf binary
+docs/brand/*.json text eol=lf
+scripts/import-brand-assets.ps1 text eol=lf
