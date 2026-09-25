@@ -127,7 +127,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
       : null;
 
   return (
-    <article className="pb-24 lg:pb-0">
+    <article className="pb-28 lg:pb-12 [&_button]:rounded-full [&_a.inline-flex]:rounded-full">
       {data.isPreview && (
         <div
           role="status"
@@ -147,7 +147,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
           <ArrowRight className="size-4 rotate-180" />
           {cs ? "Všechny akce" : "All events"}
         </Link>
-        <div className="grid items-start gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_23rem] xl:gap-x-20">
+        <div className="grid items-start gap-x-12 gap-y-16 lg:grid-cols-[minmax(0,1fr)_23rem] xl:gap-x-20">
           <header className="relative min-w-0 overflow-hidden pb-2 lg:col-start-1 lg:row-start-1">
             <BrandXElement className="absolute right-0 top-0 -z-0 h-44 w-44 opacity-[0.06]" />
             <div className="relative">
@@ -190,14 +190,14 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                   {event.shortDescription}
                 </p>
               )}
-              <Button asChild variant="signal" size="lg" className="mt-7">
+              <Button asChild variant="signal" size="lg" className="mt-9 rounded-full px-8">
                 <a href="#event-tickets">
                   {ticketCta}
                   <ArrowDown className="size-4" />
                 </a>
               </Button>
               {heroImage && (
-                <figure className="mt-9 overflow-hidden border border-border bg-paper">
+                <figure className="mt-12 overflow-hidden rounded-[2rem] bg-paper">
                   <img
                     src={heroImage}
                     alt={event.heroImageUrl ? event.title : portrait!.name}
@@ -212,14 +212,18 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
           <aside
             id="event-tickets"
             aria-label={cs ? "Informace a registrace" : "Event information and tickets"}
-            className="scroll-mt-28 min-w-0 border border-accent/35 bg-card lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto"
+            className="scroll-mt-28 min-w-0 overflow-hidden rounded-[2rem] bg-card shadow-xl shadow-black/10 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto"
           >
-            <div className="border-b border-border bg-accent px-6 py-5 text-accent-foreground">
+            <div className="relative overflow-hidden bg-accent px-8 py-10 text-accent-foreground">
+              <BrandXElement
+                variant="fullDark"
+                className="absolute -right-7 -top-5 h-40 w-40 opacity-10"
+              />
               <p className="eyebrow">CometX</p>
               <h2 className="mt-1 text-2xl font-bold">{cs ? "Buďte u toho" : "Join the event"}</h2>
             </div>
-            <div className="p-6">
-              <dl className="space-y-5 text-sm">
+            <div className="p-7 sm:p-8">
+              <dl className="space-y-6 text-sm">
                 <Info icon={<CalendarDays className="size-4" />} label={cs ? "Datum" : "Date"}>
                   <time dateTime={event.startDate}>{date(event.startDate)}</time>
                   {event.endDate && date(event.endDate) !== date(event.startDate) && (
@@ -271,7 +275,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                     </Info>
                   )}
               </dl>
-              <div className="mt-6 border-t border-border pt-6">
+              <div className="mt-9 rounded-3xl bg-background/40 p-5">
                 <h3 className="text-lg font-bold">{cs ? "Vstupenky" : "Tickets"}</h3>
                 {data.membershipName && (
                   <p className="mt-2 text-sm text-muted-foreground">
@@ -297,10 +301,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                 ) : (
                   <div className="mt-5 space-y-6">
                     {tickets.map((ticket) => (
-                      <div
-                        key={ticket.id}
-                        className="border-t border-border pt-5 first:border-t-0 first:pt-0"
-                      >
+                      <div key={ticket.id} className="rounded-2xl bg-card/60 py-4">
                         <h4 className="font-bold">{ticket.name}</h4>
                         {ticket.description && (
                           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
@@ -404,7 +405,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
             </div>
           </aside>
 
-          <div className="min-w-0 space-y-12 lg:col-start-1 lg:row-start-2">
+          <div className="min-w-0 space-y-16 lg:col-start-1 lg:row-start-2 lg:space-y-20">
             {content.map((section, index) => (
               <ContentSection
                 key={index}
@@ -415,7 +416,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
             ))}
             {scheduled.length > 0 && (
               <ContentSection title={cs ? "Program" : "Programme"}>
-                <ol className="divide-y divide-border">
+                <ol className="space-y-3 rounded-3xl bg-card p-6 sm:p-8">
                   {scheduled.map((w) => (
                     <li key={w.id} className="grid grid-cols-[4rem_1fr] gap-5 py-4">
                       <time dateTime={w.startTime!} className="font-bold text-accent">
@@ -436,7 +437,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
               <ContentSection title={cs ? "Workshopy" : "Workshops"}>
                 <div className="space-y-4">
                   {workshops.map((w) => (
-                    <article key={w.id} className="border border-border bg-card p-5">
+                    <article key={w.id} className="rounded-3xl bg-card p-7 sm:p-9">
                       <h3 className="text-xl font-bold">{w.title}</h3>
                       {w.description && (
                         <div className="mt-3">
@@ -463,19 +464,19 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                     <article
                       id={`speaker-${s.id}`}
                       key={s.id}
-                      className="scroll-mt-28 grid gap-5 sm:grid-cols-[9rem_minmax(0,1fr)]"
+                      className="scroll-mt-28 grid gap-7 rounded-3xl bg-card/60 p-6 sm:grid-cols-[9rem_minmax(0,1fr)] sm:p-8"
                     >
                       {s.photoUrl ? (
                         <img
                           src={s.photoUrl}
                           alt={s.name}
                           loading="lazy"
-                          className="aspect-square w-36 object-cover"
+                          className="aspect-square w-36 rounded-3xl object-cover"
                         />
                       ) : (
                         <div
                           aria-hidden="true"
-                          className="hidden aspect-square w-36 overflow-hidden bg-paper sm:block"
+                          className="hidden aspect-square w-36 overflow-hidden rounded-3xl bg-paper sm:block"
                         >
                           <BrandXElement className="h-full w-full opacity-20" />
                         </div>
@@ -522,7 +523,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                       src={url}
                       alt={`${event.title} · ${i + 1}`}
                       loading="lazy"
-                      className="aspect-[4/3] w-full object-cover"
+                      className="aspect-[4/3] w-full rounded-3xl object-cover"
                     />
                   ))}
                 </div>
@@ -540,13 +541,17 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
               </ContentSection>
             )}
             {open && tickets.length > 0 && (
-              <div className="border-y border-accent/30 py-8">
-                <p className="text-xl font-bold">{event.title}</p>
-                <p className="mt-2 text-sm text-muted-foreground">
+              <div className="rounded-[2rem] bg-accent p-8 text-accent-foreground sm:p-12">
+                <p className="text-2xl font-bold sm:text-3xl">{event.title}</p>
+                <p className="mt-4 text-sm text-accent-foreground/75">
                   {date(event.startDate)}
                   {event.venue ? ` · ${event.venue}` : ""}
                 </p>
-                <Button asChild variant="signal" className="mt-5">
+                <Button
+                  asChild
+                  variant="signal"
+                  className="mt-7 rounded-full bg-ink px-7 text-ink-foreground hover:bg-ink/90"
+                >
                   <a href="#event-tickets">
                     {ticketCta}
                     <ArrowRight className="size-4" />
@@ -557,7 +562,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
           </div>
         </div>
       </div>
-      <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-4 border-t border-accent/30 bg-background/95 px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+      <div className="fixed inset-x-2 bottom-2 z-40 flex items-center justify-between gap-3 rounded-3xl bg-card/95 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl shadow-black/20 backdrop-blur lg:hidden">
         <div className="min-w-0">
           <p className="truncate text-xs text-muted-foreground">{status}</p>
           {fromPrice && open && (
@@ -590,8 +595,8 @@ function Info({ icon, label, children }: { icon: ReactNode; label: string; child
 }
 function ContentSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border-t border-border pt-8">
-      <h2 className="mb-6 text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
+    <section>
+      <h2 className="mb-8 text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
       {children}
     </section>
   );

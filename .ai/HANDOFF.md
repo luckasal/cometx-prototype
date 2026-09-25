@@ -15,6 +15,14 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## Setup note
 
+## 2026-09-25: softer event detail styling
+
+- Last agent: Codex; branch: `codex-dev`; commit: follows `8b1e8d1`.
+- Changed only `EventDetailTemplate.tsx`: rounded images/cards, pill CTAs, fewer dividers, more whitespace, larger lime surfaces and official X artwork. No business logic, database or unrelated page changes.
+- Validation: build/typecheck and 22 tests pass; desktop/mobile visual check, 390px without horizontal overflow.
+- Review: responsive populated ticket cards and speaker/gallery sections; no live deployment.
+- Separate interrupted task: `supabase/repair-workshop-tickets-20260925.sql` is prepared but NOT executed or committed. Admin SQL read confirmed all three workshops have no ticket records. Official active prices verified: emotional regulation CHF265, AI CHF315, conflict CHF554. Early bird AI CHF230 and conflict CHF322 are expired. Do not claim the ticket repair is complete.
+
 The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-parallel-20260925`. They predate newer GitHub `main` commits and have not been merged into `codex-dev`; inspect before reusing.
 
 ## 2026-09-25: default event detail template
