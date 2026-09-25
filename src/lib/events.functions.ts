@@ -146,7 +146,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
       const regularPrice = calculateTicketPrice(
         { basePrice:Number(ticket.base_price),currency:ticket.currency,requiredEntitlement:ticket.required_entitlement,
           discountEntitlement:ticket.discount_entitlement,freeEntitlement:ticket.free_entitlement },entitlements);
-      const memberPrice=membership && ticket.member_price!==null && regularPrice.eligible
+      const memberPrice=membership && ticket.member_price !== null && ticket.member_price !== undefined && regularPrice.eligible
         ? {...regularPrice,basePrice:Number(ticket.base_price),discount:Number(ticket.base_price)-Number(ticket.member_price),
             finalPrice:Number(ticket.member_price),reason:"Member ticket price",includedInMembership:Number(ticket.member_price)===0}
         : regularPrice;
@@ -154,13 +154,13 @@ export const getEventDetail = createServerFn({ method: "GET" })
         id: ticket.id,
         name: ticket.name,
         description: ticket.description,
-        memberPrice: ticket.member_price === null ? null : Number(ticket.member_price),
+        memberPrice: ticket.member_price === null || ticket.member_price === undefined ? null : Number(ticket.member_price),
         saleStart: ticket.sale_start,
         saleEnd: ticket.sale_end,
         price: memberPrice,
         spotsLeft,
         soldOut: event.event_status === "sold_out" || (spotsLeft !== null && spotsLeft === 0),
-        hasMemberPricing: ticket.member_price !== null || !!(ticket.required_entitlement || ticket.discount_entitlement || ticket.free_entitlement),
+        hasMemberPricing: (ticket.member_price !== null && ticket.member_price !== undefined) || !!(ticket.required_entitlement || ticket.discount_entitlement || ticket.free_entitlement),
       };
     });
 

@@ -45,7 +45,7 @@ For membership demos, create active memberships pointing to the relevant plan ID
 
 ## Stripe test workflow
 
-Ticket checkout is implemented on `codex-dev`, but migration 0005 and coordinated deployment are pending. Set server-only `STRIPE_SECRET_KEY` (test mode), `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and `SITE_URL=http://127.0.0.1:3001`. The app rejects live Stripe keys. Forward test events with:
+Ticket checkout is implemented on `codex-dev`, but migration 0005 and coordinated Production deployment are pending. Vercel's branch Preview currently has no Supabase public configuration and cannot load. Set server-only `STRIPE_SECRET_KEY` (test mode), `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and `SITE_URL=http://127.0.0.1:3001`. The app rejects live Stripe keys. Forward test events with:
 
 ```sh
 stripe listen --forward-to http://127.0.0.1:3001/api/public/stripe-webhook

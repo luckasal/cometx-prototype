@@ -2,7 +2,7 @@
 
 ## Current status — 25 September 2026
 
-The Stripe connection is the CometX sandbox (test mode). Hosted Checkout was selected. The implementation is on `codex-dev`; it is not deployed or enabled on the public site.
+The Stripe connection is the CometX sandbox (test mode). Hosted Checkout was selected. The implementation is on `codex-dev`; it is not deployed to Production. Vercel generated a branch Preview, but it cannot load because Supabase public variables are configured for Production only.
 
 Implemented in this branch:
 
@@ -16,7 +16,7 @@ Membership price applies to each ticket in that order. A buyer can select a quan
 
 The working tree contains `drizzle/migrations/0005_hidden_ticket_payments.sql`. It is **not applied**. A read-only query on Supabase project `vlcssswzlvamtscyobbv` found no new payment schema/functions/columns and confirmed the existing active-registration index expected by this migration. I did not apply it before deployment because it replaces older registration RPC behavior.
 
-Vercel currently has server-only entries for `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and `SITE_URL` in Production/Preview. Their values were not read or revealed. The local `.env` lacks the Stripe/service-role entries. The app rejects live Stripe keys for ticket checkout. The Stripe sandbox Workbench currently has no webhook destination. No end-to-end purchase/webhook has been tested; no payment has been taken and nothing has been deployed.
+Vercel has server-only entries for `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and `SITE_URL` in Production/Preview. Their values were not read or revealed. The public Supabase variables are configured only for Production; Preview intentionally remains disconnected rather than sharing live data. The local `.env` lacks the Stripe/service-role entries. The app rejects live Stripe keys for ticket checkout. The Stripe sandbox Workbench currently has no webhook destination. No end-to-end purchase/webhook has been tested; no payment has been taken and no Production deployment has occurred.
 
 TypeScript and production build pass. Existing TanStack deprecation and bundle-size warnings remain unrelated to this integration.
 
