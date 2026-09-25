@@ -22,11 +22,11 @@ import { StatusPill } from "./Bits";
 type Props = {
   data: EventDetail;
   pending: boolean;
-  onReserve: (ticketId: string, quantity:number) => void;
+  onPurchase: (ticketId: string, quantity:number) => void;
   onLogin: () => void;
 };
 
-export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props) {
+export function EventDetailTemplate({ data, pending, onPurchase, onLogin }: Props) {
   const { language } = useLanguage();
   const cs = language === "cs";
   const [quantities,setQuantities]=useState<Record<string,number>>({});
@@ -73,29 +73,23 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
             : "Sold out"
           : open
             ? cs
-              ? "Registrace otevřena"
-              : "Registration open"
+              ? "Vstupenky v prodeji"
+              : "Tickets on sale"
             : cs
-              ? "Registrace uzavřena"
-              : "Registration closed";
-  const ticketCta = data.myRegistration
-    ? cs
-      ? "Moje registrace"
-      : "My registration"
-    : open && tickets.length
+              ? "Prodej vstupenek uzavřen"
+              : "Ticket sales closed";
+  const ticketCta = open && tickets.length
       ? cs
-        ? "Vybrat vstupenku"
-        : "Choose a ticket"
-      : cs
-        ? "Informace o vstupenkách"
-        : "Ticket information";
+        ? "Koupit vstupenky"
+        : "Buy tickets"
+      : data.myRegistration
+        ? cs
+          ? "Moje vstupenky"
+          : "My tickets"
+        : cs
+          ? "Informace o vstupenkách"
+          : "Ticket information";
   const ticketAction = (icon?: ReactNode) =>
-    data.myRegistration ? (
-      <Link to="/account/events">
-        {ticketCta}
-        {icon && <ArrowRight className="size-4" />}
-      </Link>
-    ) : (
       <a
         href="#event-ticket-options"
         onClick={(e) => {
@@ -108,8 +102,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
       >
         {ticketCta}
         {icon}
-      </a>
-    );
+      </a>;
   const portrait = speakers.find((s) => s.photoUrl);
   const heroImage = event.heroImageUrl || portrait?.photoUrl;
   const content = splitEventContent(event.description);
@@ -158,8 +151,8 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
         >
           <strong>{cs ? "Náhled pro správce" : "Admin preview"}</strong> · {event.publishState} ·{" "}
           {cs
-            ? "Registrace je v náhledu vypnuta. Uložené změny se načítají automaticky."
-            : "Booking is disabled in preview. Saved changes refresh automatically."}
+            ? "Nákup je v náhledu vypnutý. Uložené změny se načítají automaticky."
+            : "Purchases are disabled in preview. Saved changes refresh automatically."}
         </div>
       )}
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
@@ -279,7 +272,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                 {event.registrationEnd && (
                   <Info
                     icon={<Ticket className="size-4" />}
-                    label={cs ? "Registrace do" : "Registration deadline"}
+                    label={cs ? "Prodej vstupenek do" : "Ticket sales end"}
                   >
                     {date(event.registrationEnd)} · {time(event.registrationEnd)}
                   </Info>
@@ -289,7 +282,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                   Date.parse(event.registrationStart) > Date.now() && (
                     <Info
                       icon={<Ticket className="size-4" />}
-                      label={cs ? "Registrace od" : "Registration opens"}
+                      label={cs ? "Prodej vstupenek od" : "Ticket sales start"}
                     >
                       {date(event.registrationStart)} · {time(event.registrationStart)}
                     </Info>
@@ -312,11 +305,11 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                   <div className="mt-5 space-y-4">
                     <p className="flex items-center gap-2 font-semibold">
                       <CheckCircle2 className="size-5 text-accent" />
-                      {cs ? "Jste registrováni" : "You're registered"}
+                      {cs ? "Vstupenku už máte" : "You already have a ticket"}
                     </p>
                     <StatusPill tone="success">{data.myRegistration.status}</StatusPill>
                     <Button asChild variant="signal" className="w-full">
-                      <Link to="/account/events">{cs ? "Moje registrace" : "My registration"}</Link>
+                      <Link to="/account/events">{cs ? "Moje vstupenky" : "My tickets"}</Link>
                     </Button>
                   </div>
                 )}
@@ -386,7 +379,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                         <div className="mt-4">
                           {data.isPreview ? (
                             <Button disabled className="w-full" variant="outline">
-                              {cs ? "Registrace v náhledu vypnuta" : "Booking disabled in preview"}
+                              {cs ? "Nákup je v náhledu vypnutý" : "Purchases are disabled in preview"}
                             </Button>
                           ) : !open || ticket.soldOut || !saleOpen ? (
                             <Button disabled className="w-full" variant="outline">
@@ -394,7 +387,7 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                             </Button>
                           ) : !data.isSignedIn ? (
                             <Button variant="signal" className="w-full" onClick={onLogin}>
-                              {cs ? "Přihlásit a registrovat" : "Log in to register"}
+                              {cs ? "Přihlásit a koupit" : "Log in to buy"}
                               <ArrowRight className="size-4" />
                             </Button>
                           ) : !ticket.price.eligible ? (
@@ -423,11 +416,11 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                               variant="signal"
                               className="w-full"
                               disabled={pending}
-                              onClick={() => onReserve(ticket.id,quantity)}
+                              onClick={() => onPurchase(ticket.id,quantity)}
                             >
                               {pending
                                 ? cs
-                                  ? "Rezervujeme…"
+                                  ? "Otevíráme platbu…"
                                   : "Opening checkout…"
                                 : cs
                                   ? "Koupit vstupenky"
@@ -441,11 +434,11 @@ export function EventDetailTemplate({ data, pending, onReserve, onLogin }: Props
                     )})}
                   </div>
                 )}
-                {!data.myRegistration && tickets.length > 0 && open && (
+                {tickets.length > 0 && open && (
                   <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
                     {cs
-                      ? "Platba proběhne bezpečně přes Stripe."
-                      : "Secure payment is handled by Stripe Checkout."}
+                      ? "Další vstupenky koupíte bezpečně přes Stripe."
+                      : "Additional tickets are purchased securely through Stripe Checkout."}
                   </p>
                 )}
               </div>

@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowRight, CalendarDays, CheckCircle2, Languages, MapPin, Sparkles } from "lucide-react";
-import { getEventDetail, reserveFreePlace } from "@/lib/events.functions";
+import { getEventDetail, startTicketCheckout } from "@/lib/events.functions";
 import { Button } from "@/components/ui/button";
 import {
   ErrorBlock,
@@ -47,7 +47,7 @@ function EventDetailPage() {
   const queryClient = useQueryClient();
 
   const fetchDetail = useServerFn(getEventDetail);
-  const reserve = useServerFn(reserveFreePlace);
+  const startCheckout = useServerFn(startTicketCheckout);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["event", slug, user?.id ?? "guest", preview ?? false],
@@ -62,10 +62,10 @@ function EventDetailPage() {
     return () => channel.close();
   }, [queryClient, slug]);
 
-  const reserveMutation = useMutation({
-    mutationFn: ({ticketTypeId,quantity}: {ticketTypeId:string;quantity:number}) => reserve({ data: { ticketTypeId,quantity } }),
+  const purchaseMutation = useMutation({
+    mutationFn: ({ticketTypeId,quantity}: {ticketTypeId:string;quantity:number}) => startCheckout({ data: { ticketTypeId,quantity } }),
     onSuccess: (result) => {
-      trackEvent("event_registration", { event_slug: slug });
+      trackEvent(result.url ? "ticket_checkout_started" : "free_ticket_issued", { event_slug: slug });
       if (result.url) { window.location.assign(result.url); return; }
       toast.success(cs ? "Vstupenka je potvrzena. Najdete ji v Můj CometX." : "Your ticket is confirmed. See it in My CometX.");
       queryClient.invalidateQueries({ queryKey: ["event", slug] });
@@ -264,7 +264,7 @@ function EventDetailPage() {
     );
   }
 
-  return <EventDetailTemplate data={data} pending={reserveMutation.isPending} onReserve={(id,quantity) => reserveMutation.mutate({ticketTypeId:id,quantity})} onLogin={() => navigate({ to: "/login", search: { redirect: `/events/${slug}` } })} />;
+  return <EventDetailTemplate data={data} pending={purchaseMutation.isPending} onPurchase={(id,quantity) => purchaseMutation.mutate({ticketTypeId:id,quantity})} onLogin={() => navigate({ to: "/login", search: { redirect: `/events/${slug}` } })} />;
 }
 
 function Meta({

@@ -233,8 +233,8 @@ export const getEventDetail = createServerFn({ method: "GET" })
     };
   });
 
-/** Prototype reservation: trusted price is saved, no payment is collected. */
-export const reserveFreePlace = createServerFn({ method: "POST" })
+/** Starts a server-validated ticket checkout. Free/entitled tickets are issued immediately. */
+export const startTicketCheckout = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => ticketSchema.parse(data))
   .handler(async ({ data }) => {
     const { requireUser } = await import("./auth.server");
