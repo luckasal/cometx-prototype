@@ -15,6 +15,13 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## Setup note
 
+## 2026-09-25: official workshop content sync
+
+- Last agent: Codex; branch: `codex-dev`; follows `ed8620b`.
+- Updated three published workshops through `/admin`: original descriptions, existing hero assets, speaker links, speaker roles/bios, start/end times and emotional-regulation address. Live conflict source says 12 March 2027 (cached search says 11 March). See `EVENT_CONTENT_SYNC.md` for sources and scope.
+- No application code/schema changes. Supabase content updates apply directly to production and local views. Existing ticket IDs/prices/capacity/entitlements and registrations preserved; expired early birds remain inactive.
+- Payment integration unchanged. Review content fidelity and Swiss-local dates; source content is Czech even when the navigation language is English.
+
 ## 2026-09-25: site-wide softness and ticket data repair
 
 - Last agent: Codex; branch: `codex-dev`; commit follows `02eedc2`.
