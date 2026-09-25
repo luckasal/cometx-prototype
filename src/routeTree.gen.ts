@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as GetInvolvedRouteImport } from './routes/get-involved'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MembershipRouteImport } from './routes/membership'
@@ -64,6 +65,11 @@ const AccountRoute = AccountRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GetInvolvedRoute = GetInvolvedRouteImport.update({
@@ -232,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/demo': typeof DemoRoute
   '/get-involved': typeof GetInvolvedRoute
   '/login': typeof LoginRoute
   '/membership': typeof MembershipRoute
@@ -268,6 +275,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/demo': typeof DemoRoute
   '/get-involved': typeof GetInvolvedRoute
   '/login': typeof LoginRoute
   '/membership': typeof MembershipRoute
@@ -307,6 +315,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/demo': typeof DemoRoute
   '/get-involved': typeof GetInvolvedRoute
   '/login': typeof LoginRoute
   '/membership': typeof MembershipRoute
@@ -347,6 +356,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/demo'
     | '/get-involved'
     | '/login'
     | '/membership'
@@ -383,6 +393,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/demo'
     | '/get-involved'
     | '/login'
     | '/membership'
@@ -421,6 +432,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/demo'
     | '/get-involved'
     | '/login'
     | '/membership'
@@ -460,6 +472,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
+  DemoRoute: typeof DemoRoute
   GetInvolvedRoute: typeof GetInvolvedRoute
   LoginRoute: typeof LoginRoute
   MembershipRoute: typeof MembershipRoute
@@ -500,6 +513,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/get-involved': {
@@ -795,6 +815,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AccountRoute: AccountRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
+  DemoRoute: DemoRoute,
   GetInvolvedRoute: GetInvolvedRoute,
   LoginRoute: LoginRoute,
   MembershipRoute: MembershipRoute,
