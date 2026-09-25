@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { BrandXElement } from "./BrandXElement";
 
 export function PageHero({
   eyebrow,
@@ -14,8 +15,9 @@ export function PageHero({
   children?: ReactNode;
 }) {
   return (
-    <section className="border-b border-border bg-paper">
-      <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
+    <section className="relative overflow-hidden border-b border-border bg-paper">
+      <BrandXElement half className="absolute -right-20 -top-36 hidden h-[33rem] w-auto opacity-20 lg:block" />
+      <div className="relative mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
         {eyebrow && <p className="eyebrow text-muted-foreground">{eyebrow}</p>}
         <h1 className="display-lg mt-4 max-w-4xl">{title}</h1>
         {lead && <p className="mt-6 max-w-2xl text-lg text-muted-foreground">{lead}</p>}
@@ -51,7 +53,10 @@ export function SectionHeading({
   return (
     <div className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
       <div>
-        {eyebrow && <p className="eyebrow text-muted-foreground">{eyebrow}</p>}
+        <div className="flex items-center gap-3">
+          <img src="/brand/cometx/cometx-symbol-lime.svg" alt="" aria-hidden="true" className="size-5" />
+          {eyebrow && <p className="eyebrow text-muted-foreground">{eyebrow}</p>}
+        </div>
         <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight">{title}</h2>
       </div>
       {action}
@@ -135,7 +140,7 @@ export function EventCard({
           <img
             src={event.hero_image_url}
             alt={event.title}
-            className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            className="brand-photo size-full transition-transform duration-500 group-hover:scale-[1.03]"
             loading="lazy"
           />
         )}

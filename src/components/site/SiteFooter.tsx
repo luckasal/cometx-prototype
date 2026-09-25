@@ -1,10 +1,19 @@
 import { Link } from "@tanstack/react-router";
 import { CometXLogo } from "./CometXLogo";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { subscribeNewsletter } from "@/lib/public.functions";
+import { trackEvent } from "@/lib/analytics";
 
 export function SiteFooter() {
   const { language } = useLanguage();
   const cs = language === "cs";
+  const [email, setEmail] = useState("");
+  const subscribe = useServerFn(subscribeNewsletter);
+  const signup = useMutation({ mutationFn: () => subscribe({ data: { email } }), onSuccess: () => { trackEvent("newsletter_signup", { placement: "footer" }); toast.success(cs ? "Jste přihlášeni k odběru." : "You're subscribed."); setEmail(""); }, onError: (error: Error) => toast.error(error.message) });
   return (
     <footer className="mt-24 bg-ink text-ink-foreground">
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
@@ -31,6 +40,14 @@ export function SiteFooter() {
               { to: "/membership", label: cs ? "Členství" : "Membership" },
             ]}
           />
+          <div>
+            <h4 className="eyebrow text-ink-foreground/45">{cs ? "Newsletter" : "Newsletter"}</h4>
+            <p className="mt-4 text-sm text-ink-foreground/65">{cs ? "Novinky o akcích a komunitě, přímo do schránky." : "Event and community news, straight to your inbox."}</p>
+            <form className="mt-4 flex gap-2" onSubmit={(event) => { event.preventDefault(); signup.mutate(); }}>
+              <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="min-w-0 flex-1 border border-ink-foreground/30 bg-transparent px-3 py-2 text-sm text-ink-foreground placeholder:text-ink-foreground/35" />
+              <button disabled={signup.isPending} className="bg-accent px-3 py-2 text-xs font-bold text-accent-foreground">{signup.isPending ? "…" : (cs ? "Odebírat" : "Subscribe")}</button>
+            </form>
+          </div>
           <FooterColumn
             title={cs ? "Organizace" : "Organisation"}
             links={[
