@@ -38,13 +38,22 @@ export async function ensureTicketPrice(ticketId: string, amountMinor: number, c
 
 export async function syncEventPayments(eventId: string) {
   if (!isStripeConfigured()) return false;
-  const { data: event, error } = await supabaseAdmin.from("events").select("title,publish_state").eq("id",eventId).single();
+  const { data: event, error } = await supabaseAdmin.from("events")
+    .select("title,publish_state,event_status,start_date,registration_start,registration_end")
+    .eq("id",eventId).single();
   check(error);
   if (!event) throw new Error("Event unavailable.");
+  const now = Date.now();
+  const eventSalesOpen = event.publish_state === "published" && event.event_status === "registration_open"
+    && Date.parse(event.start_date) > now
+    && (!event.registration_start || Date.parse(event.registration_start) <= now)
+    && (!event.registration_end || Date.parse(event.registration_end) > now);
   const tickets = await supabaseAdmin.from("ticket_types").select("*").eq("event_id",eventId);
   check(tickets.error);
   for (const ticket of tickets.data ?? []) {
-    const active = ticket.active && event.publish_state === "published";
+    const ticketSalesOpen = (!ticket.sale_start || Date.parse(ticket.sale_start) <= now)
+      && (!ticket.sale_end || Date.parse(ticket.sale_end) > now);
+    const active = ticket.active && eventSalesOpen && ticketSalesOpen;
     const old=await db.from("ticket_payment_products").select("product_id").eq("ticket_id",ticket.id).maybeSingle();
     check(old.error);
     let productId=old.data?.product_id;
