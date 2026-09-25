@@ -99,7 +99,9 @@ on conflict (slug) do update set
   featured = excluded.featured,
   hero_image_url = excluded.hero_image_url;
 
--- Remove the two invented stakeholder-demo listings now replaced by official events.
-delete from public.events where slug in ('beer-potlach-zurich', 'networking-evening-geneva');
+-- Retire the two invented stakeholder-demo listings without deleting historical registrations.
+update public.events
+set status = 'cancelled', featured = false
+where slug in ('beer-potlach-zurich', 'networking-evening-geneva');
 
 commit;
