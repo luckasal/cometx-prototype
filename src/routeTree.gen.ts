@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
-import { Route as DemoRouteImport } from './routes/demo'
 import { Route as GetInvolvedRouteImport } from './routes/get-involved'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MembershipRouteImport } from './routes/membership'
@@ -24,10 +23,15 @@ import { Route as AccountEventsRouteImport } from './routes/account.events'
 import { Route as AccountMembershipRouteImport } from './routes/account.membership'
 import { Route as AccountProfileRouteImport } from './routes/account.profile'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminContactsRouteImport } from './routes/admin.contacts'
+import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AdminMembersRouteImport } from './routes/admin.members'
+import { Route as AdminNewsletterRouteImport } from './routes/admin.newsletter'
 import { Route as AdminPartnersRouteImport } from './routes/admin.partners'
+import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPlansRouteImport } from './routes/admin.plans'
 import { Route as AdminRegistrationsRouteImport } from './routes/admin.registrations'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminSpeakersRouteImport } from './routes/admin.speakers'
 import { Route as AdminWorkshopsRouteImport } from './routes/admin.workshops'
 import { Route as CommunityIndexRouteImport } from './routes/community.index'
@@ -60,11 +64,6 @@ const AccountRoute = AccountRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DemoRoute = DemoRouteImport.update({
-  id: '/demo',
-  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GetInvolvedRoute = GetInvolvedRouteImport.update({
@@ -117,14 +116,34 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminContactsRoute = AdminContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminContentRoute = AdminContentRouteImport.update({
+  id: '/content',
+  path: '/content',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMembersRoute = AdminMembersRouteImport.update({
   id: '/members',
   path: '/members',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminNewsletterRoute = AdminNewsletterRouteImport.update({
+  id: '/newsletter',
+  path: '/newsletter',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPartnersRoute = AdminPartnersRouteImport.update({
   id: '/partners',
   path: '/partners',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPlansRoute = AdminPlansRouteImport.update({
@@ -135,6 +154,11 @@ const AdminPlansRoute = AdminPlansRouteImport.update({
 const AdminRegistrationsRoute = AdminRegistrationsRouteImport.update({
   id: '/registrations',
   path: '/registrations',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminSpeakersRoute = AdminSpeakersRouteImport.update({
@@ -208,7 +232,6 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
-  '/demo': typeof DemoRoute
   '/get-involved': typeof GetInvolvedRoute
   '/login': typeof LoginRoute
   '/membership': typeof MembershipRoute
@@ -217,10 +240,15 @@ export interface FileRoutesByFullPath {
   '/account/events': typeof AccountEventsRoute
   '/account/membership': typeof AccountMembershipRoute
   '/account/profile': typeof AccountProfileRoute
+  '/admin/contacts': typeof AdminContactsRoute
+  '/admin/content': typeof AdminContentRoute
   '/admin/members': typeof AdminMembersRoute
+  '/admin/newsletter': typeof AdminNewsletterRoute
   '/admin/partners': typeof AdminPartnersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
   '/admin/registrations': typeof AdminRegistrationsRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/speakers': typeof AdminSpeakersRoute
   '/admin/workshops': typeof AdminWorkshopsRoute
   '/events/$slug': typeof EventsSlugRoute
@@ -240,7 +268,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/demo': typeof DemoRoute
   '/get-involved': typeof GetInvolvedRoute
   '/login': typeof LoginRoute
   '/membership': typeof MembershipRoute
@@ -249,10 +276,15 @@ export interface FileRoutesByTo {
   '/account/events': typeof AccountEventsRoute
   '/account/membership': typeof AccountMembershipRoute
   '/account/profile': typeof AccountProfileRoute
+  '/admin/contacts': typeof AdminContactsRoute
+  '/admin/content': typeof AdminContentRoute
   '/admin/members': typeof AdminMembersRoute
+  '/admin/newsletter': typeof AdminNewsletterRoute
   '/admin/partners': typeof AdminPartnersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
   '/admin/registrations': typeof AdminRegistrationsRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/speakers': typeof AdminSpeakersRoute
   '/admin/workshops': typeof AdminWorkshopsRoute
   '/events/$slug': typeof EventsSlugRoute
@@ -275,7 +307,6 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/account': typeof AccountRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
-  '/demo': typeof DemoRoute
   '/get-involved': typeof GetInvolvedRoute
   '/login': typeof LoginRoute
   '/membership': typeof MembershipRoute
@@ -284,10 +315,15 @@ export interface FileRoutesById {
   '/account/events': typeof AccountEventsRoute
   '/account/membership': typeof AccountMembershipRoute
   '/account/profile': typeof AccountProfileRoute
+  '/admin/contacts': typeof AdminContactsRoute
+  '/admin/content': typeof AdminContentRoute
   '/admin/members': typeof AdminMembersRoute
+  '/admin/newsletter': typeof AdminNewsletterRoute
   '/admin/partners': typeof AdminPartnersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/plans': typeof AdminPlansRoute
   '/admin/registrations': typeof AdminRegistrationsRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/speakers': typeof AdminSpeakersRoute
   '/admin/workshops': typeof AdminWorkshopsRoute
   '/events/$slug': typeof EventsSlugRoute
@@ -311,7 +347,6 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
-    | '/demo'
     | '/get-involved'
     | '/login'
     | '/membership'
@@ -320,10 +355,15 @@ export interface FileRouteTypes {
     | '/account/events'
     | '/account/membership'
     | '/account/profile'
+    | '/admin/contacts'
+    | '/admin/content'
     | '/admin/members'
+    | '/admin/newsletter'
     | '/admin/partners'
+    | '/admin/payments'
     | '/admin/plans'
     | '/admin/registrations'
+    | '/admin/settings'
     | '/admin/speakers'
     | '/admin/workshops'
     | '/events/$slug'
@@ -343,7 +383,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/demo'
     | '/get-involved'
     | '/login'
     | '/membership'
@@ -352,10 +391,15 @@ export interface FileRouteTypes {
     | '/account/events'
     | '/account/membership'
     | '/account/profile'
+    | '/admin/contacts'
+    | '/admin/content'
     | '/admin/members'
+    | '/admin/newsletter'
     | '/admin/partners'
+    | '/admin/payments'
     | '/admin/plans'
     | '/admin/registrations'
+    | '/admin/settings'
     | '/admin/speakers'
     | '/admin/workshops'
     | '/events/$slug'
@@ -377,7 +421,6 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
-    | '/demo'
     | '/get-involved'
     | '/login'
     | '/membership'
@@ -386,10 +429,15 @@ export interface FileRouteTypes {
     | '/account/events'
     | '/account/membership'
     | '/account/profile'
+    | '/admin/contacts'
+    | '/admin/content'
     | '/admin/members'
+    | '/admin/newsletter'
     | '/admin/partners'
+    | '/admin/payments'
     | '/admin/plans'
     | '/admin/registrations'
+    | '/admin/settings'
     | '/admin/speakers'
     | '/admin/workshops'
     | '/events/$slug'
@@ -412,7 +460,6 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
-  DemoRoute: typeof DemoRoute
   GetInvolvedRoute: typeof GetInvolvedRoute
   LoginRoute: typeof LoginRoute
   MembershipRoute: typeof MembershipRoute
@@ -453,13 +500,6 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/demo': {
-      id: '/demo'
-      path: '/demo'
-      fullPath: '/demo'
-      preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/get-involved': {
@@ -532,6 +572,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/contacts': {
+      id: '/admin/contacts'
+      path: '/contacts'
+      fullPath: '/admin/contacts'
+      preLoaderRoute: typeof AdminContactsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/content': {
+      id: '/admin/content'
+      path: '/content'
+      fullPath: '/admin/content'
+      preLoaderRoute: typeof AdminContentRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/members': {
       id: '/admin/members'
       path: '/members'
@@ -539,11 +593,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMembersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/newsletter': {
+      id: '/admin/newsletter'
+      path: '/newsletter'
+      fullPath: '/admin/newsletter'
+      preLoaderRoute: typeof AdminNewsletterRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/partners': {
       id: '/admin/partners'
       path: '/partners'
       fullPath: '/admin/partners'
       preLoaderRoute: typeof AdminPartnersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/plans': {
@@ -558,6 +626,13 @@ declare module '@tanstack/react-router' {
       path: '/registrations'
       fullPath: '/admin/registrations'
       preLoaderRoute: typeof AdminRegistrationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/speakers': {
@@ -672,10 +747,15 @@ const AccountRouteWithChildren =
   AccountRoute._addFileChildren(AccountRouteChildren)
 
 interface AdminRouteChildren {
+  AdminContactsRoute: typeof AdminContactsRoute
+  AdminContentRoute: typeof AdminContentRoute
   AdminMembersRoute: typeof AdminMembersRoute
+  AdminNewsletterRoute: typeof AdminNewsletterRoute
   AdminPartnersRoute: typeof AdminPartnersRoute
+  AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminPlansRoute: typeof AdminPlansRoute
   AdminRegistrationsRoute: typeof AdminRegistrationsRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSpeakersRoute: typeof AdminSpeakersRoute
   AdminWorkshopsRoute: typeof AdminWorkshopsRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -688,10 +768,15 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminContactsRoute: AdminContactsRoute,
+  AdminContentRoute: AdminContentRoute,
   AdminMembersRoute: AdminMembersRoute,
+  AdminNewsletterRoute: AdminNewsletterRoute,
   AdminPartnersRoute: AdminPartnersRoute,
+  AdminPaymentsRoute: AdminPaymentsRoute,
   AdminPlansRoute: AdminPlansRoute,
   AdminRegistrationsRoute: AdminRegistrationsRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
   AdminSpeakersRoute: AdminSpeakersRoute,
   AdminWorkshopsRoute: AdminWorkshopsRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -710,7 +795,6 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AccountRoute: AccountRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
-  DemoRoute: DemoRoute,
   GetInvolvedRoute: GetInvolvedRoute,
   LoginRoute: LoginRoute,
   MembershipRoute: MembershipRoute,
