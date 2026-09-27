@@ -161,7 +161,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
       const regularPrice = calculateTicketPrice(
         { basePrice:Number(ticket.base_price),currency:ticket.currency,requiredEntitlement:ticket.required_entitlement,
           discountEntitlement:ticket.discount_entitlement,freeEntitlement:ticket.free_entitlement },entitlements);
-      const memberPrice=membership && ticket.member_price !== null && ticket.member_price !== undefined && regularPrice.eligible
+      const memberPrice=membership && !regularPrice.includedInMembership && ticket.member_price !== null && ticket.member_price !== undefined && regularPrice.eligible
         ? {...regularPrice,basePrice:Number(ticket.base_price),discount:Number(ticket.base_price)-Number(ticket.member_price),
             finalPrice:Number(ticket.member_price),reason:"Member ticket price",includedInMembership:Number(ticket.member_price)===0}
         : regularPrice;

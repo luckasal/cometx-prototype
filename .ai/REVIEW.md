@@ -13,7 +13,7 @@ Status: Code review completed; release is blocked on coordinated database/deploy
 
 - The latest `codex-dev` build is a Vercel Preview, not the live Production deployment. Vercel's public Supabase variables are Production-only, so this Preview cannot reach events. Keep that separation; do not point Preview at Production just to test it. Use a separately isolated database or test after the coordinated Production release.
 - Follow-up self-review fix: Stripe ticket products are now active only while the event and ticket sale windows are open; completed/closed events are archived on the next admin save/sync instead of appearing as sellable products.
-- SQL migration was statically reviewed but not parsed or executed locally; no PostgreSQL CLI was available. Run it first in a disposable Supabase database, then verify RLS/grants, free issuance, paid webhook fulfillment, failed/expired sessions and capacity contention before broad release.
+- All migrations executed successfully in isolated PGlite PostgreSQL on 2026-09-27. Guest/contact separation, paid fulfillment replay, mixed-line capacity rejection and service-only RPC grants pass. Fixed partial issuance before a later capacity failure. Real Supabase concurrency, free issuance and failed/expired Stripe delivery still need release validation.
 - Member pricing/free entitlements currently apply to every ticket in a member's basket. Confirm this business rule before treating group purchases as final.
 
 ## NICE TO HAVE

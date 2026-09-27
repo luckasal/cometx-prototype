@@ -296,6 +296,10 @@ begin
           on conflict(stripe_checkout_session_id) do update set order_id=excluded.order_id,stripe_customer_id=excluded.stripe_customer_id,status='paid',updated_at=now();
         return;
       end if;
+    end loop;
+    -- Validate every line before issuing any attendee. A later sold-out line
+    -- must not leave valid tickets attached to a manual-review order.
+    for item in select * from public.ticket_order_items where order_id=o.id loop
       for n in 1..item.quantity loop
         insert into public.ticket_attendees(order_id,order_item_id,event_id,ticket_type_id,user_id,attendee_name,attendee_email)
           values(o.id,item.id,o.event_id,item.ticket_type_id,o.user_id,o.buyer_name,o.buyer_email);

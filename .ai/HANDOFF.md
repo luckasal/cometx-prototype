@@ -15,6 +15,15 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## Setup note
 
+## 2026-09-27: sandbox release preparation
+
+- Codex, `codex-dev`: created and verified sandbox webhook `we_1UJtK90A7SoM9pRtZ91gedYV` for the four Checkout lifecycle events. Destination is the existing Vercel `/api/public/stripe-webhook` route. No live payments.
+- Saving the webhook signing secret to Vercel was rejected by automatic approval review; explicit user approval requested and pending. Do not claim the environment was updated. Secret preserved in ignored `.env.stripe-webhook.local`; never print or commit it.
+- Fixed partial ticket issuance when a later basket line fails capacity validation. Every line is now checked before any attendee is issued. Public member pricing now preserves a free entitlement ahead of a configured member price, matching server behavior.
+- Executed all migrations in isolated PGlite PostgreSQL; regression test covers guest/contact separation, payment replay, mixed-line capacity failure and RPC grants. 25 focused tests and typecheck pass.
+- Run database test after `npm install --prefix .test-runtime --no-save --package-lock=false @electric-sql/pglite`, then `node --test tests/ticket-database.test.mjs`. Runtime is ignored; root npm install is incompatible with existing `link:.` dependency graph.
+- Supabase migrations remain unapplied; Production is unchanged. Verified Resend sender, guest-token secret, group member-benefit policy, deployment and end-to-end test still outstanding.
+
 ## 2026-09-25: hidden Stripe event checkout implementation
 
 - Last agent: Codex
