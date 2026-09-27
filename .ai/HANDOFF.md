@@ -15,6 +15,12 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## Setup note
 
+## 2026-09-27: webhook secret saved with explicit approval
+
+- Saved the sandbox webhook signing secret in Vercel's existing STRIPE_WEBHOOK_SECRET variable (Production and Preview); verified “Updated just now”. User explicitly approved the transfer. A deployment is required for runtime activation.
+- Added buyer/payment heading, account-data explanation and secure Stripe test-payment handoff text to the existing event ticket basket in Czech and English. Card details remain on hosted Stripe Checkout.
+- Resend redirects to login; user sign-in requested to check a verified sender. Guest email configuration, guest-token encryption secret, Supabase migrations and Production deployment remain outstanding. No payment completed.
+
 ## 2026-09-27: sandbox release preparation
 
 - Codex, `codex-dev`: created and verified sandbox webhook `we_1UJtK90A7SoM9pRtZ91gedYV` for the four Checkout lifecycle events. Destination is the existing Vercel `/api/public/stripe-webhook` route. No live payments.

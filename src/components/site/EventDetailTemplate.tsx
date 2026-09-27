@@ -420,6 +420,8 @@ export function EventDetailTemplate({ data, pending, onPurchase, onLogin }: Prop
                     )})}
                     {tickets.some((ticket) => (quantities[ticket.id] ?? 0) > 0) && (
                       <div className="space-y-4 border-t border-border/40 pt-5">
+                        <h4 className="font-bold">{cs ? "Údaje kupujícího a platba" : "Buyer details & payment"}</h4>
+                        {data.isSignedIn && <p className="text-sm text-muted-foreground">{cs ? "Pro nákup použijeme údaje vašeho účtu." : "We’ll use your account details for this purchase."}</p>}
                         {!data.isSignedIn && (
                           <div className="grid gap-3 sm:grid-cols-2">
                             <label className="text-sm font-medium">
@@ -437,6 +439,12 @@ export function EventDetailTemplate({ data, pending, onPurchase, onLogin }: Prop
                           <span>{formatMoney(tickets.reduce((sum, ticket) => sum + (quantities[ticket.id] ?? 0) * ticket.price.finalPrice, 0), firstEligible?.price.currency ?? tickets[0]?.price.currency ?? "CHF")}</span>
                         </div>
                         {currencyConflict && <p role="alert" className="text-sm text-destructive">{cs ? "V jednom nákupu lze kombinovat vstupenky pouze ve stejné měně." : "Tickets in one purchase must use the same currency."}</p>}
+                        <div className="rounded-2xl bg-accent/10 p-4 text-sm leading-relaxed">
+                          <p className="font-semibold">{cs ? "Testovací platba" : "Test payment"}</p>
+                          <p className="mt-1 text-muted-foreground">{cs
+                            ? "Po kliknutí na Koupit vstupenky zadáte platební údaje na zabezpečené stránce Stripe. V tomto prototypu se skutečné peníze nestrhávají. Vstupenky zdarma platbu přeskočí."
+                            : "After Buy tickets, enter your payment details on Stripe’s secure checkout page. This prototype does not charge real money. Free tickets skip payment."}</p>
+                        </div>
                         <Button variant="signal" className="w-full" disabled={pending || currencyConflict || (!data.isSignedIn && (!buyerName.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(buyerEmail.trim())))}
                           onClick={() => onPurchase(tickets.filter((ticket) => (quantities[ticket.id] ?? 0) > 0).map((ticket) => ({ ticketId: ticket.id, quantity: quantities[ticket.id] ?? 0 })), data.isSignedIn ? undefined : { name: buyerName.trim(), email: buyerEmail.trim() })}>
                           {pending ? (cs ? "Otevíráme platbu…" : "Opening checkout…") : cs ? "Koupit vstupenky" : "Buy tickets"}
