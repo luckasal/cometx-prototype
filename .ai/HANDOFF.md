@@ -15,6 +15,18 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## Setup note
 
+## 2026-09-28: ticket cart and pre-payment review
+
+- Last agent: Codex
+- Branch: `codex-dev`
+- Commit: not committed
+- What changed: added a persistent browser cart with grouped per-event ticket lines, editable quantities, live displayed totals, guest contact fields, member account-data prefill, and a server-validated handoff to the existing Stripe Checkout flow. Payment card details remain on Stripe Checkout. The cart supports multiple events as separate orders; it performs no order creation until the buyer chooses to continue.
+- Files changed: `src/lib/ticket-cart.ts`, `src/routes/cart.tsx`, `src/routes/events.$slug.tsx`, `src/components/site/EventDetailTemplate.tsx`, `src/components/site/SiteHeader.tsx`, generated `src/routeTree.gen.ts`.
+- Migrations: none.
+- Validation: TypeScript check, production build, seven ticket-order/database tests, and local browser flow adding a ticket and increasing quantity (CHF 30 → CHF 60). No checkout session or payment was created.
+- Unresolved issues: end-to-end Stripe test checkout was not started. Cart contents are browser-local until checkout; this is intentional for a pre-payment basket.
+- What needs review: guest/member form behavior, multiple event groups (separate orders), and server revalidation of prices, entitlement, sale window and capacity before Checkout.
+
 ## 2026-09-28: staging release and runtime Supabase key compatibility
 
 - Last agent: Codex

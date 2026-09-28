@@ -1,11 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { EventDetailTemplate } from "@/components/site/EventDetailTemplate";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
 import { ArrowRight, CalendarDays, CheckCircle2, Languages, MapPin, Sparkles } from "lucide-react";
-import { getEventDetail, startTicketCheckout } from "@/lib/events.functions";
+import { getEventDetail } from "@/lib/events.functions";
 import { Button } from "@/components/ui/button";
 import {
   ErrorBlock,
@@ -16,7 +15,7 @@ import {
 } from "@/components/site/Bits";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { trackEvent } from "@/lib/analytics";
+import { addTicketToCart } from "@/lib/ticket-cart";
 
 export const Route = createFileRoute("/events/$slug")({
   validateSearch: (search: Record<string, unknown>): { preview?: boolean } => ({ preview: search["preview"] === true || search["preview"] === 1 || search["preview"] === "1" || search["preview"] === "true" }),
@@ -47,7 +46,6 @@ function EventDetailPage() {
   const queryClient = useQueryClient();
 
   const fetchDetail = useServerFn(getEventDetail);
-  const startCheckout = useServerFn(startTicketCheckout);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["event", slug, user?.id ?? "guest", preview ?? false],
@@ -61,22 +59,6 @@ function EventDetailPage() {
     channel.onmessage = () => { void queryClient.invalidateQueries({ queryKey: ["event", slug] }); };
     return () => channel.close();
   }, [queryClient, slug]);
-
-  const purchaseMutation = useMutation({
-    mutationFn: ({lines,buyer}: {lines:{ticketTypeId:string;quantity:number}[];buyer?:{name:string;email:string}}) => startCheckout({ data: {
-      lines, buyerName: buyer?.name, buyerEmail: buyer?.email,
-    } }),
-    onSuccess: (result) => {
-      trackEvent(result.url ? "ticket_checkout_started" : "free_ticket_issued", { event_slug: slug });
-      if (result.url) { window.location.assign(result.url); return; }
-      if (result.accessUrl) { window.location.assign(result.accessUrl); return; }
-      toast.success(cs ? "Vstupenka je potvrzena. Najdete ji v Můj CometX." : "Your ticket is confirmed. See it in My CometX.");
-      queryClient.invalidateQueries({ queryKey: ["event", slug] });
-      queryClient.invalidateQueries({ queryKey: ["account"] });
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
 
   if (isLoading)
     return (
@@ -267,7 +249,10 @@ function EventDetailPage() {
     );
   }
 
-  return <EventDetailTemplate data={data} pending={purchaseMutation.isPending} onPurchase={(lines,buyer) => purchaseMutation.mutate({lines:lines.map((line)=>({ticketTypeId:line.ticketId,quantity:line.quantity})),...(buyer ? { buyer } : {})})} onLogin={() => navigate({ to: "/login", search: { redirect: `/events/${slug}` } })} />;
+  return <EventDetailTemplate data={data} onAddToCart={(ticketId, quantity) => {
+    addTicketToCart(slug, ticketId, quantity);
+    void navigate({ to: "/cart" });
+  }} onLogin={() => navigate({ to: "/login", search: { redirect: `/events/${slug}` } })} />;
 }
 
 function Meta({

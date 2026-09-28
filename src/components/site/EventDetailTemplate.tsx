@@ -7,7 +7,6 @@ import {
   MapPin,
   Users,
   Ticket,
-  CheckCircle2,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -21,17 +20,14 @@ import { StatusPill } from "./Bits";
 
 type Props = {
   data: EventDetail;
-  pending: boolean;
-  onPurchase: (lines: { ticketId: string; quantity: number }[], buyer?: { name: string; email: string }) => void;
+  onAddToCart: (ticketId: string, quantity: number) => void;
   onLogin: () => void;
 };
 
-export function EventDetailTemplate({ data, pending, onPurchase, onLogin }: Props) {
+export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
   const { language } = useLanguage();
   const cs = language === "cs";
   const [quantities,setQuantities]=useState<Record<string,number>>({});
-  const [buyerName,setBuyerName]=useState("");
-  const [buyerEmail,setBuyerEmail]=useState("");
   const { event, tickets, speakers, workshops, partners } = data;
   const locale = cs ? "cs-CZ" : "en-GB";
   // Events are scheduled in Switzerland; do not shift the advertised date in a visitor's timezone.
@@ -133,8 +129,6 @@ export function EventDetailTemplate({ data, pending, onPurchase, onLogin }: Prop
         ? `${cs ? "Kapacita" : "Capacity"}: ${event.capacity}`
         : null;
   const eligible = tickets.filter((t) => t.price.eligible && !t.soldOut);
-  const selectedCurrencies = new Set(tickets.filter((ticket) => (quantities[ticket.id] ?? 0) > 0).map((ticket) => ticket.price.currency.toUpperCase()));
-  const currencyConflict = selectedCurrencies.size > 1;
   const firstEligible = eligible[0];
   const sameCurrency =
     firstEligible && eligible.every((t) => t.price.currency === firstEligible.price.currency);
@@ -299,24 +293,6 @@ export function EventDetailTemplate({ data, pending, onPurchase, onLogin }: Prop
                 className="mt-9 scroll-mt-28 rounded-3xl bg-background/40 p-5 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-4 focus:ring-offset-card"
               >
                 <h3 className="text-lg font-bold">{cs ? "Vstupenky" : "Tickets"}</h3>
-                {data.membershipName && (
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {cs ? "Vaše členství" : "Your membership"}:{" "}
-                    <strong className="text-foreground">{data.membershipName}</strong>
-                  </p>
-                )}
-                {data.myRegistration && (
-                  <div className="mt-5 space-y-4">
-                    <p className="flex items-center gap-2 font-semibold">
-                      <CheckCircle2 className="size-5 text-accent" />
-                      {cs ? "Vstupenku už máte" : "You already have a ticket"}
-                    </p>
-                    <StatusPill tone="success">{data.myRegistration.status}</StatusPill>
-                    <Button asChild variant="signal" className="w-full">
-                      <Link to="/account/events">{cs ? "Moje vstupenky" : "My tickets"}</Link>
-                    </Button>
-                  </div>
-                )}
                 {tickets.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
                     {cs ? "Vstupenky zatím nejsou k dispozici." : "No tickets are available yet."}
@@ -332,137 +308,30 @@ export function EventDetailTemplate({ data, pending, onPurchase, onLogin }: Prop
                       return (
                       <div key={ticket.id} className="rounded-2xl bg-card/60 py-4">
                         <h4 className="font-bold">{ticket.name}</h4>
-                        {ticket.description && (
-                          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                            {ticket.description}
-                          </p>
+                        <p className="mt-2 font-semibold">
+                          {formatMoney(ticket.price.basePrice, ticket.price.currency)}
+                        </p>
+                        {!data.isSignedIn && ticket.hasMemberPricing && (
+                          <button type="button" className="mt-2 text-sm underline underline-offset-2" onClick={onLogin}>
+                            {cs ? "Přihlásit se pro členskou cenu" : "Log in for member pricing"}
+                          </button>
                         )}
-                        <dl className="mt-4 space-y-2 text-sm">
-                          <div className="flex flex-wrap justify-between gap-2">
-                            <dt className="text-muted-foreground">
-                              {cs ? "Běžná cena" : "Regular price"}
-                            </dt>
-                            <dd className="font-semibold">
-                              {formatMoney(ticket.price.basePrice, ticket.price.currency)}
-                            </dd>
-                          </div>
-                          {ticket.price.discount > 0 || ticket.price.includedInMembership ? (
-                            <div className="flex flex-wrap justify-between gap-2 text-accent">
-                              <dt>{cs ? "Vaše členská cena" : "Your member price"}</dt>
-                              <dd className="font-bold">
-                                {ticket.price.includedInMembership
-                                  ? cs
-                                    ? "V ceně členství"
-                                    : "Included"
-                                  : formatMoney(ticket.price.finalPrice, ticket.price.currency)}
-                              </dd>
-                            </div>
-                          ) : null}
-                          {!data.membershipName && ticket.memberPrice !== null && (
-                            <div className="flex flex-wrap justify-between gap-2 text-accent">
-                              <dt>{cs ? "Cena pro členy" : "Member price"}</dt>
-                              <dd className="font-bold">
-                                {formatMoney(ticket.memberPrice, ticket.price.currency)}
-                              </dd>
-                            </div>
-                          )}
-                        </dl>
-                        {!data.membershipName && ticket.hasMemberPricing && (
-                          <p className="mt-2 text-xs text-muted-foreground">
-                            {cs
-                              ? "Přihlaste se nebo se přidejte do CometX pro členskou cenu."
-                              : "Log in or join CometX to access member pricing."}
-                          </p>
-                        )}
-                        {ticket.spotsLeft !== null && (
-                          <p className="mt-3 text-xs text-muted-foreground">
-                            {cs ? "Zbývá míst pro tento typ" : "Places left for this ticket"}:{" "}
-                            {data.spotsLeft === null
-                              ? ticket.spotsLeft
-                              : Math.min(ticket.spotsLeft, data.spotsLeft)}
-                          </p>
-                        )}
-                        <div className="mt-4">
-                          {data.isPreview ? (
-                            <Button disabled className="w-full" variant="outline">
-                              {cs ? "Nákup je v náhledu vypnutý" : "Purchases are disabled in preview"}
-                            </Button>
-                          ) : !open || ticket.soldOut || !saleOpen ? (
-                            <Button disabled className="w-full" variant="outline">
-                              {ticket.soldOut || soldOut ? (cs ? "Vyprodáno" : "Sold out") : !saleOpen ? (cs ? "Prodej vstupenek uzavřen" : "Ticket sales closed") : status}
-                            </Button>
-                          ) : !ticket.price.eligible ? (
-                            <>
-                              <p className="mb-3 text-xs text-muted-foreground">
-                                {cs
-                                  ? "Tato vstupenka vyžaduje odpovídající členskou výhodu."
-                                  : "This ticket requires an eligible membership benefit."}
-                              </p>
-                              <Button asChild variant="outline" className="w-full">
-                                <Link to="/membership">
-                                  {cs ? "Prohlédnout členství" : "Explore membership"}
-                                </Link>
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                            <label className="flex items-center justify-between gap-3 text-sm">
-                              <span>{cs ? "Počet vstupenek" : "Quantity"}</span>
-                              <select aria-label={cs ? `Počet vstupenek: ${ticket.name}` : `Ticket quantity: ${ticket.name}`} className="min-h-10 rounded-full bg-background px-4" value={quantity}
-                                onChange={e=>setQuantities(previous=>({...previous,[ticket.id]:Math.min(Number(e.target.value),Math.max(0,10-tickets.reduce((sum,other)=>sum+(other.id===ticket.id?0:previous[other.id]??0),0)))}))}>
-                                {Array.from({length:basketMax + 1},(_,i)=>i).map(n=><option key={n} value={n}>{n}</option>)}
-                              </select>
-                            </label>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )})}
-                    {tickets.some((ticket) => (quantities[ticket.id] ?? 0) > 0) && (
-                      <div className="space-y-4 border-t border-border/40 pt-5">
-                        <h4 className="font-bold">{cs ? "Údaje kupujícího a platba" : "Buyer details & payment"}</h4>
-                        {data.isSignedIn && <p className="text-sm text-muted-foreground">{cs ? "Pro nákup použijeme údaje vašeho účtu." : "We’ll use your account details for this purchase."}</p>}
-                        {!data.isSignedIn && (
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <label className="text-sm font-medium">
-                              {cs ? "Jméno kupujícího" : "Buyer name"}
-                              <input value={buyerName} onChange={(event) => setBuyerName(event.target.value)} autoComplete="name" required maxLength={240} className="mt-2 min-h-11 w-full rounded-2xl bg-background px-4 text-foreground" />
-                            </label>
-                            <label className="text-sm font-medium">
-                              {cs ? "E-mail pro vstupenky" : "Email for your tickets"}
-                              <input value={buyerEmail} onChange={(event) => setBuyerEmail(event.target.value)} type="email" autoComplete="email" required maxLength={320} className="mt-2 min-h-11 w-full rounded-2xl bg-background px-4 text-foreground" />
-                            </label>
-                          </div>
-                        )}
-                        <div className="flex justify-between gap-3 text-sm font-semibold">
-                          <span>{cs ? "Celkem" : "Total"} · {tickets.reduce((sum, ticket) => sum + (quantities[ticket.id] ?? 0), 0)} {cs ? "vstupenek" : "tickets"}</span>
-                          <span>{formatMoney(tickets.reduce((sum, ticket) => sum + (quantities[ticket.id] ?? 0) * ticket.price.finalPrice, 0), firstEligible?.price.currency ?? tickets[0]?.price.currency ?? "CHF")}</span>
-                        </div>
-                        {currencyConflict && <p role="alert" className="text-sm text-destructive">{cs ? "V jednom nákupu lze kombinovat vstupenky pouze ve stejné měně." : "Tickets in one purchase must use the same currency."}</p>}
-                        <div className="rounded-2xl bg-accent/10 p-4 text-sm leading-relaxed">
-                          <p className="font-semibold">{cs ? "Testovací platba" : "Test payment"}</p>
-                          <p className="mt-1 text-muted-foreground">{cs
-                            ? "Po kliknutí na Koupit vstupenky zadáte platební údaje na zabezpečené stránce Stripe. V tomto prototypu se skutečné peníze nestrhávají. Vstupenky zdarma platbu přeskočí."
-                            : "After Buy tickets, enter your payment details on Stripe’s secure checkout page. This prototype does not charge real money. Free tickets skip payment."}</p>
-                        </div>
-                        <Button variant="signal" className="w-full" disabled={pending || currencyConflict || (!data.isSignedIn && (!buyerName.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(buyerEmail.trim())))}
-                          onClick={() => onPurchase(tickets.filter((ticket) => (quantities[ticket.id] ?? 0) > 0).map((ticket) => ({ ticketId: ticket.id, quantity: quantities[ticket.id] ?? 0 })), data.isSignedIn ? undefined : { name: buyerName.trim(), email: buyerEmail.trim() })}>
-                          {pending ? (cs ? "Otevíráme platbu…" : "Opening checkout…") : cs ? "Koupit vstupenky" : "Buy tickets"}
+                        <label className="mt-4 flex items-center justify-between gap-3 text-sm">
+                          <span>{cs ? "Počet vstupenek" : "Quantity"}</span>
+                          <select aria-label={cs ? `Počet vstupenek: ${ticket.name}` : `Ticket quantity: ${ticket.name}`} className="min-h-10 rounded-full bg-background px-4" value={quantity}
+                            disabled={data.isPreview || !open || ticket.soldOut || !saleOpen || !ticket.price.eligible}
+                            onChange={e=>setQuantities(previous=>({...previous,[ticket.id]:Math.min(Number(e.target.value),Math.max(0,10-tickets.reduce((sum,other)=>sum+(other.id===ticket.id?0:previous[other.id]??0),0)))}))}>
+                            {Array.from({length:basketMax + 1},(_,i)=>i).map(n=><option key={n} value={n}>{n}</option>)}
+                          </select>
+                        </label>
+                        <Button variant="signal" className="mt-4 w-full" disabled={quantity < 1 || data.isPreview || !open || ticket.soldOut || !saleOpen || !ticket.price.eligible}
+                          onClick={() => onAddToCart(ticket.id, quantity)}>
+                          {cs ? "Přidat do košíku" : "Add to cart"}
                           <ArrowRight className="size-4" />
                         </Button>
-                        {!data.isSignedIn && tickets.some((ticket) => ticket.hasMemberPricing) && (
-                          <p className="text-center text-xs text-muted-foreground">{cs ? "Členové se mohou přihlásit a využít členské ceny." : "Members can log in to use member pricing."} <button type="button" className="underline underline-offset-2" onClick={onLogin}>{cs ? "Přihlásit se" : "Log in"}</button></p>
-                        )}
                       </div>
-                    )}
+                    )})}
                   </div>
-                )}
-                {tickets.length > 0 && open && (
-                  <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
-                    {cs
-                      ? "Vstupenky jsou potvrzeny po úspěšném nákupu. Vstupenky zdarma se vydávají ihned."
-                      : "Tickets are confirmed after successful checkout. Free tickets are issued immediately."}
-                  </p>
                 )}
               </div>
             </div>
