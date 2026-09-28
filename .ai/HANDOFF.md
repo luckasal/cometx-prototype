@@ -15,6 +15,12 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## Setup note
 
+## 2026-09-28: configurable staging deployment
+
+- APP_URL takes precedence over SITE_URL for checkout and ticket-email origins. No app hostname hardcoded. Stripe remains test-only.
+- Explicit TICKET_EMAIL_MODE (disabled by default) separates guest purchase/access from email delivery. Enabled mode requires sender/key; mandatory guest token encryption unchanged. Guest page provides a copy-private-link action.
+- Real deployed migration/checkout validation remains pending; no Supabase or deployment changes in this commit. Resend DNS is deferred per user instruction.
+
 ## 2026-09-28: event handling follow-up
 
 - Customer: show support order IDs, explain pending/manual-review outcomes, surface guest account-link errors; guest ticket route sets noindex/nofollow and no-referrer metadata.

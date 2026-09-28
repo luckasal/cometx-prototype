@@ -59,6 +59,13 @@ function GuestTicketsPage() {
               <h1 className="display-md mt-5">{orderData.events?.[0]?.title ?? (cs ? "Vaše vstupenky" : "Your tickets")}</h1>
               <p className="mt-2 text-muted-foreground">{orderData.buyer_name} · {orderData.buyer_email}</p>
               <p className="mt-2 break-all text-xs text-muted-foreground">{cs ? "Číslo objednávky" : "Order ID"}: {orderData.id}</p>
+              <div className="mt-5 rounded-2xl bg-accent/10 p-4 text-sm">
+                <p>{cs ? "Uložte si tento soukromý odkaz pro přístup ke vstupenkám. Nesdílejte ho veřejně." : "Save this private link to access your tickets again. Do not share it publicly."}</p>
+                <Button className="mt-3" variant="outline" onClick={async () => {
+                  try { await navigator.clipboard.writeText(window.location.href); toast.success(cs ? "Odkaz zkopírován" : "Ticket link copied"); }
+                  catch { toast.error(cs ? "Zkopírujte prosím adresu z prohlížeče." : "Please copy the address from your browser."); }
+                }}>{cs ? "Kopírovat odkaz na vstupenky" : "Copy ticket link"}</Button>
+              </div>
               <div className="mt-6 grid gap-3 rounded-3xl bg-background/60 p-5 text-sm sm:grid-cols-2">
                 <p>{cs ? "Datum" : "Date"}: <strong>{orderData.events?.[0]?.start_date ? new Date(orderData.events[0].start_date).toLocaleString(cs ? "cs-CZ" : "en-GB", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Zurich" }) : "—"}</strong></p>
                 <p>{cs ? "Místo" : "Venue"}: <strong>{orderData.events?.[0]?.venue ?? "—"}</strong></p>

@@ -1,5 +1,7 @@
 # CometX context
 
+- This is the real application being prepared for production, currently on a staging domain. No disposable demo shortcuts. Stripe remains test-only. APP_URL (or SITE_URL fallback) controls checkout/email origins; no dependency on moving cometx.ch now. TICKET_EMAIL_MODE defaults to disabled while domain verification is pending; secure guest access remains mandatory.
+
 - The existing prototype is a React app using TanStack Start, Vite, and file based routes in `src/routes/`.
 - Supabase provides PostgreSQL, Auth, profiles, memberships/entitlements, events, registrations, contacts, orders, payments, tickets and admin permissions. Treat its data and server-side entitlement/capacity checks as authoritative.
 - Vercel hosts the web prototype. Local and deployment environment variables are documented in `CMS_SETUP.md`; keep secrets out of Git and browser bundles.

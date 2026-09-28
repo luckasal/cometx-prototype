@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { checkoutOrigin } from "./checkout";
+import { configuredAppUrl, ticketEmailEnabled } from "./deployment";
 import { isStripeConfigured, stripeRequest } from "./stripe.server";
 
 const db = supabaseAdmin as unknown as SupabaseClient;
@@ -65,11 +66,10 @@ export async function startTicketOrder(input: {
   buyerEmail?: string;
 }) {
   const lines = checkoutLinesSchema.parse(input.lines);
-  if (!input.userId && (!process.env["RESEND_API_KEY"] || !process.env["RESEND_FROM_EMAIL"])) {
-    throw new Error("Guest ticket email is not configured yet. Please sign in or try again later.");
-  }
-  const ready = isStripeConfigured() && !!process.env["STRIPE_WEBHOOK_SECRET"] && !!process.env["SITE_URL"];
-  const origin = input.userId ? (ready ? checkoutOrigin(process.env["SITE_URL"]) : null) : checkoutOrigin(process.env["SITE_URL"]);
+  ticketEmailEnabled(process.env);
+  const appUrl = configuredAppUrl(process.env);
+  const ready = isStripeConfigured() && !!process.env["STRIPE_WEBHOOK_SECRET"] && !!appUrl;
+  const origin = input.userId ? (ready ? checkoutOrigin(appUrl) : null) : checkoutOrigin(appUrl);
   const token = input.userId ? null : base64(crypto.getRandomValues(new Uint8Array(32))).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
   const tokenHash = token ? await sha256(token) : null;
   const tokenCiphertext = token ? await encryptToken(token) : null;
@@ -151,6 +151,7 @@ export async function applyTicketOrderPaymentEvent(type: string, session: unknow
 }
 
 export async function sendGuestTicketEmail(orderId: string): Promise<void> {
+  if (!ticketEmailEnabled(process.env)) return;
   const apiKey = process.env["RESEND_API_KEY"];
   const from = process.env["RESEND_FROM_EMAIL"];
   if (!apiKey || !from) return;
@@ -159,7 +160,7 @@ export async function sendGuestTicketEmail(orderId: string): Promise<void> {
     .eq("id", orderId).eq("buyer_kind", "guest").maybeSingle();
   check(error);
   if (!order || order.guest_email_sent_at || !["confirmed", "free"].includes(order.status) || !order.guest_token_ciphertext) return;
-  const site = checkoutOrigin(process.env["SITE_URL"]);
+  const site = checkoutOrigin(configuredAppUrl(process.env));
   const token = await decryptToken(order.guest_token_ciphertext);
   const url = `${site}/tickets/guest?order=${encodeURIComponent(order.id)}&token=${encodeURIComponent(token)}`;
   const response = await fetch("https://api.resend.com/emails", {

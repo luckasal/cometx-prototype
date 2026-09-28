@@ -7,7 +7,7 @@ Status: Code review completed; release is blocked on coordinated database/deploy
 ## BLOCKER
 
 - Production Supabase does not yet have the payment/order schema: read-only SQL confirmed `ticket_payment_products`, `ticket_orders`, and `ticket_attendees` are absent. Migrations `0005_hidden_ticket_payments.sql` and `0006_ticket_orders_and_guests.sql` must be applied together with the matching app release. Applying 0005 first changes `register_prototype_ticket` to reject the older production client; deploying the new client first makes event reads depend on 0006 tables. Schedule a coordinated release and verify checkout immediately after.
-- Guest checkout correctly fails closed, but is unavailable until `RESEND_FROM_EMAIL` and `GUEST_TICKET_TOKEN_SECRET` are set in Vercel. The key names are absent in the Vercel project settings; do not enable guest checkout until an already verified CometX sender is selected and the guest secret is securely configured.
+- Guest checkout requires a stable server-only `GUEST_TICKET_TOKEN_SECRET`. Email verification is no longer a staging blocker: `TICKET_EMAIL_MODE=disabled` retains secure guest links without claiming email delivery. Enable email only with verified sender and API key.
 
 ## IMPORTANT
 

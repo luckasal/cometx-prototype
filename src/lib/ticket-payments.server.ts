@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { stripeRequest, isStripeConfigured } from "./stripe.server";
 import { checkoutOrigin } from "./checkout";
+import { configuredAppUrl } from "./deployment";
 
 // These private tables are intentionally not part of the public generated client schema.
 const db = supabaseAdmin as unknown as SupabaseClient;
@@ -80,8 +81,8 @@ export async function startTicketPayment(user: { userId:string; email:string|nul
     .select("event_id,events(slug)").eq("id",ticketId).single();
   check(ticketError);
   if (!ticket?.events) throw new Error("Ticket unavailable.");
-  const ready = isStripeConfigured() && !!process.env["STRIPE_WEBHOOK_SECRET"] && !!process.env["SITE_URL"];
-  if (ready) checkoutOrigin(process.env["SITE_URL"]);
+  const ready = isStripeConfigured() && !!process.env["STRIPE_WEBHOOK_SECRET"] && !!configuredAppUrl(process.env);
+  if (ready) checkoutOrigin(configuredAppUrl(process.env));
   const { data, error } = await db.rpc("begin_ticket_checkout", {p_user_id:user.userId,p_ticket_id:ticketId,p_quantity:quantity,p_payments_ready:ready});
   if (error) throw new Error(error.code === "P0001" ? error.message : "Unable to reserve this ticket.");
   const hold = checkoutSchema.parse(data);
@@ -91,7 +92,7 @@ export async function startTicketPayment(user: { userId:string; email:string|nul
   if (!isStripeConfigured() || !process.env["STRIPE_WEBHOOK_SECRET"]) {
     throw new Error("Online payment setup is not complete. Your place is pending; please contact CometX.");
   }
-  const origin = checkoutOrigin(process.env["SITE_URL"]);
+  const origin = checkoutOrigin(configuredAppUrl(process.env));
   let priceId: string;
   try {
     await syncEventPayments(ticket.event_id);
