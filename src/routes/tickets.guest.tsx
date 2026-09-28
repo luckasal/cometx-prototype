@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Clock3, Ticket } from "lucide-react";
@@ -9,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatMoney } from "@/lib/pricing";
 import { claimGuestTicketOrder, getGuestTicketOrder } from "@/lib/ticket-orders.functions";
+import { readTicketCart, writeTicketCart } from "@/lib/ticket-cart";
 
 export const Route = createFileRoute("/tickets/guest")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -21,7 +23,7 @@ export const Route = createFileRoute("/tickets/guest")({
 });
 
 function GuestTicketsPage() {
-  const { order, token } = Route.useSearch();
+  const { order, token, paid } = Route.useSearch();
   const { language } = useLanguage();
   const cs = language === "cs";
   const { user } = useAuth();
@@ -46,6 +48,12 @@ function GuestTicketsPage() {
     },
   });
   const orderData = query.data;
+
+  useEffect(() => {
+    if (!paid || orderData?.status !== "confirmed") return;
+    const eventSlug = orderData.events?.[0]?.slug;
+    if (eventSlug) writeTicketCart(readTicketCart().filter((line) => line.eventSlug !== eventSlug));
+  }, [paid, orderData]);
 
   return <Section>
     <div className="mx-auto max-w-3xl rounded-[2rem] bg-card p-7 shadow-sm sm:p-10">

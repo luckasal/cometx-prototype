@@ -77,9 +77,9 @@ function CartPage() {
       startCheckout({ data: { lines: tickets, ...(!user ? { buyerName, buyerEmail } : {}) } }),
     onSuccess: (result, variables) => {
       trackEvent(result.url ? "ticket_checkout_started" : "free_ticket_issued", { event_slug: variables.slug });
+      if (result.url) { window.location.assign(result.url); return; }
       const remaining = readTicketCart().filter((line) => line.eventSlug !== variables.slug);
       saveCart(remaining);
-      if (result.url) { window.location.assign(result.url); return; }
       if (result.accessUrl) { window.location.assign(result.accessUrl); return; }
       toast.success(cs ? "Vstupenka je potvrzena. Najdete ji v Můj CometX." : "Your ticket is confirmed. See it in My CometX.");
       window.location.assign(user ? "/account/events" : "/events");

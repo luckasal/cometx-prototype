@@ -116,7 +116,7 @@ export async function startTicketOrder(input: {
     }
     if (!lineItems.length) throw new Error("Order amount did not match its ticket prices.");
     const success = input.userId
-      ? `${origin}/account/events?purchase=success`
+      ? `${origin}/account/events?purchase=success&order=${encodeURIComponent(order.id)}`
       : `${ticketUrl}&paid=1`;
     const session = sessionSchema.parse(await stripeRequest("/checkout/sessions", {
       mode: "payment", line_items: lineItems, expires_at: Math.floor(Date.parse(order.expires_at) / 1000),

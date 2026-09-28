@@ -20,7 +20,7 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Last agent: Codex
 - Branch: `codex-dev`
 - Commit: `5366fb0`
-- What changed: added a persistent browser cart with grouped per-event ticket lines, editable quantities, live displayed totals, guest contact fields, member account-data prefill, and a server-validated handoff to the existing Stripe Checkout flow. Payment card details remain on Stripe Checkout. The cart supports multiple events as separate orders; it performs no order creation until the buyer chooses to continue.
+- What changed: added a persistent browser cart with grouped per-event ticket lines, editable quantities, live displayed totals, guest contact fields, member account-data prefill, and a server-validated handoff to the existing Stripe Checkout flow. Payment card details remain on Stripe Checkout. The cart supports multiple events as separate orders; paid cart lines stay available if checkout is cancelled and clear only after confirmed fulfillment.
 - Files changed: `src/lib/ticket-cart.ts`, `src/routes/cart.tsx`, `src/routes/events.$slug.tsx`, `src/components/site/EventDetailTemplate.tsx`, `src/components/site/SiteHeader.tsx`, generated `src/routeTree.gen.ts`.
 - Migrations: none.
 - Validation: TypeScript check, production build, seven ticket-order/database tests, and local browser flow adding a ticket and increasing quantity (CHF 30 → CHF 60). No checkout session or payment was created.

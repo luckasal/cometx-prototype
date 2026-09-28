@@ -1,14 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { EmptyBlock, ErrorBlock, LoadingBlock, Section, SectionHeading, StatusPill } from "@/components/site/Bits";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getMyPurchasedTickets } from "@/lib/ticket-orders.functions";
 import { formatMoney } from "@/lib/pricing";
+import { readTicketCart, writeTicketCart } from "@/lib/ticket-cart";
 
-export const Route = createFileRoute("/account/events")({ component: AccountEventsPage });
+export const Route = createFileRoute("/account/events")({
+  validateSearch: (search: Record<string, unknown>): { purchase?: true; order?: string } => ({
+    ...(search["purchase"] === "success" ? { purchase: true as const } : {}),
+    ...(typeof search["order"] === "string" ? { order: search["order"] } : {}),
+  }),
+  component: AccountEventsPage,
+});
 
 function AccountEventsPage() {
+  const { purchase, order: completedOrderId } = Route.useSearch();
   const { language } = useLanguage();
   const cs = language === "cs";
   const fetchTickets = useServerFn(getMyPurchasedTickets);
@@ -17,6 +26,14 @@ function AccountEventsPage() {
     refetchInterval: (query) => query.state.data?.some((order) => order.status === "pending" || order.status === "processing") ? 2500 : false,
   });
   const lines = data?.flatMap((order) => (order.ticket_order_items ?? []).map((item) => ({ order, item }))) ?? [];
+
+  useEffect(() => {
+    if (!purchase || !completedOrderId || !data) return;
+    const order = data.find((item) => item.id === completedOrderId && ["confirmed", "free"].includes(item.status));
+    const eventSlug = order?.events?.[0]?.slug;
+    if (!eventSlug) return;
+    writeTicketCart(readTicketCart().filter((line) => line.eventSlug !== eventSlug));
+  }, [purchase, completedOrderId, data]);
 
   return <Section>
     <SectionHeading eyebrow={cs ? "Nákupy" : "Purchases"} title={cs ? "Moje vstupenky" : "My tickets"} />
