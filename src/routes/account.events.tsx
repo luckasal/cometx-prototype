@@ -28,9 +28,12 @@ function AccountEventsPage() {
         <div><p className="eyebrow text-muted-foreground">{order.events?.[0]?.start_date ? new Date(order.events[0].start_date).toLocaleDateString(cs ? "cs-CZ" : "en-GB", { dateStyle: "long", timeZone: "Europe/Zurich" }) : "—"}</p>
           <h2 className="mt-2 font-display text-2xl font-bold"><Link className="hover:underline" to="/events/$slug" params={{ slug: order.events?.[0]?.slug ?? "" }}>{order.events?.[0]?.title ?? (cs ? "Akce" : "Event")}</Link></h2>
           <p className="mt-2 text-sm text-muted-foreground">{item.ticket_name} · {item.quantity} {cs ? "vstupenek" : item.quantity === 1 ? "ticket" : "tickets"}</p>
+          <p className="mt-2 break-all text-xs text-muted-foreground">{cs ? "Číslo objednávky" : "Order ID"}: {order.id}</p>
         </div>
         <StatusPill tone={order.status === "confirmed" || order.status === "free" ? "success" : "muted"}>{order.status}</StatusPill>
       </div>
+      {order.status === "manual_review" && <p className="mt-4 rounded-2xl bg-accent/10 p-4 text-sm">{cs ? "Platba dorazila, ale vstupenky vyžadují kontrolu týmem CometX. Kontaktujte nás s číslem objednávky." : "Payment arrived, but CometX needs to review your tickets. Contact us with your order ID."}</p>}
+      {(order.status === "pending" || order.status === "processing") && <p className="mt-4 text-sm text-muted-foreground">{cs ? "Čekáme na potvrzení platby. Stránka se aktualizuje automaticky." : "Waiting for payment confirmation. This page updates automatically."}</p>}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-border/40 pt-5 text-sm">
         <p>{order.status === "confirmed" || order.status === "free" ? (cs ? "Zaplaceno" : "Amount paid") : (cs ? "Celkem objednávky" : "Order total")}: <strong>{Number(order.amount_minor) === 0 ? (cs ? "Zdarma" : "Free") : formatMoney(Number(item.unit_amount_minor) * Number(item.quantity) / 100, item.currency)}</strong></p>
         <Link className="rounded-full bg-accent px-5 py-2 font-semibold text-accent-foreground" to="/events/$slug" params={{ slug: order.events?.[0]?.slug ?? "" }}>{cs ? "Koupit další" : "Buy more"}</Link>

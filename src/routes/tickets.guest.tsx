@@ -17,6 +17,7 @@ export const Route = createFileRoute("/tickets/guest")({
     paid: search["paid"] === "1" || search["paid"] === "true",
   }),
   component: GuestTicketsPage,
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }, { name: "referrer", content: "no-referrer" }] }),
 });
 
 function GuestTicketsPage() {
@@ -36,6 +37,7 @@ function GuestTicketsPage() {
   });
   const claim = useMutation({
     mutationFn: () => claimOrder({ data: { orderId: order, token } }),
+    onError: () => toast.error(cs ? "Propojení vstupenek se nezdařilo. Zkuste to prosím znovu." : "Could not link your tickets. Please try again."),
     onSuccess: async (ok) => {
       if (!ok) { toast.error(cs ? "Propojení se nezdařilo. Zkontrolujte e-mail účtu." : "Could not link this order. Check that your account uses the same email."); return; }
       toast.success(cs ? "Vstupenky jsou propojeny s účtem." : "Tickets linked to your account.");
@@ -56,6 +58,7 @@ function GuestTicketsPage() {
               </StatusPill>
               <h1 className="display-md mt-5">{orderData.events?.[0]?.title ?? (cs ? "Vaše vstupenky" : "Your tickets")}</h1>
               <p className="mt-2 text-muted-foreground">{orderData.buyer_name} · {orderData.buyer_email}</p>
+              <p className="mt-2 break-all text-xs text-muted-foreground">{cs ? "Číslo objednávky" : "Order ID"}: {orderData.id}</p>
               <div className="mt-6 grid gap-3 rounded-3xl bg-background/60 p-5 text-sm sm:grid-cols-2">
                 <p>{cs ? "Datum" : "Date"}: <strong>{orderData.events?.[0]?.start_date ? new Date(orderData.events[0].start_date).toLocaleString(cs ? "cs-CZ" : "en-GB", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Zurich" }) : "—"}</strong></p>
                 <p>{cs ? "Místo" : "Venue"}: <strong>{orderData.events?.[0]?.venue ?? "—"}</strong></p>

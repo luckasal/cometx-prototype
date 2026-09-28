@@ -38,6 +38,22 @@ test('ticket migrations, guest separation, fulfillment replay and mixed capacity
     await fulfill(second,'cs_test_second');
     assert.equal((await db.query('select status from ticket_orders where id=$1',[second.id])).rows[0].status,'manual_review');
     assert.equal((await db.query('select count(*)::int as n from ticket_attendees where order_id=$1',[second.id])).rows[0].n,0);
+    await db.query('update ticket_types set capacity=20 where event_id=$1',[event]);
+    const failed = await order();
+    const failedSession = {id:'cs_test_failed',livemode:false,amount_total:6000,currency:'chf',payment_status:'unpaid',metadata:{order_id:failed.id}};
+    await db.query(`select apply_ticket_order_event('checkout.session.async_payment_failed',$1::jsonb)`,[JSON.stringify(failedSession)]);
+    assert.equal((await db.query('select count(*)::int as n from ticket_attendees where order_id=$1',[failed.id])).rows[0].n,0);
+    const expired = await order();
+    await db.query(`select apply_ticket_order_event('checkout.session.expired',$1::jsonb)`,[JSON.stringify({...failedSession,id:'cs_test_expired',metadata:{order_id:expired.id}})]);
+    assert.equal((await db.query('select status from ticket_orders where id=$1',[expired.id])).rows[0].status,'expired');
+    const invalid = await order();
+    await assert.rejects(db.query(`select apply_ticket_order_event('checkout.session.completed',$1::jsonb)`,[JSON.stringify({...failedSession,id:'cs_test_tampered',amount_total:1,payment_status:'paid',metadata:{order_id:invalid.id}})]),/does not match/);
+    assert.equal((await db.query('select count(*)::int as n from ticket_attendees where order_id=$1',[invalid.id])).rows[0].n,0);
+    await db.query('select fail_unstarted_ticket_order($1)',[invalid.id]);
+    await db.query('update ticket_types set base_price=0 where event_id=$1',[event]);
+    const free = await order();
+    assert.equal(free.status,'free');
+    assert.equal((await db.query('select count(*)::int as n from ticket_attendees where order_id=$1',[free.id])).rows[0].n,4);
     for (const role of ['anon','authenticated']) {
       assert.equal((await db.query(`select has_function_privilege($1,'public.begin_ticket_order(uuid,text,text,jsonb,boolean,text,text)','EXECUTE') as allowed`,[role])).rows[0].allowed,false);
     }

@@ -160,7 +160,9 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
         .insert(data.speakerIds.map((sid, i) => ({ event_id: saved.id, speaker_id: sid, sort_order: i }))));
     }
 
-    const { data: existingTickets } = await db.from("ticket_types").select("id").eq("event_id", saved.id);
+    const ticketLookup = await db.from("ticket_types").select("id").eq("event_id", saved.id);
+    assertDatabaseResult(ticketLookup);
+    const existingTickets = ticketLookup.data;
     const submittedTicketIds = new Set(data.tickets.flatMap((ticket) => ticket.id ? [ticket.id] : []));
     for (const ticket of existingTickets ?? []) {
       if (!submittedTicketIds.has(ticket.id)) {
@@ -174,7 +176,9 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
       else assertDatabaseResult(await db.from("ticket_types").insert(payload));
     }
 
-    const { data: existingWorkshops } = await db.from("workshops").select("id").eq("event_id", saved.id);
+    const workshopLookup = await db.from("workshops").select("id").eq("event_id", saved.id);
+    assertDatabaseResult(workshopLookup);
+    const existingWorkshops = workshopLookup.data;
     const submittedWorkshopIds = new Set(data.workshops.flatMap((workshop) => workshop.id ? [workshop.id] : []));
     for (const workshop of existingWorkshops ?? []) {
       if (!submittedWorkshopIds.has(workshop.id)) {

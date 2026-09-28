@@ -15,6 +15,14 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## Setup note
 
+## 2026-09-28: event handling follow-up
+
+- Customer: show support order IDs, explain pending/manual-review outcomes, surface guest account-link errors; guest ticket route sets noindex/nofollow and no-referrer metadata.
+- Admin: search orders by buyer/email/event/reference, filter status, inspect individual attendee codes/statuses. Clarified latest-500 totals and account-holder versus membership distinction.
+- Creator/backend: ticket/workshop lookup failures now stop event-save processing instead of silently ignoring database errors. Database regression additionally validates failed/expired payments, tampered amounts and immediate free issuance.
+- Validation: typecheck and 25 focused tests pass. Supabase migrations, deployment and real test checkout still pending.
+- Resend login now works; Domains explicitly says No domains yet. DNS manager/access requested. No domain/DNS mutation or API-key creation performed. Member discount scope (own ticket/all tickets) also requested; current all-ticket behavior is not an approved business rule.
+
 ## 2026-09-27: webhook secret saved with explicit approval
 
 - Saved the sandbox webhook signing secret in Vercel's existing STRIPE_WEBHOOK_SECRET variable (Production and Preview); verified “Updated just now”. User explicitly approved the transfer. A deployment is required for runtime activation.
