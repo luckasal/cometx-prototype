@@ -15,6 +15,17 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## Setup note
 
+## 2026-09-28: staging release and runtime Supabase key compatibility
+
+- Last agent: Codex
+- Branch: `codex-dev`
+- What changed: applied migrations 0005/0006 together to CometX Production Supabase after confirming the order schema was absent; confirmed the new order tables exist and anonymous callers cannot execute the order RPC. Added a server-side `SUPABASE_SECRET_KEY` fallback because the Vercel project has the current Supabase secret under that name while the deployed app expected only `SUPABASE_SERVICE_ROLE_KEY`.
+- Environment: generated `GUEST_TICKET_TOKEN_SECRET` and saved it as a Vercel Production secret; added `APP_URL=https://cometx-prototype.vercel.app`. Email remains disabled. No secret values are committed or printed.
+- Deployment: promoted the latest `f78e796` to the staging Production domain. Page renders and ticket choices load. Purchase test exposed the missing Supabase key alias, so this follow-up must be deployed before checkout can work end to end.
+- Migrations: `0005_hidden_ticket_payments.sql` and `0006_ticket_orders_and_guests.sql` applied in one transaction through Supabase SQL Editor. Verified tables `ticket_orders`, `ticket_payment_products`, `ticket_attendees`; anon execute privilege is false.
+- Unresolved issues: follow-up key fallback needs build/deploy and runtime verification. Do not retry test purchase until the repair is deployed; prior attempt failed before order creation. Confirm a full test Checkout redirect and webhook fulfillment. Member benefit for multi-ticket baskets remains policy-ambiguous.
+- What needs review: `client.server.ts` accepts a Supabase secret API key as a server-only RLS-bypass key; verify deployed server functions receive it and public/browser bundle does not include it.
+
 ## 2026-09-28: configurable staging deployment
 
 - APP_URL takes precedence over SITE_URL for checkout and ticket-email origins. No app hostname hardcoded. Stripe remains test-only.
