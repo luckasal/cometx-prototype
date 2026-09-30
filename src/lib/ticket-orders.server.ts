@@ -329,8 +329,43 @@ export async function getMyPurchasedTickets(userId: string) {
   const { data, error } = await db.from("ticket_orders")
     .select("id,event_id,checkout_batch_id,amount_minor,currency,status,created_at,events(title,slug,start_date,venue),ticket_order_items(id,event_id,ticket_type_id,events(title,slug,start_date,venue),ticket_name,quantity,unit_amount_minor,currency,ticket_attendees(id,ticket_code,attendee_name,status)),payments(status)")
     .eq("user_id", userId).order("created_at", { ascending: false });
-  check(error);
-  return JSON.parse(JSON.stringify((data ?? []).map(normalizeOrderRelations))) as MemberTicketOrder[];
+  if (!error) {
+    return JSON.parse(JSON.stringify((data ?? []).map(normalizeOrderRelations))) as MemberTicketOrder[];
+  }
+
+  // Before migration 0008, each order belongs to one event and its lines have
+  // no event_id/relationship. Read those orders without changing payment data.
+  const missingLineEvent = error.code === "PGRST200" && error.message.includes("'ticket_order_items' and 'events'");
+  const missingBatchColumn = error.code === "42703" && error.message.includes("checkout_batch_id");
+  if (!missingLineEvent && !missingBatchColumn) {
+    check(error);
+  }
+  const legacySelect = (withBatch: boolean) =>
+    `id,event_id,${withBatch ? "checkout_batch_id," : ""}amount_minor,currency,status,created_at,events(title,slug,start_date,venue),ticket_order_items(id,ticket_type_id,ticket_name,quantity,unit_amount_minor,currency,ticket_attendees(id,ticket_code,attendee_name,status)),payments(status)`;
+  let legacyResult = await db.from("ticket_orders")
+    .select(legacySelect(true)).eq("user_id", userId).order("created_at", { ascending: false });
+  // Migration 0007 added checkout_batch_id; migration 0006 did not have it.
+  if (legacyResult.error?.code === "42703" && legacyResult.error.message.includes("checkout_batch_id")) {
+    legacyResult = await db.from("ticket_orders")
+      .select(legacySelect(false)).eq("user_id", userId).order("created_at", { ascending: false });
+  }
+  check(legacyResult.error);
+  type LegacyPurchasedOrder = Omit<MemberTicketOrder, "checkout_batch_id" | "events" | "ticket_order_items"> & {
+    checkout_batch_id?: string | null;
+    events: TicketEvent | TicketEvent[] | null;
+    ticket_order_items: Array<Omit<TicketOrderLine, "event_id" | "events">>;
+  };
+  const legacyOrders = (legacyResult.data ?? []) as unknown as LegacyPurchasedOrder[];
+  return JSON.parse(JSON.stringify(legacyOrders.map((order) => {
+    const normalized = normalizeEventRelation(order);
+    return {
+      ...normalized,
+      checkout_batch_id: order.checkout_batch_id ?? null,
+      ticket_order_items: (order.ticket_order_items ?? []).map((item) => ({
+        ...item, event_id: order.event_id, events: normalized.events,
+      })),
+    };
+  }))) as MemberTicketOrder[];
 }
 
 export async function claimTicketOrder(orderId: string, token: string, userId: string) {

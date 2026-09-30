@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-09-30: local signed-in ticket read compatibility
+
+- Last agent: Codex; branch: `codex-dev`; commit: this handoff commit.
+- What changed: the signed-in ticket query now reads both the newer multi-event order schema and the older single-event order schema currently hosted in Supabase. Legacy lines inherit their parent event for display. No order, payment, or registration data was modified.
+- Files changed: `src/lib/ticket-orders.server.ts`, `.ai/HANDOFF.md`.
+- Migrations: none applied. Hosted migrations 0007–0009 remain pending and need a coordinated release.
+- Validation: TypeScript, local `/account` and `/account/events` with the existing signed-in session, HTTP 200, and `git diff --check` passed. Both pages show no ticket-load error; no purchased tickets are present for that account.
+- Local setup: the existing Supabase secret was loaded into only the current local server process with user approval, and the clipboard was cleared. No key was printed, written to a file, or deployed. Restarting the server requires secure key injection again.
+- What needs review: a ticket-bearing legacy account, then a coordinated migration/deployment and real sandbox checkout/webhook test.
+
 ## 2026-09-30: GA4 route and conversion tracking
 
 - Last agent: Codex; branch: `codex-dev`; commit: see analytics commit following `8290825`.
