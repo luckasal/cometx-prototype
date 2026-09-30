@@ -1,19 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addTicketToCart, completePurchasedTicketCart, copyBuyerNameToAttendee, readTicketCart, writeTicketCart, ticketCartCount } from '../src/lib/ticket-cart.ts';
+import { addTicketToCart, buyerNamedAttendeeCount, clearAttendeeName, completePurchasedTicketCart, copyBuyerNameToAttendee, readTicketCart, writeTicketCart, ticketCartCount } from '../src/lib/ticket-cart.ts';
 
-test('buyer name can be copied to one attendee without changing tickets for other events', () => {
+test('only one ticket per event uses the buyer name, while another event can also use it', () => {
   const lines = [
     { eventSlug: 'event-a', ticketId: 'a', quantity: 2, attendees: [{ firstName: 'Other', lastName: 'Person' }, { firstName: '', lastName: '' }] },
+    { eventSlug: 'event-a', ticketId: 'c', quantity: 1, attendees: [{ firstName: '', lastName: '' }] },
     { eventSlug: 'event-b', ticketId: 'b', quantity: 1, attendees: [{ firstName: '', lastName: '' }] },
   ];
-  const result = copyBuyerNameToAttendee(lines, lines[1], 0, { firstName: '  Buyer  ', lastName: ' Name ' });
+  const buyer = { firstName: '  Buyer  ', lastName: ' Name ' };
+  const result = copyBuyerNameToAttendee(lines, lines[2], 0, buyer);
   assert.deepEqual(result[0], lines[0]);
-  assert.deepEqual(result[1].attendees, [{ firstName: 'Buyer', lastName: 'Name' }]);
-  assert.deepEqual(lines[1].attendees, [{ firstName: '', lastName: '' }]);
-  const second = copyBuyerNameToAttendee(result, result[0], 1, { firstName: 'Buyer', lastName: 'Name' });
+  assert.deepEqual(result[2].attendees, [{ firstName: 'Buyer', lastName: 'Name' }]);
+  assert.equal(buyerNamedAttendeeCount(result, 'event-b', buyer), 1);
+  assert.equal(buyerNamedAttendeeCount(result, 'event-a', buyer), 0);
+  const second = copyBuyerNameToAttendee(result, result[0], 1, buyer);
   assert.deepEqual(second[0].attendees, [{ firstName: 'Other', lastName: 'Person' }, { firstName: 'Buyer', lastName: 'Name' }]);
-  assert.deepEqual(second[1], result[1]);
+  assert.deepEqual(second[2], result[2]);
+  assert.equal(buyerNamedAttendeeCount(second, 'event-a', buyer), 1);
+  const moved = copyBuyerNameToAttendee(second, second[1], 0, buyer);
+  assert.deepEqual(moved[0].attendees, [{ firstName: 'Other', lastName: 'Person' }, { firstName: '', lastName: '' }]);
+  assert.deepEqual(moved[1].attendees, [{ firstName: 'Buyer', lastName: 'Name' }]);
+  assert.equal(buyerNamedAttendeeCount(moved, 'event-a', buyer), 1);
+  assert.equal(buyerNamedAttendeeCount(moved, 'event-b', buyer), 1);
+  assert.deepEqual(lines[2].attendees, [{ firstName: '', lastName: '' }]);
+  assert.equal(buyerNamedAttendeeCount([...moved, { eventSlug: 'event-a', ticketId: 'd', quantity: 1, attendees: [{ firstName: ' buyer ', lastName: 'NAME' }] }], 'event-a', buyer), 2);
+  const cleared = clearAttendeeName(moved, moved[1], 0);
+  assert.equal(buyerNamedAttendeeCount(cleared, 'event-a', buyer), 0);
+  assert.deepEqual(cleared[0], moved[0]);
+  assert.deepEqual(cleared[2], moved[2]);
 });
 
 test('event groups and attendee drafts survive edits; completing one event preserves the other', () => {

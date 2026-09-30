@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-09-30: one buyer-named attendee per event
+
+- Last agent: Codex; branch: `codex-dev`.
+- What changed: cart attendee controls allow the buyer's name on only one ticket per event. Selecting it on another ticket clears the prior buyer-named attendee for that event; tickets for other events remain unchanged. The selected ticket can be cleared, and existing duplicate buyer names block checkout with a customer-facing correction message.
+- Files changed: `src/lib/ticket-cart.ts`, `src/routes/cart.tsx`, `tests/ticket-cart.test.mjs`.
+- Migrations: none. Stripe/order backend unchanged.
+- Validation: TypeScript, focused cart tests (2/2), diff check. Local browser showed the updated controls; no buyer details, cart items or payments were submitted or changed during browser verification.
+- Unresolved issues: existing saved cart duplicates must be corrected by the customer; no cart data was silently erased.
+- What needs review: guest and signed-in buyer-name edits after attendee selection, keyboard behavior, legacy duplicate-name cart recovery.
+
 ## 2026-09-30: buyer name shortcut for each ticket attendee
 
 - Last agent: Codex; branch: `codex-dev`.

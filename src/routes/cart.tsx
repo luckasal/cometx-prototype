@@ -12,7 +12,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { getEventDetail } from "@/lib/events.functions";
 import { getAccountOverview } from "@/lib/membership.functions";
 import { formatMoney } from "@/lib/pricing";
-import { copyBuyerNameToAttendee, readTicketCart, writeTicketCart, type TicketCartLine } from "@/lib/ticket-cart";
+import { attendeeMatchesBuyer, buyerNamedAttendeeCount, clearAttendeeName, copyBuyerNameToAttendee, readTicketCart, writeTicketCart, type TicketCartLine } from "@/lib/ticket-cart";
 import { trackEvent } from "@/lib/analytics";
 import { startTicketCheckoutBatch } from "@/lib/ticket-orders.functions";
 
@@ -146,6 +146,10 @@ function CartPage() {
   function submitCheckout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!termsAccepted || !consentComplete || !groupReadiness.length || groupReadiness.some((group) => !group.purchasable)) return;
+    if (buyerNameConflicts.size > 0) {
+      toast.error(cs ? "Pro každou akci může být kupující uveden jen na jedné vstupence." : "The buyer can be named on only one ticket per event.");
+      return;
+    }
     if (!user && (!buyerFirstName.trim() || !buyerLastName.trim() || buyerName.length > 240)) {
       toast.error(cs ? "Vyplňte jméno a příjmení (celkem nejvýše 240 znaků)." : "Enter your first and last name (up to 240 characters combined).");
       return;
@@ -154,9 +158,11 @@ function CartPage() {
   }
 
   const totalTickets = selectedLines.reduce((sum, line) => sum + line.quantity, 0);
+  const buyer = { firstName: buyerFirstName, lastName: buyerLastName };
+  const buyerNameConflicts = new Set(groups.filter((slug) => buyerNamedAttendeeCount(lines, slug, buyer) > 1));
   const attendeeComplete = selectedLines.every((line) => Array.from({ length: line.quantity }, (_, index) => line.attendees?.[index]).every((person) =>
     (person?.firstName.trim() || (totalTickets === 1 && buyerFirstName.trim())) && (person?.lastName.trim() || (totalTickets === 1 && buyerLastName.trim()))));
-  const checkoutAllowed = termsAccepted && attendeeComplete && consentComplete && currencyCompatible && groupReadiness.length > 0 && groupReadiness.every((group) => group.purchasable) && !checkoutMutation.isPending &&
+  const checkoutAllowed = termsAccepted && attendeeComplete && buyerNameConflicts.size === 0 && consentComplete && currencyCompatible && groupReadiness.length > 0 && groupReadiness.every((group) => group.purchasable) && !checkoutMutation.isPending &&
     (user ? !accountQuery.isLoading : !!buyerFirstName.trim() && !!buyerLastName.trim() && !!buyerEmail.trim());
   function saveCart(next: TicketCartLine[]) {
     writeTicketCart(next);
@@ -181,6 +187,10 @@ function CartPage() {
   function useBuyerNameForAttendee(line: TicketCartLine, index: number) {
     if (!buyerFirstName.trim() || !buyerLastName.trim()) return;
     saveCart(copyBuyerNameToAttendee(lines, line, index, { firstName: buyerFirstName, lastName: buyerLastName }));
+  }
+
+  function clearBuyerNameForAttendee(line: TicketCartLine, index: number) {
+    saveCart(clearAttendeeName(lines, line, index));
   }
 
   if (!ready) return <Section><LoadingBlock label={cs ? "Načítáme košík" : "Loading your cart"} /></Section>;
@@ -230,6 +240,7 @@ function CartPage() {
             const currencies = new Set(ticketRows.flatMap(({ ticket }) => ticket ? [ticket.price.currency] : []));
             const sameCurrency = currencies.size <= 1;
             const purchasable = detail.registrationOpen && sameCurrency && ticketRows.every(({ ticket, saleOpen }) => ticket && ticket.price.eligible && !ticket.soldOut && saleOpen);
+            const buyerNameUsedForEvent = buyerNamedAttendeeCount(lines, slug, buyer) > 0;
             return <article key={slug} className="rounded-[1.5rem] bg-card/55 p-3 sm:p-4">
               <div className="mb-2 hidden grid-cols-[minmax(0,1fr)_6.25rem_7.5rem_6rem_1.5rem] items-center gap-3 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground xl:grid">
                 <span>{cs ? "Akce / vstupenka" : "Event / ticket"}</span>
@@ -274,13 +285,14 @@ function CartPage() {
                       <legend className="mb-2 text-sm font-semibold">{ticket?.name} · {cs ? "Účastník" : "Attendee"} {index + 1}</legend>
                       <label className="text-sm">{cs ? "Jméno" : "First name"} *<Input required maxLength={120} autoComplete="off" className="mt-1 rounded-xl" value={line.attendees?.[index]?.firstName ?? (totalTickets === 1 ? buyerFirstName : "")} onChange={(event) => updateAttendee(line, index, "firstName", event.target.value)} /></label>
                       <label className="text-sm">{cs ? "Příjmení" : "Last name"} *<Input required maxLength={120} autoComplete="off" className="mt-1 rounded-xl" value={line.attendees?.[index]?.lastName ?? (totalTickets === 1 ? buyerLastName : "")} onChange={(event) => updateAttendee(line, index, "lastName", event.target.value)} /></label>
-                      <button type="button" className="justify-self-start text-sm text-accent underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2" disabled={!buyerFirstName.trim() || !buyerLastName.trim()} onClick={() => useBuyerNameForAttendee(line, index)}>{cs ? "Stejné jméno jako kupující" : "Same name as buyer"}</button>
+                      <button type="button" className="justify-self-start text-sm text-accent underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2" aria-pressed={attendeeMatchesBuyer(line.attendees?.[index], buyer)} disabled={!buyerFirstName.trim() || !buyerLastName.trim() || (buyerNameUsedForEvent && !attendeeMatchesBuyer(line.attendees?.[index], buyer))} onClick={() => attendeeMatchesBuyer(line.attendees?.[index], buyer) ? clearBuyerNameForAttendee(line, index) : useBuyerNameForAttendee(line, index)}>{attendeeMatchesBuyer(line.attendees?.[index], buyer) ? (cs ? "Odebrat jméno kupujícího" : "Remove buyer’s name") : buyerNameUsedForEvent ? (cs ? "Kupující už je na jiné vstupence této akce" : "Buyer already assigned to this event") : (cs ? "Použít jméno kupujícího pro tuto vstupenku" : "Use buyer’s name for this ticket")}</button>
                     </fieldset>)}
                   </div>
                 </div>)}
               </div>
               {!sameCurrency && <p className="mt-3 text-sm text-destructive">{cs ? "V jedné objednávce nelze kombinovat různé měny. Odeberte některý typ vstupenky." : "Ticket types in one order must use the same currency. Remove one currency type."}</p>}
               {!purchasable && <p className="mt-3 text-sm text-destructive">{cs ? "Některé vstupenky nejsou dostupné. Upravte košík nebo vyberte jinou akci." : "Some tickets are unavailable. Update your cart or choose another event."}</p>}
+              {buyerNameConflicts.has(slug) && <p className="mt-3 text-sm text-destructive">{cs ? "Kupující může být uveden jen na jedné vstupence pro tuto akci. Upravte dalšího účastníka nebo zvolte, která vstupenka je pro kupujícího." : "The buyer can be named on only one ticket for this event. Edit the other attendee or choose which ticket is for the buyer."}</p>}
               <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-foreground/10 pt-4">
                 <p className="font-semibold">{cs ? "Mezisoučet akce" : "Event subtotal"}: {sameCurrency && ticketRows.every(({ ticket }) => ticket) ? formatMoney(ticketRows.reduce((sum, { line, ticket }) => sum + ticket!.price.finalPrice * line.quantity, 0), ticketRows[0]!.ticket!.price.currency) : "—"}</p>
               </div>

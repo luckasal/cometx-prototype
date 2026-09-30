@@ -30,11 +30,37 @@ export function writeTicketCart(lines: TicketCartLine[]): void {
   window.dispatchEvent(new Event("cometx-ticket-cart-change"));
 }
 
+export function attendeeMatchesBuyer(attendee: TicketAttendeeDraft | undefined, buyer: TicketAttendeeDraft): boolean {
+  const firstName = buyer.firstName.trim();
+  const lastName = buyer.lastName.trim();
+  return !!firstName && !!lastName && attendee?.firstName.trim().toLocaleLowerCase() === firstName.toLocaleLowerCase() &&
+    attendee?.lastName.trim().toLocaleLowerCase() === lastName.toLocaleLowerCase();
+}
+
+export function buyerNamedAttendeeCount(lines: TicketCartLine[], eventSlug: string, buyer: TicketAttendeeDraft): number {
+  return lines.filter((line) => line.eventSlug === eventSlug).reduce((count, line) => count +
+    Array.from({ length: line.quantity }, (_, index) => attendeeMatchesBuyer(line.attendees?.[index], buyer))
+      .filter(Boolean).length, 0);
+}
+
 export function copyBuyerNameToAttendee(lines: TicketCartLine[], target: Pick<TicketCartLine, "eventSlug" | "ticketId">, index: number, buyer: TicketAttendeeDraft): TicketCartLine[] {
+  if (!buyer.firstName.trim() || !buyer.lastName.trim() || !lines.some((line) =>
+    line.eventSlug === target.eventSlug && line.ticketId === target.ticketId && index >= 0 && index < line.quantity)) return lines;
+  return lines.map((line) => line.eventSlug === target.eventSlug ? {
+    ...line,
+    attendees: Array.from({ length: line.quantity }, (_, slot) => {
+      if (line.ticketId === target.ticketId && slot === index) return { firstName: buyer.firstName.trim(), lastName: buyer.lastName.trim() };
+      const attendee = line.attendees?.[slot] ?? { firstName: "", lastName: "" };
+      return attendeeMatchesBuyer(attendee, buyer) ? { firstName: "", lastName: "" } : attendee;
+    }),
+  } : line);
+}
+
+export function clearAttendeeName(lines: TicketCartLine[], target: Pick<TicketCartLine, "eventSlug" | "ticketId">, index: number): TicketCartLine[] {
   return lines.map((line) => line.eventSlug === target.eventSlug && line.ticketId === target.ticketId ? {
     ...line,
     attendees: Array.from({ length: line.quantity }, (_, slot) => slot === index
-      ? { firstName: buyer.firstName.trim(), lastName: buyer.lastName.trim() }
+      ? { firstName: "", lastName: "" }
       : { firstName: "", lastName: "", ...line.attendees?.[slot] }),
   } : line);
 }
