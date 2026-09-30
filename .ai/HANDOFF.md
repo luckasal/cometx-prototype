@@ -2,6 +2,17 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-09-30: one order and one Stripe payment across multiple events
+
+- Last agent: Codex
+- Branch: `codex-dev`; implementation commit `506194d`. No Supabase migration or Vercel deployment was performed in this cycle.
+- What changed: migration `0008_single_multi_event_order.sql` converts a new checkout batch into one order containing event-scoped lines, one payment, normalized named attendees and one issued ticket per attendee. The Stripe test Checkout Session includes every selected line (including zero-price member benefits) and carries the internal order ID. Webhook validation checks session/order/amount/currency, locks event capacity, issues tickets once and sends paid-but-unfulfillable orders to manual review. Event, account, guest and admin views use each line's event; cart cleanup is purchase-specific and idempotent.
+- Files changed: `drizzle/migrations/0008_single_multi_event_order.sql`, `src/lib/ticket-orders.server.ts`, `src/lib/ticket-orders.functions.ts`, `src/lib/ticket-payments.server.ts`, `src/lib/events.functions.ts`, `src/lib/ticket-cart.ts`, `src/routes/{account.events,admin.orders,tickets.guest}.tsx`, `tests/{ticket-cart,ticket-database}.test.mjs`, `CMS_SETUP.md`.
+- Validation: focused ticket tests 8/8 passed, isolated PostgreSQL migrations and replay/free/member/capacity tests passed, TypeScript and Vite production build passed. The unrelated full-suite Node 22 type-stripping tests (`business.test.mjs`, `event-template.test.mjs`) still fail in the test runner; focused tests pass.
+- Migrations: 0008 added but **not applied** to the hosted Supabase project. Verify 0007 is present, then apply 0008 and deploy the matching app together. Current staging site does not yet run this implementation.
+- Unresolved issues: run a real Stripe sandbox checkout and signed webhook through two events after coordinated release; simulate concurrent buyers in hosted PostgreSQL; configure/verify Resend before promising guest confirmation email. Mixed currencies remain disallowed in one Stripe Session. The existing all-tickets member-discount rule still needs CometX business approval.
+- What needs review: SQL migration/legacy-batch compatibility, RLS/grants, event-capacity locking under concurrent checkouts, zero-price lines in Stripe test Checkout, and admin totals.
+
 ## 2026-09-28: multi-event cart, single combined purchase
 
 - Last agent: Codex
