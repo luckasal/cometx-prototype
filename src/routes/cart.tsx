@@ -12,7 +12,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { getEventDetail } from "@/lib/events.functions";
 import { getAccountOverview } from "@/lib/membership.functions";
 import { formatMoney } from "@/lib/pricing";
-import { readTicketCart, writeTicketCart, type TicketCartLine } from "@/lib/ticket-cart";
+import { copyBuyerNameToAttendee, readTicketCart, writeTicketCart, type TicketCartLine } from "@/lib/ticket-cart";
 import { trackEvent } from "@/lib/analytics";
 import { startTicketCheckoutBatch } from "@/lib/ticket-orders.functions";
 
@@ -178,6 +178,11 @@ function CartPage() {
     } : item));
   }
 
+  function useBuyerNameForAttendee(line: TicketCartLine, index: number) {
+    if (!buyerFirstName.trim() || !buyerLastName.trim()) return;
+    saveCart(copyBuyerNameToAttendee(lines, line, index, { firstName: buyerFirstName, lastName: buyerLastName }));
+  }
+
   if (!ready) return <Section><LoadingBlock label={cs ? "Načítáme košík" : "Loading your cart"} /></Section>;
 
   return <>
@@ -269,8 +274,8 @@ function CartPage() {
                       <legend className="mb-2 text-sm font-semibold">{ticket?.name} · {cs ? "Účastník" : "Attendee"} {index + 1}</legend>
                       <label className="text-sm">{cs ? "Jméno" : "First name"} *<Input required maxLength={120} autoComplete="off" className="mt-1 rounded-xl" value={line.attendees?.[index]?.firstName ?? (totalTickets === 1 ? buyerFirstName : "")} onChange={(event) => updateAttendee(line, index, "firstName", event.target.value)} /></label>
                       <label className="text-sm">{cs ? "Příjmení" : "Last name"} *<Input required maxLength={120} autoComplete="off" className="mt-1 rounded-xl" value={line.attendees?.[index]?.lastName ?? (totalTickets === 1 ? buyerLastName : "")} onChange={(event) => updateAttendee(line, index, "lastName", event.target.value)} /></label>
+                      <button type="button" className="justify-self-start text-sm text-accent underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2" disabled={!buyerFirstName.trim() || !buyerLastName.trim()} onClick={() => useBuyerNameForAttendee(line, index)}>{cs ? "Stejné jméno jako kupující" : "Same name as buyer"}</button>
                     </fieldset>)}
-                    {totalTickets === 1 && <button type="button" className="text-sm text-accent underline" onClick={() => saveCart(lines.map((item) => item === line ? { ...item, attendees: [{ firstName: buyerFirstName, lastName: buyerLastName }] } : item))}>{cs ? "Použít údaje kupujícího" : "Use buyer’s name"}</button>}
                   </div>
                 </div>)}
               </div>

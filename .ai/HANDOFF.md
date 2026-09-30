@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-09-30: buyer name shortcut for each ticket attendee
+
+- Last agent: Codex; branch: `codex-dev`.
+- What changed: each attendee in the cart has a “Same name as buyer” action. It copies the buyer's current first and last name to only that attendee, including when the cart contains tickets from several events. Existing attendee names on other tickets are preserved.
+- Files changed: `src/routes/cart.tsx`, `src/lib/ticket-cart.ts`, `tests/ticket-cart.test.mjs`.
+- Migrations: none. Checkout and Stripe logic unchanged.
+- Validation: TypeScript, focused cart tests (2/2), diff check, and local browser rendering of the action for every attendee passed. No checkout or payment submitted.
+- Unresolved issues: none specific to this UI change; existing multi-event checkout release prerequisites below remain.
+- What needs review: keyboard/accessibility behavior and signed-in profile prefill in the cart.
+
 ## 2026-09-30: one order and one Stripe payment across multiple events
 
 - Last agent: Codex

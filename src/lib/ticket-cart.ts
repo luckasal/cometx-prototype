@@ -30,6 +30,15 @@ export function writeTicketCart(lines: TicketCartLine[]): void {
   window.dispatchEvent(new Event("cometx-ticket-cart-change"));
 }
 
+export function copyBuyerNameToAttendee(lines: TicketCartLine[], target: Pick<TicketCartLine, "eventSlug" | "ticketId">, index: number, buyer: TicketAttendeeDraft): TicketCartLine[] {
+  return lines.map((line) => line.eventSlug === target.eventSlug && line.ticketId === target.ticketId ? {
+    ...line,
+    attendees: Array.from({ length: line.quantity }, (_, slot) => slot === index
+      ? { firstName: buyer.firstName.trim(), lastName: buyer.lastName.trim() }
+      : { firstName: "", lastName: "", ...line.attendees?.[slot] }),
+  } : line);
+}
+
 export function removePurchasedTicketLines(cart: TicketCartLine[], purchased: Pick<TicketCartLine, "eventSlug" | "ticketId" | "quantity">[]): TicketCartLine[] {
   const quantities = new Map<string, number>();
   for (const line of purchased) {
