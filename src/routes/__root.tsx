@@ -17,7 +17,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import { initializeAnalytics } from "@/lib/analytics";
+import { initializeAnalytics, trackPageView } from "@/lib/analytics";
 import { brandAssets } from "@/lib/brand-assets";
 
 function NotFoundComponent() {
@@ -142,6 +142,7 @@ function RootComponent() {
   const isAdmin = pathname.startsWith("/admin");
 
   useEffect(() => { initializeAnalytics(); }, []);
+  useEffect(() => { trackPageView(pathname); }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>

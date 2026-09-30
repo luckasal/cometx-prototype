@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { safeReturnPath } from "@/lib/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackEvent } from "@/lib/analytics";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 
@@ -42,6 +43,7 @@ function LoginPage() {
       toast.error(error.message);
       return;
     }
+    trackEvent("login", { method: "password" });
     toast.success("Welcome back");
     window.location.href = safeReturnPath(redirect);
   }

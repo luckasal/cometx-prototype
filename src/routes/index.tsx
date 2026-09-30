@@ -17,6 +17,7 @@ import { formatMoney } from "@/lib/pricing";
 import heroImage from "@/assets/hero-symposium.jpg";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { BrandXElement } from "@/components/site/BrandXElement";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -69,7 +70,7 @@ function Home() {
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
               <Button asChild variant="signal" size="xl">
-                <Link to="/membership">{cs ? "Přidejte se ke CometX" : "Join CometX"}</Link>
+                <Link to="/membership" onClick={() => trackEvent("membership_cta_click", { placement: "home_hero" })}>{cs ? "Přidejte se ke CometX" : "Join CometX"}</Link>
               </Button>
               <Button asChild variant="outlineLight" size="xl">
                 <Link to="/events">{cs ? "Nadcházející akce" : "See upcoming events"}</Link>
@@ -210,7 +211,7 @@ function Home() {
             </div>
             <div className="mt-8">
               <Button asChild variant="signal" size="lg">
-                <Link to="/membership">{cs ? "Porovnat výhody" : "Compare benefits"}</Link>
+                <Link to="/membership" onClick={() => trackEvent("membership_cta_click", { placement: "home_plans" })}>{cs ? "Porovnat výhody" : "Compare benefits"}</Link>
               </Button>
             </div>
           </Section>
@@ -282,7 +283,7 @@ function Home() {
                 {cs ? "Přidejte se k lidem, kteří už vědí, jak na to." : "Join the people who already know how this works."}
               </h2>
               <Button asChild variant="ink" size="xl">
-                <Link to="/membership">{cs ? "Stát se členem" : "Become a member"}</Link>
+                <Link to="/membership" onClick={() => trackEvent("membership_cta_click", { placement: "home_bottom" })}>{cs ? "Stát se členem" : "Become a member"}</Link>
               </Button>
             </div>
           </section>

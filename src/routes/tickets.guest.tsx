@@ -11,6 +11,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { formatMoney } from "@/lib/pricing";
 import { claimGuestTicketBatch, claimGuestTicketOrder, getGuestTicketBatch, getGuestTicketOrder } from "@/lib/ticket-orders.functions";
 import { completePurchasedTicketCart } from "@/lib/ticket-cart";
+import { trackConfirmedPurchase } from "@/lib/analytics";
 
 export const Route = createFileRoute("/tickets/guest")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -59,6 +60,7 @@ function GuestTicketsPage() {
 
   useEffect(() => {
     if (!paidAndIssued) return;
+    trackConfirmedPurchase(batch || order, ticketOrders);
     const purchased = ticketOrders.flatMap((item) => item.ticket_order_items?.flatMap((line) => line.events?.[0]?.slug
       ? [{ eventSlug: line.events[0].slug, ticketId: line.ticket_type_id, quantity: Number(line.quantity) }] : []) ?? []);
     completePurchasedTicketCart(batch || order, purchased);

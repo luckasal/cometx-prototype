@@ -76,8 +76,13 @@ function CartPage() {
   }
 
   useEffect(() => {
-    setLines(readTicketCart());
+    const cart = readTicketCart();
+    setLines(cart);
     setReady(true);
+    trackEvent("cart_view", {
+      quantity: cart.reduce((sum, line) => sum + line.quantity, 0),
+      event_count: new Set(cart.map((line) => line.eventSlug)).size,
+    });
   }, []);
 
   const groups = [...new Set(lines.map((line) => line.eventSlug))];
@@ -133,7 +138,18 @@ function CartPage() {
       return startCheckout({ data: { events, termsAccepted: true, ...(!user ? { buyerName, buyerEmail } : {}) } });
     },
     onSuccess: (result) => {
-      trackEvent(result.url ? "ticket_checkout_started" : "free_ticket_issued", { event_count: groups.length });
+      if (result.url) {
+        const ticketRows = eventQueries.flatMap((query, index) => lines.filter((line) => line.eventSlug === groups[index]).flatMap((line) => {
+          const ticket = query.data?.tickets.find((item) => item.id === line.ticketId);
+          return ticket ? [{ line, ticket }] : [];
+        }));
+        trackEvent("checkout_start", {
+          event_count: groups.length,
+          quantity: lines.reduce((sum, line) => sum + line.quantity, 0),
+          value: ticketRows.reduce((sum, { line, ticket }) => sum + ticket.price.finalPrice * line.quantity, 0),
+          currency: ticketRows[0]?.ticket.price.currency,
+        });
+      } else trackEvent("free_ticket_issued", { event_count: groups.length });
       if (result.url) { window.location.assign(result.url); return; }
       saveCart([]);
       if (result.accessUrl) { window.location.assign(result.accessUrl); return; }

@@ -7,6 +7,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { getMyPurchasedTickets } from "@/lib/ticket-orders.functions";
 import { formatMoney } from "@/lib/pricing";
 import { completePurchasedTicketCart } from "@/lib/ticket-cart";
+import { trackConfirmedPurchase } from "@/lib/analytics";
 import { isCheckoutPendingStatus, isIssuedTicketStatus, isOwnedOrderLine, isOwnedOrderStatus } from "@/lib/ticket-status";
 
 export const Route = createFileRoute("/account/events")({
@@ -42,6 +43,7 @@ function AccountEventsPage() {
       ? data.filter((item) => item.checkout_batch_id === completedBatchId)
       : data.filter((item) => item.id === completedOrderId);
     if (!completed.length || completed.some((item) => !isOwnedOrderStatus(item.status))) return;
+    trackConfirmedPurchase(completedBatchId ?? completedOrderId ?? "", completed);
     const purchased = completed.flatMap((item) => item.ticket_order_items?.flatMap((line) => line.events?.[0]?.slug
       ? [{ eventSlug: line.events[0].slug, ticketId: line.ticket_type_id, quantity: Number(line.quantity) }] : []) ?? []);
     completePurchasedTicketCart(completedBatchId ?? completedOrderId ?? "", purchased);

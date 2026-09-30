@@ -10,6 +10,7 @@ import { ErrorBlock, LoadingBlock, PageHero, Section } from "@/components/site/B
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trackEvent } from "@/lib/analytics";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/membership")({
   head: () => ({
@@ -49,6 +50,7 @@ function benefitLabel(benefit: { key: string; name: string; value: number | null
 }
 
 function MembershipPage() {
+  useEffect(() => { trackEvent("membership_view"); }, []);
   const { language } = useLanguage();
   const cs = language === "cs";
   const { user } = useAuth();
@@ -117,7 +119,7 @@ function MembershipPage() {
                       variant={index === 1 ? "signal" : "outlineInk"}
                       className="w-full"
                       disabled={checkoutMutation.isPending}
-                      onClick={() => { trackEvent("membership_cta", { plan: plan.slug }); checkoutMutation.mutate(plan.slug); }}
+                      onClick={() => { trackEvent("membership_cta_click", { plan: plan.slug }); checkoutMutation.mutate(plan.slug); }}
                     >
                       {checkoutMutation.isPending ? (cs ? "Ukládáme členství…" : "Saving membership...") : (cs ? `Zvolit ${plan.name}` : `Join ${plan.name}`)}
                     </Button>
@@ -125,7 +127,7 @@ function MembershipPage() {
                     <Button
                       variant={index === 1 ? "signal" : "outlineInk"}
                       className="w-full"
-                      onClick={() => { trackEvent("membership_cta", { plan: plan.slug, destination: "register" }); navigate({ to: "/register", search: { redirect: "/membership" } }); }}
+                      onClick={() => { trackEvent("membership_cta_click", { plan: plan.slug, destination: "register" }); navigate({ to: "/register", search: { redirect: "/membership" } }); }}
                     >
                       {cs ? "Pro členství si vytvořte účet" : "Create account to join"}
                     </Button>

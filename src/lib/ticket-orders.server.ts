@@ -9,8 +9,8 @@ const db = supabaseAdmin as unknown as SupabaseClient;
 type TicketEvent = { title: string; slug: string; start_date: string; venue: string | null };
 type TicketCode = { id: string; ticket_code: string; attendee_name: string; status: string };
 type TicketOrderLine = { id: string; event_id: string; ticket_type_id: string; events: TicketEvent[]; ticket_name: string; quantity: number; unit_amount_minor: number; currency: string; ticket_attendees: TicketCode[] };
-export type GuestTicketOrder = { id: string; buyer_name: string; buyer_email: string; amount_minor: number; currency: string; status: string; created_at: string; event_id: string; events: TicketEvent[]; ticket_order_items: TicketOrderLine[] };
-export type MemberTicketOrder = { id: string; event_id: string; checkout_batch_id: string | null; amount_minor: number; currency: string; status: string; created_at: string; events: TicketEvent[]; ticket_order_items: TicketOrderLine[] };
+export type GuestTicketOrder = { id: string; buyer_name: string; buyer_email: string; amount_minor: number; currency: string; status: string; created_at: string; event_id: string; events: TicketEvent[]; ticket_order_items: TicketOrderLine[]; payments: { status: string }[] };
+export type MemberTicketOrder = { id: string; event_id: string; checkout_batch_id: string | null; amount_minor: number; currency: string; status: string; created_at: string; events: TicketEvent[]; ticket_order_items: TicketOrderLine[]; payments: { status: string }[] };
 const checkoutBatchSchema = z.object({
   id: z.string().uuid(), order_id: z.string().uuid(), order_ids: z.array(z.string().uuid()).length(1),
   amount_minor: z.coerce.number().int().nonnegative(), currency: z.string().length(3),
@@ -252,7 +252,7 @@ export async function getGuestTicketBatch(batchId: string, token: string) {
   check(error);
   if (!batch) return null;
   const { data: orders, error: ordersError } = await db.from("ticket_orders")
-    .select("id,buyer_name,buyer_email,amount_minor,currency,status,created_at,event_id,events(title,slug,start_date,venue),ticket_order_items(id,event_id,ticket_type_id,events(title,slug,start_date,venue),ticket_name,quantity,unit_amount_minor,currency,ticket_attendees(id,ticket_code,attendee_name,status))")
+    .select("id,buyer_name,buyer_email,amount_minor,currency,status,created_at,event_id,events(title,slug,start_date,venue),ticket_order_items(id,event_id,ticket_type_id,events(title,slug,start_date,venue),ticket_name,quantity,unit_amount_minor,currency,ticket_attendees(id,ticket_code,attendee_name,status)),payments(status)")
     .in("id", batch.order_ids).order("created_at");
   check(ordersError);
   return JSON.parse(JSON.stringify({ ...batch, orders: (orders ?? []).map(normalizeOrderRelations) })) as typeof batch & { orders: GuestTicketOrder[] };
@@ -318,7 +318,7 @@ function normalizeOrderRelations<T extends { events?: unknown; ticket_order_item
 export async function getGuestTicketOrder(orderId: string, token: string) {
   const tokenHash = await sha256(token);
   const { data: order, error } = await db.from("ticket_orders")
-    .select("id,buyer_name,buyer_email,amount_minor,currency,status,created_at,event_id,events(title,slug,start_date,venue),ticket_order_items(id,event_id,ticket_type_id,events(title,slug,start_date,venue),ticket_name,quantity,unit_amount_minor,currency,ticket_attendees(id,ticket_code,attendee_name,status))")
+    .select("id,buyer_name,buyer_email,amount_minor,currency,status,created_at,event_id,events(title,slug,start_date,venue),ticket_order_items(id,event_id,ticket_type_id,events(title,slug,start_date,venue),ticket_name,quantity,unit_amount_minor,currency,ticket_attendees(id,ticket_code,attendee_name,status)),payments(status)")
     .eq("id", orderId).eq("guest_token_hash", tokenHash).maybeSingle();
   check(error);
   if (!order) return null;
@@ -327,7 +327,7 @@ export async function getGuestTicketOrder(orderId: string, token: string) {
 
 export async function getMyPurchasedTickets(userId: string) {
   const { data, error } = await db.from("ticket_orders")
-    .select("id,event_id,checkout_batch_id,amount_minor,currency,status,created_at,events(title,slug,start_date,venue),ticket_order_items(id,event_id,ticket_type_id,events(title,slug,start_date,venue),ticket_name,quantity,unit_amount_minor,currency,ticket_attendees(id,ticket_code,attendee_name,status))")
+    .select("id,event_id,checkout_batch_id,amount_minor,currency,status,created_at,events(title,slug,start_date,venue),ticket_order_items(id,event_id,ticket_type_id,events(title,slug,start_date,venue),ticket_name,quantity,unit_amount_minor,currency,ticket_attendees(id,ticket_code,attendee_name,status)),payments(status)")
     .eq("user_id", userId).order("created_at", { ascending: false });
   check(error);
   return JSON.parse(JSON.stringify((data ?? []).map(normalizeOrderRelations))) as MemberTicketOrder[];

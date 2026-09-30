@@ -1,36 +1,150 @@
-export function trackEvent(name: string, parameters: Record<string, string | number | boolean | undefined> = {}) {
-  if (typeof window === "undefined") return;
-  const analyticsWindow = window as unknown as Window & { dataLayer?: unknown[] };
-  const dataLayer = analyticsWindow.dataLayer ?? [];
-  analyticsWindow.dataLayer = dataLayer;
-  dataLayer.push({ event: name, ...parameters });
+type AnalyticsValue = string | number | boolean | undefined;
+type AnalyticsParameters = Record<string, AnalyticsValue>;
+type AnalyticsWindow = Window & { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void };
+
+const allowedParameters = new Set([
+  "event_slug", "event_id", "ticket_type", "ticket_type_id", "quantity", "value",
+  "currency", "event_count", "placement", "plan", "destination", "method",
+]);
+let lastPageLocation: string | null = null;
+
+/** Private guest-ticket tokens and other query values must never reach analytics. */
+export function sanitizeAnalyticsLocation(url: string): string {
+  const parsed = new URL(url);
+  return `${parsed.origin}${parsed.pathname}`;
 }
 
-export function initializeAnalytics() {
+function safeReferrer(): string {
+  if (lastPageLocation) return lastPageLocation;
+  try { return document.referrer ? sanitizeAnalyticsLocation(document.referrer) : ""; }
+  catch { return ""; }
+}
+
+function analyticsConfig() {
+  return {
+    gtmId: import.meta.env["VITE_GTM_CONTAINER_ID"] as string | undefined,
+    gaId: import.meta.env["VITE_GA_MEASUREMENT_ID"] as string | undefined,
+  };
+}
+
+function safeParameters(parameters: AnalyticsParameters): AnalyticsParameters {
+  return Object.fromEntries(Object.entries(parameters).filter(([key, value]) =>
+    allowedParameters.has(key) && value !== undefined &&
+    (typeof value === "number" ? Number.isFinite(value) : typeof value === "boolean" ||
+      (typeof value === "string" && value.length <= 200 && !value.includes("@"))),
+  ));
+}
+
+export function trackEvent(name: string, parameters: AnalyticsParameters = {}): void {
   if (typeof window === "undefined") return;
-  const analyticsWindow = window as unknown as Window & { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void };
-  const gtmContainerId = import.meta.env["VITE_GTM_CONTAINER_ID"];
-  const gaMeasurementId = import.meta.env["VITE_GA_MEASUREMENT_ID"];
-  const scriptId = gtmContainerId ? "cometx-gtm" : "cometx-ga";
+  const { gtmId, gaId } = analyticsConfig();
+  if (!gtmId && !gaId) return;
+  initializeAnalytics();
+  const analyticsWindow = window as AnalyticsWindow;
+  const payload = {
+    ...safeParameters(parameters),
+    page_location: sanitizeAnalyticsLocation(window.location.href),
+    page_referrer: safeReferrer(),
+  };
+  if (gtmId) {
+    analyticsWindow.dataLayer ??= [];
+    analyticsWindow.dataLayer.push({ event: name, ...payload });
+  } else {
+    analyticsWindow.gtag?.("event", name, payload);
+  }
+}
+
+export function trackPageView(pathname: string): void {
+  if (typeof window === "undefined" || pathname.startsWith("/admin")) return;
+  const { gtmId, gaId } = analyticsConfig();
+  if (!gtmId && !gaId) return;
+  initializeAnalytics();
+  const location = sanitizeAnalyticsLocation(new URL(pathname, window.location.origin).href);
+  if (location === lastPageLocation) return;
+  const payload = {
+    page_title: document.title,
+    page_location: location,
+    page_referrer: safeReferrer(),
+  };
+  lastPageLocation = location;
+  const analyticsWindow = window as AnalyticsWindow;
+  if (gtmId) {
+    analyticsWindow.dataLayer ??= [];
+    analyticsWindow.dataLayer.push({ event: "page_view", ...payload });
+  } else {
+    analyticsWindow.gtag?.("event", "page_view", payload);
+  }
+}
+
+export function initializeAnalytics(): void {
+  if (typeof window === "undefined") return;
+  const analyticsWindow = window as AnalyticsWindow;
+  const { gtmId, gaId } = analyticsConfig();
+  if (!gtmId && !gaId) return;
+  const scriptId = gtmId ? "cometx-gtm" : "cometx-ga";
   if (document.getElementById(scriptId)) return;
   analyticsWindow.dataLayer ??= [];
-  if (gtmContainerId) {
+  const script = document.createElement("script");
+  script.id = scriptId;
+  script.async = true;
+  script.referrerPolicy = "no-referrer";
+  if (gtmId) {
     analyticsWindow.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
-    const script = document.createElement("script");
-    script.id = scriptId;
-    script.async = true;
-    script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmContainerId)}`;
-    document.head.append(script);
-    return;
-  }
-  if (gaMeasurementId) {
+    script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`;
+  } else if (gaId) {
     analyticsWindow.gtag = (...args) => analyticsWindow.dataLayer?.push(args);
     analyticsWindow.gtag("js", new Date());
-    analyticsWindow.gtag("config", gaMeasurementId);
-    const script = document.createElement("script");
-    script.id = scriptId;
-    script.async = true;
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaMeasurementId)}`;
-    document.head.append(script);
+    analyticsWindow.gtag("config", gaId, {
+      send_page_view: false,
+      page_location: sanitizeAnalyticsLocation(window.location.href),
+      page_referrer: safeReferrer(),
+    });
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaId)}`;
   }
+  document.head.append(script);
+}
+
+type PurchaseOrder = {
+  id: string;
+  status: string;
+  amount_minor: number;
+  currency: string;
+  ticket_order_items: {
+    event_id: string;
+    quantity: number;
+    ticket_attendees: { status: string }[];
+  }[];
+  payments: { status: string }[];
+};
+
+/** Only a paid, confirmed order with one issued ticket per attendee is a purchase. */
+export function purchaseMetadata(orders: readonly PurchaseOrder[]): { value: number; currency: string; quantity: number; event_count: number } | null {
+  if (!orders.length || orders.some((order) => order.status !== "confirmed" || !order.ticket_order_items?.length ||
+    !order.payments?.some((payment) => payment.status === "paid"))) return null;
+  const currency = orders[0]!.currency.toUpperCase();
+  if (orders.some((order) => order.currency.toUpperCase() !== currency)) return null;
+  const lines = orders.flatMap((order) => order.ticket_order_items);
+  if (lines.some((line) => !Number.isInteger(line.quantity) || line.quantity < 1 ||
+    line.ticket_attendees.filter((ticket) => ticket.status === "valid" || ticket.status === "checked_in").length < line.quantity)) return null;
+  const amountMinor = orders.reduce((sum, order) => sum + Number(order.amount_minor), 0);
+  if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) return null;
+  return {
+    value: amountMinor / 100,
+    currency,
+    quantity: lines.reduce((sum, line) => sum + line.quantity, 0),
+    event_count: new Set(lines.map((line) => line.event_id)).size,
+  };
+}
+
+/** A Stripe return URL alone is not proof of payment; callers pass server-confirmed orders. */
+export function trackConfirmedPurchase(purchaseKey: string, orders: readonly PurchaseOrder[]): void {
+  if (typeof window === "undefined" || !purchaseKey || !analyticsConfig().gaId && !analyticsConfig().gtmId) return;
+  const metadata = purchaseMetadata(orders);
+  if (!metadata) return;
+  const storageKey = `cometx-ga-purchase-v1:${purchaseKey}`;
+  try {
+    if (window.localStorage.getItem(storageKey)) return;
+    window.localStorage.setItem(storageKey, "1");
+  } catch { /* Analytics must never block access to purchased tickets. */ }
+  trackEvent("purchase_success", metadata);
 }

@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-09-30: GA4 route and conversion tracking
+
+- Last agent: Codex; branch: `codex-dev`; commit: see analytics commit following `8290825`.
+- What changed: expanded the existing GA/GTM helper with manual SPA page views, privacy-safe event metadata, CometX conversion events and a paid/confirmed/issued purchase signal. Added payment-status reads only to verify the purchase signal; no payment or checkout mutation changed.
+- Files changed: `src/lib/analytics.ts`, public event/membership/cart/login routes, header/home CTA, account/guest ticket return routes, `src/lib/ticket-orders.server.ts`, `tests/analytics.test.mjs`, `.env.example`, `ANALYTICS.md`.
+- Migrations: none. No GA ID or production analytics service was configured.
+- Validation: focused analytics tests, TypeScript and production build pass. No real GA DebugView or Stripe transaction was available in this cycle.
+- Unresolved: add `VITE_GA_MEASUREMENT_ID` in staging and redeploy; disable GA4 Enhanced Measurement history-based page views to prevent duplicates; review analytics consent before production. Browser `purchase_success` requires the buyer to return to the ticket page after payment.
+- What needs review: GA4 DebugView event parameters, guest-token privacy, confirmed checkout attribution, and duplicate-pageview configuration before main merge.
+
 ## 2026-09-30: remove legacy phantom registrations from account overview
 
 - Last agent: Codex; branch: `codex-dev`.
