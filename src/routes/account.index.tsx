@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getAccountOverview } from "@/lib/membership.functions";
+import { getMyPurchasedTickets } from "@/lib/ticket-orders.functions";
 import { formatMoney } from "@/lib/pricing";
+import { isIssuedTicketStatus, isOwnedOrderLine, isOwnedRegistrationStatus, isUpcomingEvent } from "@/lib/ticket-status";
 import { Button } from "@/components/ui/button";
 import {
   EmptyBlock,
@@ -26,9 +28,14 @@ function benefitLabel(b: { key: string; name: string; value: number | null }) {
 
 function AccountOverviewPage() {
   const fetchOverview = useServerFn(getAccountOverview);
+  const fetchTickets = useServerFn(getMyPurchasedTickets);
   const { data, isLoading, error } = useQuery({
     queryKey: ["account"],
     queryFn: () => fetchOverview(),
+  });
+  const { data: orders, error: ticketError, isLoading: ticketsLoading } = useQuery({
+    queryKey: ["account", "tickets"],
+    queryFn: () => fetchTickets(),
   });
 
   if (isLoading)
@@ -45,9 +52,20 @@ function AccountOverviewPage() {
     );
   if (!data) return null;
 
-  const upcomingRegistrations = data.registrations.filter(
-    (r) => new Date(r.startDate) >= new Date() && r.status !== "cancelled",
-  );
+  const upcomingEvents = [
+    ...data.registrations.filter((reg) => isOwnedRegistrationStatus(reg.status) && isUpcomingEvent(reg.startDate)).map((reg) => ({
+      id: `registration:${reg.id}`, eventTitle: reg.eventTitle, eventSlug: reg.eventSlug,
+      startDate: reg.startDate, ticketName: reg.ticketName, status: reg.status,
+      amount: reg.pricePaid, currency: reg.currency,
+    })),
+    ...(orders ?? []).flatMap((order) =>
+      (order.ticket_order_items ?? []).filter((item) => isOwnedOrderLine(order.status, item.ticket_attendees) && !!item.events?.[0]?.start_date && isUpcomingEvent(item.events[0].start_date)).map((item) => ({
+        id: `ticket:${item.id}`, eventTitle: item.events[0]!.title, eventSlug: item.events[0]!.slug,
+        startDate: item.events[0]!.start_date, ticketName: item.ticket_name, status: order.status,
+        amount: Number(item.unit_amount_minor) * (item.ticket_attendees?.filter((ticket) => isIssuedTicketStatus(ticket.status)).length ?? 0) / 100,
+        currency: item.currency,
+      }))),
+  ].sort((left, right) => Date.parse(left.startDate) - Date.parse(right.startDate));
 
   return (
     <Section>
@@ -55,21 +73,24 @@ function AccountOverviewPage() {
         <div>
           <SectionHeading
             eyebrow={`Hello ${data.profile.firstName ?? ""}`.trim()}
-            title="Your next commitments"
+            title="Upcoming confirmed events"
             action={
               <Link to="/account/events" className="text-sm underline underline-offset-4">
-                All registrations
+                My events
               </Link>
             }
           />
-          {upcomingRegistrations.length === 0 ? (
+          {ticketError && <ErrorBlock error={ticketError} />}
+          {ticketsLoading && upcomingEvents.length === 0 ? (
+            <LoadingBlock label="Loading your tickets" />
+          ) : upcomingEvents.length === 0 && !ticketError ? (
             <EmptyBlock
-              title="No upcoming registrations"
-              hint="Pick something from the calendar - members often pay nothing."
+              title="No upcoming confirmed events"
+              hint="Browse CometX events to find your next gathering."
             />
-          ) : (
+          ) : upcomingEvents.length > 0 ? (
             <ul className="divide-y divide-border border-y border-border">
-              {upcomingRegistrations.map((reg) => (
+              {upcomingEvents.map((reg) => (
                 <li key={reg.id} className="flex flex-wrap items-center justify-between gap-4 py-5">
                   <div>
                     <Link
@@ -89,46 +110,18 @@ function AccountOverviewPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <StatusPill tone={reg.status === "confirmed" ? "success" : "muted"}>
+                    <StatusPill tone="success">
                       {reg.status}
                     </StatusPill>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {reg.pricePaid === 0
-                        ? "Included"
-                        : formatMoney(reg.pricePaid, reg.currency)}
+                      {reg.amount === 0 ? "Free" : formatMoney(reg.amount, reg.currency)}
                     </p>
                   </div>
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
 
-          <div className="mt-14">
-            <SectionHeading eyebrow="Calendar" title="Coming up for everyone" />
-            {data.upcomingEvents.length === 0 ? (
-              <EmptyBlock title="Nothing scheduled" />
-            ) : (
-              <ul className="space-y-3">
-                {data.upcomingEvents.map((event) => (
-                  <li key={event.slug} className="flex justify-between gap-4 border-b border-border pb-3">
-                    <Link
-                      to="/events/$slug"
-                      params={{ slug: event.slug }}
-                      className="text-sm font-medium hover:underline"
-                    >
-                      {event.title}
-                    </Link>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(event.startDate).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                      })}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
         </div>
 
         <aside className="space-y-6">
@@ -145,7 +138,7 @@ function AccountOverviewPage() {
                   <StatusPill tone="success">{data.membership.status}</StatusPill>
                   {data.membership.endsAt && (
                     <p className="text-xs text-muted-foreground">
-                      Renews{" "}
+                      Valid until{" "}
                       {new Date(data.membership.endsAt).toLocaleDateString("en-GB", {
                         day: "numeric",
                         month: "long",
@@ -165,8 +158,7 @@ function AccountOverviewPage() {
               ) : (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    Members pay less for events, get the symposium included and read the full
-                    archive.
+                    Explore the CometX plans and choose the membership that suits you.
                   </p>
                   <Button asChild variant="signal" className="w-full">
                     <Link to="/membership">Become a member</Link>

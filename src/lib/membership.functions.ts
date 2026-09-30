@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { OWNED_REGISTRATION_STATUSES } from "./ticket-status";
 
 export type PlanSummary = {
   id: string;
@@ -71,7 +72,6 @@ export type AccountOverview = {
     startDate: string;
     ticketName: string | null;
   }[];
-  upcomingEvents: { title: string; slug: string; startDate: string }[];
 };
 
 export const getAccountOverview = createServerFn({ method: "GET" }).handler(
@@ -83,22 +83,15 @@ export const getAccountOverview = createServerFn({ method: "GET" }).handler(
 
     const user = await requireUser();
 
-    const [{ data: profile }, membership, { data: regs }, { data: events }] = await Promise.all([
+    const [{ data: profile }, membership, { data: regs }] = await Promise.all([
       supabaseAdmin.from("profiles").select("*").eq("id", user.userId).maybeSingle(),
       getCurrentMembership(user.userId),
       supabaseAdmin
         .from("registrations")
         .select("id,status,price_paid,currency,events(title,slug,start_date),ticket_types(name)")
         .eq("user_id", user.userId)
+        .in("status", [...OWNED_REGISTRATION_STATUSES])
         .order("created_at", { ascending: false }),
-      supabaseAdmin
-        .from("events")
-        .select("title,slug,start_date")
-        .eq("publish_state", "published")
-        .in("event_status", ["upcoming", "registration_open", "registration_closed", "sold_out"])
-        .gte("start_date", new Date().toISOString())
-        .order("start_date")
-        .limit(4),
     ]);
 
     let benefits: AccountOverview["membership"] extends null
@@ -151,11 +144,6 @@ export const getAccountOverview = createServerFn({ method: "GET" }).handler(
           startDate: r.events!.start_date,
           ticketName: r.ticket_types?.name ?? null,
         })),
-      upcomingEvents: (events ?? []).map((e) => ({
-        title: e.title,
-        slug: e.slug,
-        startDate: e.start_date,
-      })),
     };
   },
 );

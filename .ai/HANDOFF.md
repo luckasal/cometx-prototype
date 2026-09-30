@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-09-30: separate checkout holds from owned tickets
+
+- Last agent: Codex; branch: `codex-dev`.
+- What changed: shared status helpers classify owned legacy registrations and issued order tickets. My events now displays only confirmed/free orders with valid or checked-in issued tickets; payment-return polling still waits for fulfillment and clears purchased browser-cart lines. The My CometX overview lists upcoming confirmed events, active membership, and staff access only. Pending registration is no longer treated as an owned ticket on event detail. Zero-price tickets are labeled “Free,” not automatically a membership inclusion.
+- Files changed: `src/lib/ticket-status.ts`, `src/lib/events.functions.ts`, `src/lib/membership.functions.ts`, `src/routes/account.index.tsx`, `src/routes/account.events.tsx`, `tests/ticket-status.test.mjs`.
+- Migrations: none. Checkout, Stripe, cart storage, and payment backend unchanged.
+- Validation: focused status tests, TypeScript check, and production Vite build passed.
+- Unresolved issues: hosted migrations 0007–0009 and their coordinated deployment remain pending from earlier work; no live or sandbox payment was run in this cycle.
+- What needs review: signed-in account with a pending payment versus an issued ticket, and a free ticket that was not granted by membership.
+
 ## 2026-09-30: one buyer-name shortcut at Attendee 1 per event
 
 - Last agent: Codex; branch: `codex-dev`.

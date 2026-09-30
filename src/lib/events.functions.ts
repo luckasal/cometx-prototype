@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isOwnedRegistrationStatus } from "./ticket-status";
 
 import {
   calculateTicketPrice,
@@ -182,7 +183,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
       };
     });
 
-    const mine = user ? registrations.find((r) => r.user_id === user.userId) : undefined;
+    const mine = user ? registrations.find((r) => r.user_id === user.userId && isOwnedRegistrationStatus(r.status)) : undefined;
 
     return {
       event: {
