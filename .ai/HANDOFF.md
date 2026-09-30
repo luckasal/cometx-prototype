@@ -5,7 +5,7 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 ## 2026-09-28: multi-event cart, single combined purchase
 
 - Last agent: Codex
-- Branch: `codex-dev`; local changes, not deployed.
+- Branch: `codex-dev`; commit `412e652` pushed. Vercel Preview is ready at `https://cometx-prototype-git-codex-dev-lucka2.vercel.app/`; Production was not changed. Preview still has no Supabase public environment variables, so database-backed events/cart data do not load there. Migration `0007_multi_event_checkout.sql` is not applied to Supabase.
 - What changed: the cart now keeps and displays multiple event groups with attendee names per ticket. One checkout creates one Stripe test-mode Checkout Session and a separate order per event; fulfillment confirms the batch atomically, issues one ticket per attendee, and preserves private guest access. Event-scoped customer ticket access/account cleanup is batch-aware.
 - Files changed: `src/lib/ticket-cart.ts`, `src/routes/cart.tsx`, `src/lib/ticket-orders.functions.ts`, `src/lib/ticket-orders.server.ts`, `src/routes/api/public/stripe-webhook.ts`, `src/routes/tickets.guest.tsx`, `src/routes/account.events.tsx`, `src/routeTree.gen.ts`, `drizzle/migrations/0007_multi_event_checkout.sql`, ticket cart/database tests.
 - Migrations: `0007_multi_event_checkout.sql` added and tested in isolated PostgreSQL; not applied to Supabase.
