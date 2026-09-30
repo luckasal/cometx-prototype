@@ -9,6 +9,7 @@ export type EntitlementMap = Record<string, number | null>;
 export type TicketPricingInput = {
   basePrice: number;
   currency: string;
+  memberPrice?: number | null;
   requiredEntitlement?: string | null;
   discountEntitlement?: string | null;
   freeEntitlement?: string | null;
@@ -22,6 +23,9 @@ export type PriceResult = {
   reason: string;
   includedInMembership: boolean;
   eligible: boolean;
+  benefitType: "free" | "workshop_credit" | "percent_discount" | "member_price" | "public";
+  benefitValue: number;
+  membershipTier: string | null;
 };
 
 export function hasEntitlementIn(entitlements: EntitlementMap, key: string): boolean {
@@ -39,6 +43,8 @@ function round2(n: number): number {
 export function calculateTicketPrice(
   ticket: TicketPricingInput,
   entitlements: EntitlementMap,
+  eventType = "regular_event",
+  membershipTier: string | null = null,
 ): PriceResult {
   if (!Number.isFinite(ticket.basePrice) || ticket.basePrice < 0) throw new Error("Invalid ticket price.");
   const basePrice = round2(ticket.basePrice);
@@ -50,6 +56,9 @@ export function calculateTicketPrice(
     reason: "Standard ticket",
     includedInMembership: false,
     eligible: true,
+    benefitType: "public",
+    benefitValue: 0,
+    membershipTier,
   };
 
   if (ticket.requiredEntitlement && !hasEntitlementIn(entitlements, ticket.requiredEntitlement)) {
@@ -67,22 +76,56 @@ export function calculateTicketPrice(
       finalPrice: 0,
       includedInMembership: true,
       reason: "Included in your membership",
+      benefitType: "free",
+      benefitValue: basePrice,
     };
   }
 
-  if (ticket.discountEntitlement && hasEntitlementIn(entitlements, ticket.discountEntitlement)) {
-    const pct = entitlementValueIn(entitlements, ticket.discountEntitlement) ?? 0;
-    if (!Number.isFinite(pct)) throw new Error("Invalid membership discount.");
-    const clamped = Math.min(Math.max(pct, 0), 100);
-    const discount = round2((basePrice * clamped) / 100);
-    if (discount > 0) {
-      return {
-        ...base,
-        discount,
-        finalPrice: round2(basePrice - discount),
-        reason: `Member price (${clamped}% off)`,
-      };
+  const type = eventType === "event" ? "regular_event" : eventType;
+  const tier = membershipTier?.toLowerCase() ?? null;
+  const freeKey = type === "symposium" && (tier === "cometxxl" || tier === "ambasador")
+    ? "symposium_free_ticket" : type === "potlach" && tier === "ambasador" ? "potlach_free_ticket" : null;
+  if (freeKey && hasEntitlementIn(entitlements, freeKey)) {
+    return { ...base, discount: basePrice, finalPrice: 0, includedInMembership: true,
+      reason: "Included in your membership", benefitType: "free", benefitValue: basePrice };
+  }
+
+  if (type === "workshop" && (tier === "cometxxl" || tier === "ambasador") && ticket.currency.toUpperCase() === "CHF") {
+    const configured = entitlementValueIn(entitlements, "workshop_credit");
+    const credit = tier === "cometxxl" ? 100 : 300;
+    if (configured === credit) {
+      const discount = Math.min(basePrice, credit);
+      return { ...base, discount, finalPrice: round2(basePrice - discount),
+        reason: `Workshop credit −CHF ${discount}`, benefitType: "workshop_credit", benefitValue: discount };
     }
+  }
+
+  let tierDiscountKey: string | null = null;
+  if (type === "symposium" && tier === "fanousek") tierDiscountKey = "symposium_half_price";
+  else if (type === "regular_event" && tier === "cometxxl") tierDiscountKey = "other_events_discount";
+  else if (type === "potlach" && tier) tierDiscountKey = "potlach_discount";
+
+  const officialTier = tier === "fanousek" || tier === "cometxxl" || tier === "ambasador";
+  const explicitDiscountKey = officialTier && (type === "workshop" || type === "potlach")
+    ? (type === "potlach" && ticket.discountEntitlement === "potlach_discount" ? "potlach_discount" : null)
+    : ticket.discountEntitlement;
+  const discounts = [tierDiscountKey, explicitDiscountKey]
+    .filter((key): key is string => !!key && hasEntitlementIn(entitlements, key))
+    .map((key) => entitlementValueIn(entitlements, key) ?? 0);
+  if (discounts.some((value) => !Number.isFinite(value))) throw new Error("Invalid membership discount.");
+  const pct = Math.min(100, Math.max(0, ...discounts));
+  const percentagePrice = round2(basePrice - round2(basePrice * pct / 100));
+  const explicitPrice = tier && type !== "workshop" && ticket.memberPrice != null
+    ? round2(ticket.memberPrice) : null;
+  if (explicitPrice !== null && (!Number.isFinite(explicitPrice) || explicitPrice < 0)) throw new Error("Invalid member price.");
+  if (pct > 0 || (explicitPrice !== null && explicitPrice < basePrice)) {
+    const useExplicit = explicitPrice !== null && explicitPrice < percentagePrice;
+    const finalPrice = useExplicit ? explicitPrice! : percentagePrice;
+    return { ...base, discount: round2(basePrice - finalPrice), finalPrice,
+      includedInMembership: finalPrice === 0,
+      reason: useExplicit ? "Member ticket price" : `Member price (${pct}% off)`,
+      benefitType: useExplicit ? "member_price" : "percent_discount",
+      benefitValue: useExplicit ? round2(basePrice - finalPrice) : pct };
   }
 
   return base;
@@ -129,4 +172,14 @@ export function isDuplicateRegistration(existing: { status: string }[] | null | 
 
 export function formatMoney(amount: number, currency = "CHF"): string {
   return `${currency} ${amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)}`;
+}
+
+export function formatMembershipBenefit(price: PriceResult, czech: boolean): string {
+  switch (price.benefitType) {
+    case "free": return czech ? "V ceně členství" : "Included with membership";
+    case "workshop_credit": return czech ? `Kredit na workshop −CHF ${price.benefitValue}` : `Workshop credit −CHF ${price.benefitValue}`;
+    case "percent_discount": return czech ? `Členská sleva ${price.benefitValue} %` : `Membership discount ${price.benefitValue}%`;
+    case "member_price": return czech ? "Zvýhodněná členská cena" : "Member ticket price";
+    default: return czech ? "Veřejná cena" : "Public price";
+  }
 }

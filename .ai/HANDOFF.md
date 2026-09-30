@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-09-30: event-category membership pricing
+
+- Last agent: Codex; branch: `codex-dev`.
+- What changed: event categories now drive Fanoušek, CometXXL and Ambasador quotes. The event ticket selector and cart display public price, applicable benefit and final price; checkout recalculates server-side and stores each order line's public/final price, benefit and active tier. Admin event editing uses explicit categories.
+- Files changed: `src/lib/pricing.ts`, `src/lib/events.functions.ts`, `src/components/site/EventDetailTemplate.tsx`, `src/routes/cart.tsx`, `src/components/admin/EventForm.tsx`, `src/lib/admin.functions.ts`, `drizzle/migrations/0009_membership_event_pricing.sql`, `tests/membership-pricing.test.mjs`.
+- Migration: `0009_membership_event_pricing.sql` added and verified in isolated PostgreSQL; **not applied to hosted Supabase**. Apply only after 0007 and 0008 and release app/database together. It classifies verified events, seeds only specified tier benefits, removes exact legacy guessed POTLA.CH percentages, and adds immutable quote columns to order lines.
+- Validation: focused pricing, cart and ticket-database tests 4/4, TypeScript and production Vite build passed. The unrelated full-suite Node 22 type-strip failure remains.
+- Unresolved issues: verified POTLA.CH discount percentage is absent; public price remains until CometX configures it. No hosted migration, payment or Vercel deployment was performed. Sandbox checkout/webhook still needs an end-to-end release check.
+- What needs review: migration against hosted seed state, exact POTLA.CH discount configuration, category assignment of any staff-created events, and member quotes in a real signed-in checkout.
+
 ## 2026-09-30: one buyer-named attendee per event
 
 - Last agent: Codex; branch: `codex-dev`.

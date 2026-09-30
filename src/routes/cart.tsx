@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getEventDetail } from "@/lib/events.functions";
 import { getAccountOverview } from "@/lib/membership.functions";
-import { formatMoney } from "@/lib/pricing";
+import { formatMoney, formatMembershipBenefit } from "@/lib/pricing";
 import { attendeeMatchesBuyer, buyerNamedAttendeeCount, clearAttendeeName, copyBuyerNameToAttendee, readTicketCart, writeTicketCart, type TicketCartLine } from "@/lib/ticket-cart";
 import { trackEvent } from "@/lib/analytics";
 import { startTicketCheckoutBatch } from "@/lib/ticket-orders.functions";
@@ -264,7 +264,7 @@ function CartPage() {
                   <div className="text-sm tabular-nums xl:text-base">
                     <span className="mr-2 text-xs text-muted-foreground xl:hidden">{cs ? "Cena" : "Price"}</span>
                     <span className="font-medium">{ticket ? formatMoney(ticket.price.finalPrice, ticket.price.currency) : "—"}</span>
-                    {ticket && <p className="mt-1 text-[10px] text-muted-foreground">{ticket.price.finalPrice !== ticket.price.basePrice ? (cs ? "Členská cena" : "Member price") : (cs ? "Veřejná cena" : "Public price")}</p>}
+                    {ticket && <p className="mt-1 text-[10px] text-muted-foreground">{formatMembershipBenefit(ticket.price, cs)}</p>}
                     {ticket && ticket.price.finalPrice !== ticket.price.basePrice && <p className="text-[10px] text-muted-foreground">{cs ? "Veřejná" : "Public"}: {formatMoney(ticket.price.basePrice, ticket.price.currency)}</p>}
                   </div>
                   <div className="flex items-center justify-between xl:justify-start">
@@ -328,7 +328,7 @@ function CartPage() {
                   {detail.event.venue && <p className="text-xs text-muted-foreground">{detail.event.venue}</p>}
                   {eventLines.map((line) => {
                     const ticket = detail.tickets.find((item) => item.id === line.ticketId);
-                    return <div key={line.ticketId} className="flex items-start justify-between gap-3 border-t border-foreground/5 pt-3 text-xs"><div className="min-w-0"><p className="font-medium">{ticket?.name ?? (cs ? "Vstupenka" : "Ticket")}</p><p className="mt-1 text-muted-foreground">{line.quantity} × {ticket ? formatMoney(ticket.price.finalPrice, ticket.price.currency) : "—"}</p></div><span className="shrink-0 font-semibold tabular-nums">{ticket ? formatMoney(ticket.price.finalPrice * line.quantity, ticket.price.currency) : "—"}</span></div>;
+                    return <div key={line.ticketId} className="flex items-start justify-between gap-3 border-t border-foreground/5 pt-3 text-xs"><div className="min-w-0"><p className="font-medium">{ticket?.name ?? (cs ? "Vstupenka" : "Ticket")}</p>{ticket && ticket.price.benefitType !== "public" && <p className="mt-1 text-muted-foreground">{cs ? "Běžná cena" : "Regular price"}: {formatMoney(ticket.price.basePrice, ticket.price.currency)} · {formatMembershipBenefit(ticket.price, cs)}</p>}<p className="mt-1 text-muted-foreground">{line.quantity} × {ticket ? formatMoney(ticket.price.finalPrice, ticket.price.currency) : "—"}</p></div><span className="shrink-0 font-semibold tabular-nums">{ticket ? formatMoney(ticket.price.finalPrice * line.quantity, ticket.price.currency) : "—"}</span></div>;
                   })}
                 </div>;
               })}

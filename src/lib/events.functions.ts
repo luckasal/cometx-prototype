@@ -90,7 +90,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
       ? (await import("@/integrations/supabase/client.server")).supabaseAdmin
       : getReadClient();
     const { getOptionalUser } = await import("./auth.server");
-    const { getCurrentMembership, getUserEntitlements } = await import("./membership.server");
+    const { getCurrentMembership, getPlanEntitlements } = await import("./membership.server");
 
     const { data: event, error: eventError } = await supabaseAdmin
       .from("events")
@@ -153,8 +153,8 @@ export const getEventDetail = createServerFn({ method: "GET" })
     const issuedAttendees = attendeesRes.data ?? [];
     const openOrderItems = openOrdersRes.data ?? [];
     const openQuantity = openOrderItems.reduce((sum, item) => sum + Number(item.quantity), 0);
-    const entitlements = await getUserEntitlements(user?.userId);
     const membership = await getCurrentMembership(user?.userId);
+    const entitlements = membership ? await getPlanEntitlements(membership.plan.id) : {};
 
     const tickets: EventTicketOption[] = (ticketsRes.data ?? []).map((ticket) => {
       const taken = registrations.filter((r) => r.ticket_type_id === ticket.id).length
@@ -163,11 +163,9 @@ export const getEventDetail = createServerFn({ method: "GET" })
       const spotsLeft = !canReadAllRegistrations || ticket.capacity === null ? null : Math.max(ticket.capacity - taken, 0);
       const regularPrice = calculateTicketPrice(
         { basePrice:Number(ticket.base_price),currency:ticket.currency,requiredEntitlement:ticket.required_entitlement,
-          discountEntitlement:ticket.discount_entitlement,freeEntitlement:ticket.free_entitlement },entitlements);
-      const memberPrice=membership && !regularPrice.includedInMembership && ticket.member_price !== null && ticket.member_price !== undefined && regularPrice.eligible
-        ? {...regularPrice,basePrice:Number(ticket.base_price),discount:Number(ticket.base_price)-Number(ticket.member_price),
-            finalPrice:Number(ticket.member_price),reason:"Member ticket price",includedInMembership:Number(ticket.member_price)===0}
-        : regularPrice;
+          discountEntitlement:ticket.discount_entitlement,freeEntitlement:ticket.free_entitlement,
+          memberPrice: ticket.member_price == null ? null : Number(ticket.member_price) },
+        entitlements, event.event_type, membership?.plan.slug ?? null);
       return {
         id: ticket.id,
         name: ticket.name,
@@ -175,10 +173,12 @@ export const getEventDetail = createServerFn({ method: "GET" })
         memberPrice: ticket.member_price === null || ticket.member_price === undefined ? null : Number(ticket.member_price),
         saleStart: ticket.sale_start,
         saleEnd: ticket.sale_end,
-        price: memberPrice,
+        price: regularPrice,
         spotsLeft,
         soldOut: event.event_status === "sold_out" || (spotsLeft !== null && spotsLeft === 0),
-        hasMemberPricing: (ticket.member_price !== null && ticket.member_price !== undefined) || !!(ticket.required_entitlement || ticket.discount_entitlement || ticket.free_entitlement),
+        hasMemberPricing: ["symposium", "potlach", "workshop", "regular_event", "event"].includes(event.event_type)
+          || (ticket.member_price !== null && ticket.member_price !== undefined)
+          || !!(ticket.required_entitlement || ticket.discount_entitlement || ticket.free_entitlement),
       };
     });
 

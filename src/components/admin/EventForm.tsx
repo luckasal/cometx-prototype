@@ -64,7 +64,7 @@ export type WorkshopDraft = {
 
 export const emptyEvent: EventFormValues = {
   title: "",
-  event_type: "event",
+  event_type: "regular_event",
   slug: "",
   short_description: "",
   description: "",
@@ -260,8 +260,13 @@ export function EventForm({
               }}
             />
           </Field>
-          <Field label="Event type" hint="For example: symposium, networking, workshop.">
-            <input className={inputClass} value={event.event_type} onChange={(e) => set("event_type", e.target.value)} />
+          <Field label="Event type" hint="Membership pricing follows this category.">
+            <select className={inputClass} value={event.event_type} onChange={(e) => set("event_type", e.target.value)}>
+              <option value="regular_event">Regular event</option>
+              <option value="symposium">SCAS Symposium</option>
+              <option value="potlach">Beer POTLA.CH</option>
+              <option value="workshop">Workshop</option>
+            </select>
           </Field>
           <Field label="Slug" hint="Lowercase letters, numbers and dashes.">
             <input

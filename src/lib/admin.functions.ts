@@ -43,7 +43,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" }).handler(async
 const eventSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().min(2).max(200),
-  event_type: z.string().min(2).max(80).default("event"),
+  event_type: z.enum(["regular_event", "symposium", "potlach", "workshop"]).default("regular_event"),
   slug: z
     .string()
     .min(2)

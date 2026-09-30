@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import type { EventDetail } from "@/lib/events.functions";
 import { splitEventContent } from "@/lib/event-content";
-import { formatMoney } from "@/lib/pricing";
+import { formatMoney, formatMembershipBenefit } from "@/lib/pricing";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { BrandXElement } from "./BrandXElement";
 import { Button } from "@/components/ui/button";
@@ -108,6 +108,8 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
   const types: Record<string, string> = cs
     ? {
         event: "Akce",
+        regular_event: "Akce",
+        potlach: "POTLA.CH",
         workshop: "Workshop",
         symposium: "Sympozium",
         networking: "Networking",
@@ -116,6 +118,8 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
       }
     : {
         event: "Event",
+        regular_event: "Event",
+        potlach: "POTLA.CH",
         workshop: "Workshop",
         symposium: "Symposium",
         networking: "Networking",
@@ -308,9 +312,13 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                       return (
                       <div key={ticket.id} className="rounded-2xl bg-card/60 py-4">
                         <h4 className="font-bold">{ticket.name}</h4>
-                        <p className="mt-2 font-semibold">
-                          {formatMoney(ticket.price.basePrice, ticket.price.currency)}
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {cs ? "Běžná cena" : "Regular price"}: {formatMoney(ticket.price.basePrice, ticket.price.currency)}
                         </p>
+                        {ticket.price.benefitType !== "public" && <>
+                          <p className="mt-1 text-sm text-accent">{formatMembershipBenefit(ticket.price, cs)}</p>
+                          <p className="mt-1 text-lg font-bold text-accent">{cs ? "Členská cena" : "Member price"}: {formatMoney(ticket.price.finalPrice, ticket.price.currency)}</p>
+                        </>}
                         {!data.isSignedIn && ticket.hasMemberPricing && (
                           <button type="button" className="mt-2 text-sm underline underline-offset-2" onClick={onLogin}>
                             {cs ? "Přihlásit se pro členskou cenu" : "Log in for member pricing"}
