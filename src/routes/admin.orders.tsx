@@ -14,14 +14,14 @@ function OrdersPage() {
   const [status, setStatus] = useState("");
   const fetchOrders = useServerFn(adminListTicketOrders);
   const { data, isLoading, error } = useQuery({ queryKey: ["admin", "ticket-orders"], queryFn: () => fetchOrders() });
-  const revenue = (data ?? []).filter((order) => order.payments?.some((payment) => payment.status === "paid")).reduce<Record<string, number>>((sum, order) => {
+  const revenue = (data ?? []).filter((order) => order.status === "confirmed" && order.payments?.some((payment) => payment.status === "paid")).reduce<Record<string, number>>((sum, order) => {
     sum[order.currency] = (sum[order.currency] ?? 0) + Number(order.amount_minor);
     return sum;
   }, {});
   const tickets = (data ?? []).filter((order) => order.status === "confirmed" || order.status === "free")
     .reduce((sum, order) => sum + (order.ticket_order_items ?? []).reduce((lineSum, line) => lineSum + Number(line.quantity), 0), 0);
   const filtered = (data ?? []).filter(order => (!status || order.status === status)
-    && [order.id, order.buyer_name, order.buyer_email, order.events?.[0]?.title ?? ""].join(" ").toLowerCase().includes(search.toLowerCase().trim()));
+    && [order.id, order.buyer_name, order.buyer_email, ...(order.ticket_order_items ?? []).map((line) => line.events?.[0]?.title ?? "")].join(" ").toLowerCase().includes(search.toLowerCase().trim()));
 
   return <AdminPage title="Orders & attendees" description="Ticket sales and attendee lists. Guest purchases remain contacts, not members.">
     {data && <div className="mb-6 grid gap-3 sm:grid-cols-3">
@@ -44,8 +44,8 @@ function OrdersPage() {
         const paymentStatus = order.payments?.[0]?.status ?? "—";
         return <tr key={order.id} className="align-top [&>td]:px-4 [&>td]:py-3">
           <td><strong>{order.buyer_name}</strong><span className="block text-xs text-muted-foreground">{order.buyer_email}</span><code className="mt-2 block text-xs">{order.id}</code>{attendeeNames.length > 0 && <details className="mt-3"><summary className="cursor-pointer text-sm">View attendees and ticket codes</summary><ul className="mt-2 space-y-3">{(order.ticket_order_items ?? []).flatMap(item => (item.ticket_attendees ?? []).map(attendee => <li key={attendee.ticket_code} className="text-xs"><strong>{attendee.attendee_name}</strong><span className="block">{item.ticket_name} · {attendee.status}</span><span className="block">{attendee.attendee_email}</span><code className="break-all">{attendee.ticket_code}</code></li>))}</ul></details>}</td>
-          <td>{order.events?.[0]?.title ?? "—"}</td>
-          <td>{count}{(order.ticket_order_items ?? []).map((item) => <span key={item.ticket_name} className="block text-xs text-muted-foreground">{item.quantity} × {item.ticket_name}</span>)}</td>
+          <td>{[...new Map((order.ticket_order_items ?? []).map((item) => [item.event_id, item.events?.[0]?.title ?? "—"])).values()].map((title) => <span key={title} className="block">{title}</span>)}</td>
+          <td><strong>{count} tickets</strong>{[...new Map((order.ticket_order_items ?? []).map((item) => [item.event_id, item.events?.[0]?.title ?? "—"])).entries()].map(([eventId, title]) => <div key={eventId} className="mt-2 rounded-xl bg-background/50 p-2 text-xs"><strong>{title}</strong>{order.ticket_order_items.filter((item) => item.event_id === eventId).map((item) => <span key={item.id} className="block text-muted-foreground">{item.quantity} × {item.ticket_name} · {formatMoney(Number(item.amount_minor) / 100, order.currency)}{item.ticket_attendees?.length ? ` · ${item.ticket_attendees.map((attendee) => attendee.attendee_name).join(", ")}` : ""}</span>)}</div>)}</td>
           <td>{formatMoney(Number(order.amount_minor) / 100, order.currency)}</td>
           <td><StatusPill tone={order.buyer_kind === "member" ? "success" : "muted"}>{order.buyer_kind === "member" ? "Account holder" : "Guest"}</StatusPill></td>
           <td><StatusPill tone={order.status === "confirmed" || order.status === "free" ? "success" : "muted"}>{order.status}</StatusPill><span className="mt-1 block text-xs text-muted-foreground">Payment: {paymentStatus}</span></td>

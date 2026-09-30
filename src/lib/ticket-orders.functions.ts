@@ -50,3 +50,12 @@ export const claimGuestTicketOrder = createServerFn({ method: "POST" })
     const { claimTicketOrder } = await import("./ticket-orders.server");
     return claimTicketOrder(data.orderId, data.token, user.userId);
   });
+
+export const claimGuestTicketBatch = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => guestBatchAccessInput.parse(data))
+  .handler(async ({ data }) => {
+    const { requireUser } = await import("./auth.server");
+    const user = await requireUser();
+    const { claimTicketBatch } = await import("./ticket-orders.server");
+    return claimTicketBatch(data.batchId, data.token, user.userId);
+  });

@@ -85,7 +85,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
   .inputValidator((data: unknown) => slugSchema.parse(data))
   .handler(async ({ data }): Promise<EventDetail | null> => {
     const { getReadClient, assertDatabaseResult } = await import("./database.server");
-    const canReadAllRegistrations = !!process.env["SUPABASE_SERVICE_ROLE_KEY"];
+    const canReadAllRegistrations = !!(process.env["SUPABASE_SERVICE_ROLE_KEY"] || process.env["SUPABASE_SECRET_KEY"]);
     const supabaseAdmin = canReadAllRegistrations
       ? (await import("@/integrations/supabase/client.server")).supabaseAdmin
       : getReadClient();
@@ -142,13 +142,16 @@ export const getEventDetail = createServerFn({ method: "GET" })
         .eq("event_id", event.id)
         .in("status", ["pending", "confirmed", "checked_in"]) : Promise.resolve({ data: [], error: null }),
       canReadAllRegistrations ? privateOrderDb.from("ticket_attendees").select("ticket_type_id").eq("event_id", event.id).in("status", ["valid", "checked_in"]) : Promise.resolve({ data: [], error: null }),
-      canReadAllRegistrations ? privateOrderDb.from("ticket_orders").select("ticket_order_items(ticket_type_id,quantity)").eq("event_id", event.id).in("status", ["pending", "processing"]).gt("expires_at", new Date().toISOString()) : Promise.resolve({ data: [], error: null }),
+      canReadAllRegistrations ? privateOrderDb.from("ticket_order_items")
+        .select("ticket_type_id,quantity,ticket_orders!inner(status,expires_at)")
+        .eq("event_id", event.id).in("ticket_orders.status", ["pending", "processing"])
+        .gt("ticket_orders.expires_at", new Date().toISOString()) : Promise.resolve({ data: [], error: null }),
     ]);
 
     [speakersRes, workshopsRes, partnersRes, ticketsRes, regsRes, attendeesRes, openOrdersRes].forEach(assertDatabaseResult);
     const registrations = regsRes.data ?? [];
     const issuedAttendees = attendeesRes.data ?? [];
-    const openOrderItems = (openOrdersRes.data ?? []).flatMap((row) => row.ticket_order_items ?? []);
+    const openOrderItems = openOrdersRes.data ?? [];
     const openQuantity = openOrderItems.reduce((sum, item) => sum + Number(item.quantity), 0);
     const entitlements = await getUserEntitlements(user?.userId);
     const membership = await getCurrentMembership(user?.userId);

@@ -16,7 +16,7 @@ const providerSchema = z.object({ id: z.string(), livemode: z.literal(false) });
 function check(error: unknown) { if (error) throw new Error("Could not save payment data. Please retry or contact CometX."); }
 
 export async function ensureTicketPrice(ticketId: string, amountMinor: number, currency: string) {
-  if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) throw new Error("Invalid payment amount.");
+  if (!Number.isSafeInteger(amountMinor) || amountMinor < 0) throw new Error("Invalid payment amount.");
   currency = currency.toLowerCase();
   const { data: mapping, error } = await db.from("ticket_payment_prices").select("price_id")
     .eq("ticket_id",ticketId).eq("amount_minor",amountMinor).eq("currency",currency).maybeSingle();
@@ -69,7 +69,7 @@ export async function syncEventPayments(eventId: string) {
     }
     await stripeRequest(`/products/${productId}`, { name:`${event.title} — ${ticket.name}`,active });
     if (active) for (const amount of new Set([ticket.base_price,ticket.member_price])) {
-      if (amount !== null && Number(amount)>0) await ensureTicketPrice(ticket.id,Math.round(Number(amount)*100),ticket.currency);
+      if (amount !== null && Number(amount)>=0) await ensureTicketPrice(ticket.id,Math.round(Number(amount)*100),ticket.currency);
     }
   }
   return true;

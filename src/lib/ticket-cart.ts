@@ -30,6 +30,32 @@ export function writeTicketCart(lines: TicketCartLine[]): void {
   window.dispatchEvent(new Event("cometx-ticket-cart-change"));
 }
 
+export function removePurchasedTicketLines(cart: TicketCartLine[], purchased: Pick<TicketCartLine, "eventSlug" | "ticketId" | "quantity">[]): TicketCartLine[] {
+  const quantities = new Map<string, number>();
+  for (const line of purchased) {
+    const key = `${line.eventSlug}:${line.ticketId}`;
+    quantities.set(key, (quantities.get(key) ?? 0) + line.quantity);
+  }
+  return cart.flatMap((line) => {
+    const bought = quantities.get(`${line.eventSlug}:${line.ticketId}`) ?? 0;
+    const remaining = line.quantity - bought;
+    return remaining > 0 ? [{ ...line, quantity: remaining, attendees: line.attendees?.slice(bought, bought + remaining) ?? [] }] : [];
+  });
+}
+
+export function completePurchasedTicketCart(purchaseKey: string, purchased: Pick<TicketCartLine, "eventSlug" | "ticketId" | "quantity">[]): void {
+  if (typeof window === "undefined" || !purchaseKey || !purchased.length) return;
+  const key = "cometx-ticket-cart-completed-v1";
+  let completed: string[] = [];
+  try {
+    const stored: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    if (Array.isArray(stored)) completed = stored.filter((item): item is string => typeof item === "string");
+  } catch { /* Ignore a damaged receipt marker, not the cart itself. */ }
+  if (completed.includes(purchaseKey)) return;
+  writeTicketCart(removePurchasedTicketLines(readTicketCart(), purchased));
+  window.localStorage.setItem(key, JSON.stringify([...completed.slice(-99), purchaseKey]));
+}
+
 export function addTicketToCart(eventSlug: string, ticketId: string, quantity: number): void {
   if (!SLUG.test(eventSlug) || !UUID.test(ticketId) || !Number.isInteger(quantity) || quantity < 1) return;
   const lines = readTicketCart();

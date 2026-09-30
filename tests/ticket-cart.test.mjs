@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addTicketToCart, readTicketCart, writeTicketCart, ticketCartCount } from '../src/lib/ticket-cart.ts';
+import { addTicketToCart, completePurchasedTicketCart, readTicketCart, writeTicketCart, ticketCartCount } from '../src/lib/ticket-cart.ts';
 
 test('event groups and attendee drafts survive edits; completing one event preserves the other', () => {
   const previous = globalThis.window;
@@ -25,6 +25,13 @@ test('event groups and attendee drafts survive edits; completing one event prese
     assert.deepEqual(readTicketCart().map(line => [line.eventSlug, line.quantity]), [['event-b', 2]]);
     writeTicketCart([{ eventSlug: 'event-b', ticketId: c, quantity: 1, attendees: [{ firstName: 'Keep', lastName: 'Me' }, { firstName: 'Remove', lastName: 'Me' }] }]);
     assert.equal(readTicketCart()[0].attendees.length, 1);
+    writeTicketCart([{ eventSlug: 'event-a', ticketId: a, quantity: 3, attendees: [{ firstName: 'Bought', lastName: 'One' }, { firstName: 'Bought', lastName: 'Two' }, { firstName: 'New', lastName: 'Person' }] },
+      { eventSlug: 'event-b', ticketId: c, quantity: 1 }]);
+    completePurchasedTicketCart('paid-batch-1', [{ eventSlug: 'event-a', ticketId: a, quantity: 2 }]);
+    assert.deepEqual(readTicketCart().map(line => [line.eventSlug, line.quantity]), [['event-a', 1], ['event-b', 1]]);
+    assert.equal(readTicketCart()[0].attendees[0].firstName, 'New');
+    completePurchasedTicketCart('paid-batch-1', [{ eventSlug: 'event-a', ticketId: a, quantity: 2 }]);
+    assert.deepEqual(readTicketCart().map(line => [line.eventSlug, line.quantity]), [['event-a', 1], ['event-b', 1]]);
   } finally {
     if (previous === undefined) delete globalThis.window;
     else globalThis.window = previous;
