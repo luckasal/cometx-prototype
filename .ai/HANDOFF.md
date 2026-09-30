@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-09-30: one buyer-name shortcut at Attendee 1 per event
+
+- Last agent: Codex; branch: `codex-dev`.
+- What changed: the cart shows the buyer-name shortcut only for Attendee 1 of the first ticket type in each event. Removed the repeated disabled “Buyer already assigned to this event” action. Using the shortcut moves the buyer name from another ticket of the same event; duplicate-name checkout protection remains.
+- Files changed: `src/routes/cart.tsx`, `tests/ticket-cart.test.mjs`.
+- Migrations: none. Checkout, payment, and order logic unchanged.
+- Validation: focused cart tests (2/2), TypeScript and production Vite build passed.
+- What needs review: visual check of two ticket types in one event and two separate event groups.
+
 ## 2026-09-30: event-category membership pricing
 
 - Last agent: Codex; branch: `codex-dev`.

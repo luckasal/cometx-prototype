@@ -23,6 +23,11 @@ test('only one ticket per event uses the buyer name, while another event can als
   assert.deepEqual(moved[1].attendees, [{ firstName: 'Buyer', lastName: 'Name' }]);
   assert.equal(buyerNamedAttendeeCount(moved, 'event-a', buyer), 1);
   assert.equal(buyerNamedAttendeeCount(moved, 'event-b', buyer), 1);
+  const firstAttendee = copyBuyerNameToAttendee(moved, moved[0], 0, buyer);
+  assert.deepEqual(firstAttendee[0].attendees, [{ firstName: 'Buyer', lastName: 'Name' }, { firstName: '', lastName: '' }]);
+  assert.deepEqual(firstAttendee[1].attendees, [{ firstName: '', lastName: '' }]);
+  assert.equal(buyerNamedAttendeeCount(firstAttendee, 'event-a', buyer), 1);
+  assert.equal(buyerNamedAttendeeCount(firstAttendee, 'event-b', buyer), 1);
   assert.deepEqual(lines[2].attendees, [{ firstName: '', lastName: '' }]);
   assert.equal(buyerNamedAttendeeCount([...moved, { eventSlug: 'event-a', ticketId: 'd', quantity: 1, attendees: [{ firstName: ' buyer ', lastName: 'NAME' }] }], 'event-a', buyer), 2);
   const cleared = clearAttendeeName(moved, moved[1], 0);
