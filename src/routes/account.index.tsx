@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getAccountOverview } from "@/lib/membership.functions";
 import { getMyPurchasedTickets } from "@/lib/ticket-orders.functions";
 import { formatMoney } from "@/lib/pricing";
-import { isIssuedTicketStatus, isOwnedOrderLine, isOwnedRegistrationStatus, isUpcomingEvent } from "@/lib/ticket-status";
+import { isIssuedTicketStatus, isOwnedOrderLine, isUpcomingEvent } from "@/lib/ticket-status";
 import { Button } from "@/components/ui/button";
 import {
   EmptyBlock,
@@ -52,12 +52,9 @@ function AccountOverviewPage() {
     );
   if (!data) return null;
 
+  // A legacy "confirmed" registration could have been created without payment.
+  // Only an issued ticket establishes ownership on the account overview.
   const upcomingEvents = [
-    ...data.registrations.filter((reg) => isOwnedRegistrationStatus(reg.status) && isUpcomingEvent(reg.startDate)).map((reg) => ({
-      id: `registration:${reg.id}`, eventTitle: reg.eventTitle, eventSlug: reg.eventSlug,
-      startDate: reg.startDate, ticketName: reg.ticketName, status: reg.status,
-      amount: reg.pricePaid, currency: reg.currency,
-    })),
     ...(orders ?? []).flatMap((order) =>
       (order.ticket_order_items ?? []).filter((item) => isOwnedOrderLine(order.status, item.ticket_attendees) && !!item.events?.[0]?.start_date && isUpcomingEvent(item.events[0].start_date)).map((item) => ({
         id: `ticket:${item.id}`, eventTitle: item.events[0]!.title, eventSlug: item.events[0]!.slug,
@@ -80,7 +77,7 @@ function AccountOverviewPage() {
               </Link>
             }
           />
-          {ticketError && <ErrorBlock error={ticketError} />}
+          {ticketError && <ErrorBlock error={new Error("We couldn't load your tickets. Please try again.")} />}
           {ticketsLoading && upcomingEvents.length === 0 ? (
             <LoadingBlock label="Loading your tickets" />
           ) : upcomingEvents.length === 0 && !ticketError ? (

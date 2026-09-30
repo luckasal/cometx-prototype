@@ -1,13 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  isOwnedRegistrationStatus, isOwnedOrderStatus, isCheckoutPendingStatus,
+  isOwnedOrderStatus, isCheckoutPendingStatus,
   isIssuedTicketStatus, hasIssuedTickets, isOwnedOrderLine, isUpcomingEvent,
 } from '../src/lib/ticket-status.ts';
 
-test('only confirmed registrations and issued order tickets are owned', () => {
-  for (const status of ['confirmed', 'checked_in']) assert.equal(isOwnedRegistrationStatus(status), true);
-  for (const status of ['pending', 'cancelled', 'checkout_pending', 'payment_pending']) assert.equal(isOwnedRegistrationStatus(status), false);
+test('only confirmed orders with issued tickets are owned', () => {
   for (const status of ['confirmed', 'free']) assert.equal(isOwnedOrderStatus(status), true);
   for (const status of ['draft', 'checkout_pending', 'payment_pending', 'pending', 'processing', 'failed', 'expired', 'cancelled', 'refunded', 'manual_review']) {
     assert.equal(isOwnedOrderStatus(status), false, status);

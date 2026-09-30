@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { OWNED_REGISTRATION_STATUSES } from "./ticket-status";
 
 export type PlanSummary = {
   id: string;
@@ -62,16 +61,6 @@ export type AccountOverview = {
     endsAt: string | null;
     benefits: { key: string; name: string; value: number | null }[];
   } | null;
-  registrations: {
-    id: string;
-    status: string;
-    pricePaid: number;
-    currency: string;
-    eventTitle: string;
-    eventSlug: string;
-    startDate: string;
-    ticketName: string | null;
-  }[];
 };
 
 export const getAccountOverview = createServerFn({ method: "GET" }).handler(
@@ -83,15 +72,9 @@ export const getAccountOverview = createServerFn({ method: "GET" }).handler(
 
     const user = await requireUser();
 
-    const [{ data: profile }, membership, { data: regs }] = await Promise.all([
+    const [{ data: profile }, membership] = await Promise.all([
       supabaseAdmin.from("profiles").select("*").eq("id", user.userId).maybeSingle(),
       getCurrentMembership(user.userId),
-      supabaseAdmin
-        .from("registrations")
-        .select("id,status,price_paid,currency,events(title,slug,start_date),ticket_types(name)")
-        .eq("user_id", user.userId)
-        .in("status", [...OWNED_REGISTRATION_STATUSES])
-        .order("created_at", { ascending: false }),
     ]);
 
     let benefits: AccountOverview["membership"] extends null
@@ -132,18 +115,6 @@ export const getAccountOverview = createServerFn({ method: "GET" }).handler(
             benefits,
           }
         : null,
-      registrations: (regs ?? [])
-        .filter((r) => r.events)
-        .map((r) => ({
-          id: r.id,
-          status: r.status,
-          pricePaid: Number(r.price_paid),
-          currency: r.currency,
-          eventTitle: r.events!.title,
-          eventSlug: r.events!.slug,
-          startDate: r.events!.start_date,
-          ticketName: r.ticket_types?.name ?? null,
-        })),
     };
   },
 );

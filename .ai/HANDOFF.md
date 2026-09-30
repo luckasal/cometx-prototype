@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-09-30: remove legacy phantom registrations from account overview
+
+- Last agent: Codex; branch: `codex-dev`.
+- What changed: My CometX upcoming events now comes exclusively from confirmed/free ticket orders with issued valid or checked-in tickets. Removed legacy `registrations` from the overview response and its database query; those records remain in Supabase/admin for audit. A previous prototype RPC could mark priced tickets `confirmed` with `price_paid=0`, so status alone was not proof of an owned ticket. Event detail no longer calls such a reservation “My tickets.”
+- Files changed: `src/lib/membership.functions.ts`, `src/routes/account.index.tsx`, `src/lib/events.functions.ts`, `src/components/site/EventDetailTemplate.tsx`, `src/lib/ticket-status.ts`, `tests/ticket-status.test.mjs`.
+- Migrations: none; no data deleted or modified.
+- Validation: TypeScript, focused status tests and production build passed. Local browser no longer shows the legacy rows; its issued-ticket query currently fails because this local workspace lacks a Supabase server key.
+- Unresolved issue: configure a server-only Supabase key for local ticket-order reads; do not expose it to the browser or commit it.
+- What needs review: signed-in overview showing only issued tickets; historical legacy paid registrations would require verifiable payment linkage before being restored to this view.
+
 ## 2026-09-30: separate checkout holds from owned tickets
 
 - Last agent: Codex; branch: `codex-dev`.

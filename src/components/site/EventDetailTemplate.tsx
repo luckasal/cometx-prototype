@@ -80,11 +80,7 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
       ? cs
         ? "Koupit vstupenky"
         : "Buy tickets"
-      : data.myRegistration
-        ? cs
-          ? "Moje vstupenky"
-          : "My tickets"
-        : cs
+      : cs
           ? "Informace o vstupenkách"
           : "Ticket information";
   const ticketAction = (icon?: ReactNode) =>

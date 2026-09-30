@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isOwnedRegistrationStatus } from "./ticket-status";
 
 import {
   calculateTicketPrice,
@@ -79,7 +78,6 @@ export type EventDetail = {
   spotsLeft: number | null;
   membershipName: string | null;
   isSignedIn: boolean;
-  myRegistration: { id: string; status: string; pricePaid: number; currency: string } | null;
 };
 
 export const getEventDetail = createServerFn({ method: "GET" })
@@ -139,7 +137,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
         .order("sort_order"),
       (user || canReadAllRegistrations) ? supabaseAdmin
         .from("registrations")
-        .select("id,status,ticket_type_id,user_id,price_paid,currency")
+        .select("ticket_type_id")
         .eq("event_id", event.id)
         .in("status", ["pending", "confirmed", "checked_in"]) : Promise.resolve({ data: [], error: null }),
       canReadAllRegistrations ? privateOrderDb.from("ticket_attendees").select("ticket_type_id").eq("event_id", event.id).in("status", ["valid", "checked_in"]) : Promise.resolve({ data: [], error: null }),
@@ -182,8 +180,6 @@ export const getEventDetail = createServerFn({ method: "GET" })
           || !!(ticket.required_entitlement || ticket.discount_entitlement || ticket.free_entitlement),
       };
     });
-
-    const mine = user ? registrations.find((r) => r.user_id === user.userId && isOwnedRegistrationStatus(r.status)) : undefined;
 
     return {
       event: {
@@ -241,14 +237,6 @@ export const getEventDetail = createServerFn({ method: "GET" })
       spotsLeft: !canReadAllRegistrations || event.capacity === null ? null : Math.max(event.capacity - registrations.length - issuedAttendees.length - openQuantity, 0),
       membershipName: membership?.plan.name ?? null,
       isSignedIn: !!user,
-      myRegistration: mine
-        ? {
-            id: mine.id,
-            status: mine.status,
-            pricePaid: Number(mine.price_paid),
-            currency: mine.currency,
-          }
-        : null,
     };
   });
 
