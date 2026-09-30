@@ -57,34 +57,31 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 xl:flex">
-          <Button asChild variant="ink" size="sm" className={pathname === "/cart" ? "text-accent" : ""}>
-            <Link to="/cart" aria-label={`${cs ? "Košík" : "Cart"}: ${ticketCartCountLabel(cartCount, cs)}`}><ShoppingCart className="size-4" />{cs ? "Košík" : "Cart"}{cartCount > 0 && <span className="ml-1 rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">{cartCount}</span>}</Link>
-          </Button>
           <button type="button" onClick={toggleLanguage} className="inline-flex items-center gap-1.5 rounded-full border border-ink-foreground/25 px-2.5 py-1.5 text-xs font-bold hover:border-accent hover:text-accent" aria-label={cs ? "Switch to English" : "Přepnout do češtiny"}>
             <Languages className="size-3.5" /> {cs ? "EN" : "CZ"}
           </button>
-          {!loading && user ? (
+          {!loading && (user ? (
             <Button asChild variant="ink" size="sm">
               <Link to="/account">{cs ? "Můj CometX" : "My CometX"}</Link>
             </Button>
           ) : (
-            <>
               <Link
                 to="/login"
                 className="text-sm font-medium text-ink-foreground/70 hover:text-accent"
               >
                 {cs ? "Přihlásit" : "Log in"}
               </Link>
-              <Button asChild variant="signal" size="sm">
-                <Link to="/membership">{cs ? "Přidat se" : "Join CometX"}</Link>
-              </Button>
-            </>
-          )}
+          ))}
+          <Link to="/cart" title={`${cs ? "Košík" : "Cart"}: ${ticketCartCountLabel(cartCount, cs)}`} aria-label={`${cs ? "Košík" : "Cart"}: ${ticketCartCountLabel(cartCount, cs)}`} className={cn("relative grid size-9 place-items-center rounded-full text-ink-foreground/75 transition-colors hover:bg-ink-foreground/5 hover:text-accent", pathname === "/cart" && "text-accent")}>
+            <ShoppingCart className="size-4" />
+            <span className="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-accent text-[10px] leading-none font-bold text-accent-foreground">{cartCount}</span>
+          </Link>
+          {!loading && !user && <Button asChild variant="signal" size="sm"><Link to="/membership">{cs ? "Přidat se" : "Join CometX"}</Link></Button>}
         </div>
 
         <Link to="/cart" className="relative ml-auto inline-flex items-center gap-1 rounded-full p-2 text-ink-foreground hover:text-accent xl:hidden" aria-label={`${cs ? "Košík" : "Cart"}: ${ticketCartCountLabel(cartCount, cs)}`}>
           <ShoppingCart className="size-5" />
-          {cartCount > 0 && <span className="min-w-5 rounded-full bg-accent px-1.5 py-0.5 text-center text-[10px] font-bold text-accent-foreground">{cartCount}</span>}
+          <span className="min-w-5 rounded-full bg-accent px-1.5 py-0.5 text-center text-[10px] font-bold text-accent-foreground">{cartCount}</span>
         </Link>
 
         <button
@@ -100,7 +97,6 @@ export function SiteHeader() {
       {open && (
         <div className="border-t border-ink-foreground/15 bg-ink text-ink-foreground xl:hidden">
           <div className="flex flex-col px-5 py-4">
-            <Link to="/cart" onClick={() => setOpen(false)} className="inline-flex items-center gap-2 py-2.5 text-sm font-medium"><ShoppingCart className="size-4" />{cs ? "Košík" : "Cart"}{cartCount > 0 && <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">{cartCount}</span>}</Link>
             {NAV.map((item) => (
               <Link
                 key={item.to}

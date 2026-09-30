@@ -10,13 +10,101 @@ type TicketEvent = { title: string; slug: string; start_date: string; venue: str
 type TicketCode = { id: string; ticket_code: string; attendee_name: string; status: string };
 type TicketOrderLine = { id: string; ticket_name: string; quantity: number; unit_amount_minor: number; currency: string; ticket_attendees: TicketCode[] };
 export type GuestTicketOrder = { id: string; buyer_name: string; buyer_email: string; amount_minor: number; currency: string; status: string; created_at: string; event_id: string; events: TicketEvent[]; ticket_order_items: TicketOrderLine[] };
-export type MemberTicketOrder = { id: string; event_id: string; amount_minor: number; currency: string; status: string; created_at: string; events: TicketEvent[]; ticket_order_items: TicketOrderLine[] };
+export type MemberTicketOrder = { id: string; event_id: string; checkout_batch_id: string | null; amount_minor: number; currency: string; status: string; created_at: string; events: TicketEvent[]; ticket_order_items: TicketOrderLine[] };
+const checkoutBatchSchema = z.object({
+  id: z.string().uuid(), order_ids: z.array(z.string().uuid()).min(1).max(10),
+  amount_minor: z.coerce.number().int().nonnegative(), currency: z.string().length(3),
+  status: z.enum(["pending", "free"]), expires_at: z.string(),
+});
+const batchLinesSchema = z.array(z.object({
+  eventSlug: z.string().min(1).max(200),
+  lines: z.array(z.object({
+    ticketId: z.string().uuid(), quantity: z.number().int().min(1).max(10),
+    attendees: z.array(z.object({ firstName: z.string().trim().min(1).max(120), lastName: z.string().trim().min(1).max(120) })).min(1).max(10),
+  })).min(1).max(10),
+})).min(1).max(10);
 export type AdminTicketOrder = { id: string; buyer_name: string; buyer_email: string; buyer_kind: string; amount_minor: number; currency: string; status: string; created_at: string; events: { title: string }[]; ticket_order_items: { ticket_name: string; quantity: number; ticket_attendees: { attendee_name: string; attendee_email: string; ticket_code: string; status: string }[] }[]; payments: { status: string }[] };
 const orderSchema = z.object({
   id: z.string().uuid(), event_id: z.string().uuid(), amount_minor: z.coerce.number().int().nonnegative(),
   currency: z.string().length(3), status: z.enum(["pending", "free"]), expires_at: z.string(),
 });
 const sessionSchema = z.object({ id: z.string(), url: z.string().url(), livemode: z.literal(false) });
+
+export async function startTicketCheckoutBatch(input: {
+  userId: string | null; buyerName?: string; buyerEmail?: string;
+  events: z.infer<typeof batchLinesSchema>; termsAccepted: boolean;
+}) {
+  const events = batchLinesSchema.parse(input.events);
+  if (new Set(events.map((event) => event.eventSlug)).size !== events.length) throw new Error("Each event must appear once.");
+  for (const event of events) {
+    if (event.lines.reduce((sum, line) => sum + line.quantity, 0) > 10) throw new Error("Choose up to 10 tickets per event.");
+    if (event.lines.some((line) => line.attendees.length !== line.quantity)) throw new Error("Add an attendee name for every ticket.");
+  }
+  if (!input.userId && (!input.buyerName?.trim() || !input.buyerEmail)) throw new Error("Enter your contact details to continue.");
+  const appUrl = configuredAppUrl(process.env);
+  const paymentsReady = isStripeConfigured() && !!process.env["STRIPE_WEBHOOK_SECRET"] && !!appUrl;
+  const token = input.userId ? null : base64(crypto.getRandomValues(new Uint8Array(32))).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+  const tokenHash = token ? await sha256(token) : null;
+  const tokenCiphertext = token ? await encryptToken(token) : null;
+  const { data, error } = await db.rpc("begin_ticket_checkout_batch", {
+    p_user_id: input.userId, p_guest_name: input.buyerName ?? null, p_guest_email: input.buyerEmail ?? null,
+    p_events: events, p_terms_accepted: input.termsAccepted, p_payments_ready: paymentsReady,
+    p_guest_token_hash: tokenHash, p_guest_token_ciphertext: tokenCiphertext,
+  });
+  check(error);
+  const batch = checkoutBatchSchema.parse(data);
+  const accessUrl = token && appUrl ? `${checkoutOrigin(appUrl)}/tickets/guest?batch=${encodeURIComponent(batch.id)}&token=${encodeURIComponent(token)}` : null;
+  if (batch.status === "free") {
+    const freeAccessUrl = accessUrl ? `${accessUrl}&paid=1` : null;
+    if (accessUrl) {
+      try { await sendGuestTicketBatchEmail(batch.id); }
+      catch (error) { console.error("[ticket-email] free ticket confirmation failed", error); }
+    }
+    return { url: null, accessUrl: freeAccessUrl, batchId: batch.id, free: true };
+  }
+
+  let createdSession = false;
+  try {
+    const { data: orders, error: ordersError } = await db.from("ticket_orders")
+      .select("id,event_id,events(slug),ticket_order_items(ticket_type_id,quantity,unit_amount_minor,currency)")
+      .in("id", batch.order_ids);
+    check(ordersError);
+    if (!orders || orders.length !== batch.order_ids.length) throw new Error("Your order details are unavailable.");
+    const { syncEventPayments, ensureTicketPrice } = await import("./ticket-payments.server");
+    const eventIds = [...new Set(orders.map((order) => order.event_id))];
+    for (const eventId of eventIds) await syncEventPayments(eventId);
+    const lineItems: { price: string; quantity: number }[] = [];
+    for (const order of orders) for (const item of order.ticket_order_items ?? []) {
+      if (Number(item.unit_amount_minor) <= 0) continue;
+      const price = await ensureTicketPrice(item.ticket_type_id, Number(item.unit_amount_minor), item.currency);
+      lineItems.push({ price, quantity: item.quantity });
+    }
+    if (!lineItems.length) throw new Error("Your payment total could not be calculated.");
+    const success = input.userId
+      ? `${checkoutOrigin(appUrl!)}/account/events?purchase=success&batch=${encodeURIComponent(batch.id)}`
+      : `${accessUrl}&paid=1`;
+    const session = sessionSchema.parse(await stripeRequest("/checkout/sessions", {
+      mode: "payment", line_items: lineItems, expires_at: Math.floor(Date.parse(batch.expires_at) / 1000),
+      customer_email: input.userId ? undefined : input.buyerEmail,
+      customer_creation: input.userId ? undefined : "always",
+      success_url: success, cancel_url: `${checkoutOrigin(appUrl!)}/cart?cancelled=1`,
+      metadata: { kind: "ticket_checkout_batch", batch_id: batch.id },
+      payment_intent_data: { metadata: { kind: "ticket_checkout_batch", batch_id: batch.id } },
+    }, `ticket_checkout_batch_${batch.id}`));
+    createdSession = true;
+    if (new URL(session.url).hostname !== "checkout.stripe.com") throw new Error("Invalid payment destination.");
+    const saved = await db.rpc("save_ticket_checkout_batch_session", { p_batch_id: batch.id, p_session_id: session.id });
+    check(saved.error);
+    return { url: session.url, accessUrl, batchId: batch.id, free: false };
+  } catch (error) {
+    if (!createdSession) {
+      const failed = await db.rpc("fail_ticket_checkout_batch", { p_batch_id: batch.id });
+      check(failed.error);
+      throw error;
+    }
+    throw new Error("Your checkout could not be linked safely. Please contact CometX before trying again.");
+  }
+}
 const checkoutLinesSchema = z.array(z.object({ ticketId: z.string().uuid(), quantity: z.number().int().min(1).max(10) }))
   .min(1).max(10).superRefine((lines, ctx) => {
     if (new Set(lines.map((x) => x.ticketId)).size !== lines.length) ctx.addIssue({ code: "custom", message: "Choose each ticket type once." });
@@ -150,6 +238,46 @@ export async function applyTicketOrderPaymentEvent(type: string, session: unknow
   await sendGuestTicketEmail(parsed.metadata.order_id);
 }
 
+export async function applyTicketCheckoutBatchPaymentEvent(type: string, session: unknown) {
+  const result = await db.rpc("apply_ticket_checkout_batch_event", { p_type: type, p_session: session });
+  check(result.error);
+  const parsed = z.object({ metadata: z.object({ batch_id: z.string().uuid() }) }).passthrough().parse(session);
+  await sendGuestTicketBatchEmail(parsed.metadata.batch_id);
+}
+
+export async function getGuestTicketBatch(batchId: string, token: string) {
+  const tokenHash = await sha256(token);
+  const { data: batch, error } = await db.from("ticket_checkout_batches")
+    .select("id,buyer_name,buyer_email,amount_minor,currency,status,created_at,order_ids")
+    .eq("id", batchId).eq("guest_token_hash", tokenHash).maybeSingle();
+  check(error);
+  if (!batch) return null;
+  const { data: orders, error: ordersError } = await db.from("ticket_orders")
+    .select("id,buyer_name,buyer_email,amount_minor,currency,status,created_at,event_id,events(title,slug,start_date,venue),ticket_order_items(id,ticket_name,quantity,unit_amount_minor,currency,ticket_attendees(id,ticket_code,attendee_name,status))")
+    .in("id", batch.order_ids).order("created_at");
+  check(ordersError);
+  return JSON.parse(JSON.stringify({ ...batch, orders: (orders ?? []).map(normalizeEventRelation) })) as typeof batch & { orders: GuestTicketOrder[] };
+}
+
+export async function sendGuestTicketBatchEmail(batchId: string): Promise<void> {
+  if (!ticketEmailEnabled(process.env)) return;
+  const apiKey = process.env["RESEND_API_KEY"];
+  const from = process.env["RESEND_FROM_EMAIL"];
+  if (!apiKey || !from) return;
+  const { data: batch, error } = await db.from("ticket_checkout_batches")
+    .select("id,buyer_name,buyer_email,status,guest_token_ciphertext").eq("id", batchId).eq("buyer_kind", "guest").maybeSingle();
+  check(error);
+  if (!batch || !["confirmed", "free"].includes(batch.status) || !batch.guest_token_ciphertext) return;
+  const token = await decryptToken(batch.guest_token_ciphertext);
+  const site = checkoutOrigin(configuredAppUrl(process.env));
+  const url = `${site}/tickets/guest?batch=${encodeURIComponent(batch.id)}&token=${encodeURIComponent(token)}`;
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": `cometx-ticket-batch-${batch.id}` },
+    body: JSON.stringify({ from, to: [batch.buyer_email], subject: "Your CometX event tickets", text: `Hi ${batch.buyer_name},\n\nYour ticket purchase is confirmed. View all your tickets securely here:\n${url}\n\nCometX`, html: `<p>Hi ${escapeHtml(batch.buyer_name)},</p><p>Your ticket purchase is confirmed.</p><p><a href="${url}">View your CometX tickets</a></p><p>CometX</p>` }),
+  });
+  if (!response.ok) throw new Error("Guest ticket confirmation email could not be delivered.");
+}
+
 export async function sendGuestTicketEmail(orderId: string): Promise<void> {
   if (!ticketEmailEnabled(process.env)) return;
   const apiKey = process.env["RESEND_API_KEY"];
@@ -194,7 +322,7 @@ export async function getGuestTicketOrder(orderId: string, token: string) {
 
 export async function getMyPurchasedTickets(userId: string) {
   const { data, error } = await db.from("ticket_orders")
-    .select("id,event_id,amount_minor,currency,status,created_at,events(title,slug,start_date,venue),ticket_order_items(id,ticket_name,quantity,unit_amount_minor,currency,ticket_attendees(id,ticket_code,attendee_name,status))")
+    .select("id,event_id,checkout_batch_id,amount_minor,currency,status,created_at,events(title,slug,start_date,venue),ticket_order_items(id,ticket_name,quantity,unit_amount_minor,currency,ticket_attendees(id,ticket_code,attendee_name,status))")
     .eq("user_id", userId).order("created_at", { ascending: false });
   check(error);
   return JSON.parse(JSON.stringify((data ?? []).map(normalizeEventRelation))) as MemberTicketOrder[];

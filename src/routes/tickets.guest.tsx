@@ -9,12 +9,13 @@ import { ErrorBlock, LoadingBlock, Section, StatusPill } from "@/components/site
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatMoney } from "@/lib/pricing";
-import { claimGuestTicketOrder, getGuestTicketOrder } from "@/lib/ticket-orders.functions";
+import { claimGuestTicketOrder, getGuestTicketBatch, getGuestTicketOrder } from "@/lib/ticket-orders.functions";
 import { readTicketCart, writeTicketCart } from "@/lib/ticket-cart";
 
 export const Route = createFileRoute("/tickets/guest")({
   validateSearch: (search: Record<string, unknown>) => ({
     order: typeof search["order"] === "string" ? search["order"] : "",
+    batch: typeof search["batch"] === "string" ? search["batch"] : "",
     token: typeof search["token"] === "string" ? search["token"] : "",
     paid: search["paid"] === "1" || search["paid"] === "true",
   }),
@@ -23,19 +24,22 @@ export const Route = createFileRoute("/tickets/guest")({
 });
 
 function GuestTicketsPage() {
-  const { order, token, paid } = Route.useSearch();
+  const { order, batch, token, paid } = Route.useSearch();
   const { language } = useLanguage();
   const cs = language === "cs";
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const readOrder = useServerFn(getGuestTicketOrder);
+  const readBatch = useServerFn(getGuestTicketBatch);
   const claimOrder = useServerFn(claimGuestTicketOrder);
   const query = useQuery({
-    queryKey: ["guest-ticket-order", order, token],
-    queryFn: () => readOrder({ data: { orderId: order, token } }),
-    enabled: Boolean(order && token),
-    refetchInterval: (q) => q.state.data?.status === "pending" || q.state.data?.status === "processing" ? 4000 : false,
+    queryKey: ["guest-ticket-order", batch, order, token],
+    queryFn: async () => batch
+      ? { batch: await readBatch({ data: { batchId: batch, token } }) }
+      : { order: await readOrder({ data: { orderId: order, token } }) },
+    enabled: Boolean((order || batch) && token),
+    refetchInterval: (q) => q.state.data?.batch?.status === "pending" || q.state.data?.batch?.status === "processing" || q.state.data?.order?.status === "pending" || q.state.data?.order?.status === "processing" ? 4000 : false,
   });
   const claim = useMutation({
     mutationFn: () => claimOrder({ data: { orderId: order, token } }),
@@ -47,13 +51,16 @@ function GuestTicketsPage() {
       await navigate({ to: "/account/events" });
     },
   });
-  const orderData = query.data;
+  const batchData = query.data?.batch;
+  const ticketOrders = batchData?.orders ?? (query.data?.order ? [query.data.order] : []);
+  const orderData = ticketOrders[0];
+  const paidAndIssued = paid && ticketOrders.length > 0 && ticketOrders.every((item) => item.status === "confirmed" || item.status === "free");
 
   useEffect(() => {
-    if (!paid || orderData?.status !== "confirmed") return;
-    const eventSlug = orderData.events?.[0]?.slug;
-    if (eventSlug) writeTicketCart(readTicketCart().filter((line) => line.eventSlug !== eventSlug));
-  }, [paid, orderData]);
+    if (!paidAndIssued) return;
+    const eventSlugs = new Set(ticketOrders.map((item) => item.events?.[0]?.slug).filter(Boolean));
+    writeTicketCart(readTicketCart().filter((line) => !eventSlugs.has(line.eventSlug)));
+  }, [paidAndIssued, batchData, query.data?.order]);
 
   return <Section>
     <div className="mx-auto max-w-3xl rounded-[2rem] bg-card p-7 shadow-sm sm:p-10">
@@ -61,12 +68,12 @@ function GuestTicketsPage() {
         : query.error ? <ErrorBlock error={query.error} />
           : !orderData ? <div><h1 className="display-md">{cs ? "Odkaz není platný" : "This ticket link is not valid"}</h1><p className="mt-3 text-muted-foreground">{cs ? "Zkontrolujte odkaz z potvrzovacího e-mailu." : "Please use the secure link from your ticket email."}</p></div>
             : <>
-              <StatusPill tone={orderData.status === "confirmed" || orderData.status === "free" ? "success" : "muted"}>
-                {orderData.status === "confirmed" || orderData.status === "free" ? (cs ? "Vstupenky potvrzeny" : "Tickets confirmed") : orderData.status}
+              <StatusPill tone={paidAndIssued ? "success" : "muted"}>
+                {paidAndIssued ? (cs ? "Vstupenky potvrzeny" : "Tickets confirmed") : (batchData?.status ?? orderData.status)}
               </StatusPill>
-              <h1 className="display-md mt-5">{orderData.events?.[0]?.title ?? (cs ? "Vaše vstupenky" : "Your tickets")}</h1>
+              <h1 className="display-md mt-5">{ticketOrders.length > 1 ? (cs ? "Vaše vstupenky" : "Your tickets") : orderData.events?.[0]?.title ?? (cs ? "Vaše vstupenky" : "Your tickets")}</h1>
               <p className="mt-2 text-muted-foreground">{orderData.buyer_name} · {orderData.buyer_email}</p>
-              <p className="mt-2 break-all text-xs text-muted-foreground">{cs ? "Číslo objednávky" : "Order ID"}: {orderData.id}</p>
+              {ticketOrders.map((current) => <p key={current.id} className="mt-2 break-all text-xs text-muted-foreground">{current.events?.[0]?.title}: {cs ? "Objednávka" : "Order"} {current.id}</p>)}
               <div className="mt-5 rounded-2xl bg-accent/10 p-4 text-sm">
                 <p>{cs ? "Uložte si tento soukromý odkaz pro přístup ke vstupenkám. Nesdílejte ho veřejně." : "Save this private link to access your tickets again. Do not share it publicly."}</p>
                 <Button className="mt-3" variant="outline" onClick={async () => {
@@ -74,23 +81,24 @@ function GuestTicketsPage() {
                   catch { toast.error(cs ? "Zkopírujte prosím adresu z prohlížeče." : "Please copy the address from your browser."); }
                 }}>{cs ? "Kopírovat odkaz na vstupenky" : "Copy ticket link"}</Button>
               </div>
-              <div className="mt-6 grid gap-3 rounded-3xl bg-background/60 p-5 text-sm sm:grid-cols-2">
-                <p>{cs ? "Datum" : "Date"}: <strong>{orderData.events?.[0]?.start_date ? new Date(orderData.events[0].start_date).toLocaleString(cs ? "cs-CZ" : "en-GB", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Zurich" }) : "—"}</strong></p>
-                <p>{cs ? "Místo" : "Venue"}: <strong>{orderData.events?.[0]?.venue ?? "—"}</strong></p>
-                <p>{cs ? "Celkem" : "Total"}: <strong>{Number(orderData.amount_minor) === 0 ? (cs ? "Zdarma" : "Free") : formatMoney(Number(orderData.amount_minor) / 100, orderData.currency)}</strong></p>
-              </div>
+              <div className="mt-6 space-y-3">{ticketOrders.map((current) => <div key={current.id} className="grid gap-3 rounded-3xl bg-background/60 p-5 text-sm sm:grid-cols-2">
+                <p>{cs ? "Akce" : "Event"}: <strong>{current.events?.[0]?.title ?? "—"}</strong></p>
+                <p>{cs ? "Datum" : "Date"}: <strong>{current.events?.[0]?.start_date ? new Date(current.events[0].start_date).toLocaleString(cs ? "cs-CZ" : "en-GB", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Zurich" }) : "—"}</strong></p>
+                <p>{cs ? "Místo" : "Venue"}: <strong>{current.events?.[0]?.venue ?? "—"}</strong></p>
+                <p>{cs ? "Celkem" : "Total"}: <strong>{Number(current.amount_minor) === 0 ? (cs ? "Zdarma" : "Free") : formatMoney(Number(current.amount_minor) / 100, current.currency)}</strong></p>
+              </div>)}</div>
               {(orderData.status === "pending" || orderData.status === "processing") && <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground"><Clock3 className="size-4" />{cs ? "Čekáme na potvrzení platby. Tato stránka se automaticky aktualizuje." : "Waiting for payment confirmation. This page will update automatically."}</p>}
-              {orderData.status === "failed" || orderData.status === "expired" || orderData.status === "cancelled" ? <p className="mt-5 rounded-2xl bg-destructive/10 p-4 text-sm">{cs ? "Platba nebyla dokončena, žádné vstupenky nebyly vydány. Můžete se vrátit na akci a zkusit nákup znovu." : "Payment was not completed, so no tickets were issued. Return to the event page to try again."}</p> : null}
-              {orderData.status === "manual_review" && <p className="mt-5 rounded-2xl bg-accent/20 p-4 text-sm">{cs ? "Platba dorazila, ale objednávka vyžaduje ruční kontrolu týmem CometX. Kontaktujte nás prosím s číslem objednávky." : "Your payment arrived, but this order needs a manual review by CometX. Please contact us with your order ID."}</p>}
-              {orderData.status === "confirmed" || orderData.status === "free" ? <div className="mt-7 space-y-3">
-                {orderData.ticket_order_items?.flatMap((item) => item.ticket_attendees ?? []).map((ticket) => <div key={ticket.id} className="flex items-center justify-between gap-3 rounded-2xl bg-accent/10 p-4">
-                  <span className="flex items-center gap-3"><Ticket className="size-5 text-accent" /><span><strong>{ticket.attendee_name}</strong><span className="block text-sm text-muted-foreground">{orderData.ticket_order_items?.find((item) => item.ticket_attendees?.some((t) => t.id === ticket.id))?.ticket_name}</span></span></span>
+              {(batchData?.status ?? orderData.status) === "failed" || (batchData?.status ?? orderData.status) === "expired" ? <p className="mt-5 rounded-2xl bg-destructive/10 p-4 text-sm">{cs ? "Platba nebyla dokončena, žádné vstupenky nebyly vydány. Zkuste nákup znovu." : "Payment was not completed, so no tickets were issued. Please try again."}</p> : null}
+              {(batchData?.status ?? orderData.status) === "manual_review" && <p className="mt-5 rounded-2xl bg-accent/20 p-4 text-sm">{cs ? "Platba dorazila, ale objednávka vyžaduje ruční kontrolu týmem CometX. Kontaktujte nás prosím." : "Your payment arrived, but this order needs a manual review by CometX. Please contact us."}</p>}
+              {paidAndIssued ? <div className="mt-7 space-y-3">
+                {ticketOrders.flatMap((current) => current.ticket_order_items?.flatMap((item) => (item.ticket_attendees ?? []).map((ticket) => ({ ticket, ticketName: item.ticket_name, eventName: current.events?.[0]?.title }))) ?? []).map(({ ticket, ticketName, eventName }) => <div key={ticket.id} className="flex items-center justify-between gap-3 rounded-2xl bg-accent/10 p-4">
+                  <span className="flex items-center gap-3"><Ticket className="size-5 text-accent" /><span><strong>{ticket.attendee_name}</strong><span className="block text-sm text-muted-foreground">{ticketName} · {eventName}</span></span></span>
                   <code className="rounded-lg bg-background px-2 py-1 text-xs">{ticket.ticket_code}</code>
                 </div>)}
                 <p className="flex items-center gap-2 text-sm text-muted-foreground"><CheckCircle2 className="size-4 text-accent" />{cs ? "Ukažte kód při příchodu." : "Show your ticket code at the entrance."}</p>
               </div> : null}
-              {user && (orderData.status === "confirmed" || orderData.status === "free") && <Button className="mt-7 w-full" variant="signal" disabled={claim.isPending} onClick={() => claim.mutate()}>{claim.isPending ? (cs ? "Propojujeme…" : "Linking…") : (cs ? "Přidat vstupenky do Můj CometX" : "Add tickets to My CometX")}</Button>}
-              {!user && <p className="mt-7 text-sm text-muted-foreground">{cs ? "Vytvořte si účet nebo se přihlaste stejným e-mailem a potom vstupenky propojte s Můj CometX." : "Create an account or log in with this email later, then link these tickets to My CometX."} <Link className="underline underline-offset-2" to="/register" search={{ redirect: `/tickets/guest?order=${encodeURIComponent(order)}&token=${encodeURIComponent(token)}` }}>{cs ? "Vytvořit účet" : "Create account"}</Link> · <Link className="underline underline-offset-2" to="/login" search={{ redirect: `/tickets/guest?order=${encodeURIComponent(order)}&token=${encodeURIComponent(token)}` }}>{cs ? "Přihlásit se" : "Log in"}</Link></p>}
+              {user && paidAndIssued && !batch && <Button className="mt-7 w-full" variant="signal" disabled={claim.isPending} onClick={() => claim.mutate()}>{claim.isPending ? (cs ? "Propojujeme…" : "Linking…") : (cs ? "Přidat vstupenky do Můj CometX" : "Add tickets to My CometX")}</Button>}
+              {!user && <p className="mt-7 text-sm text-muted-foreground">{cs ? "Vytvořte si účet nebo se přihlaste stejným e-mailem a potom vstupenky propojte s Můj CometX." : "Create an account or log in with this email later, then link these tickets to My CometX."} <Link className="underline underline-offset-2" to="/register" search={{ redirect: batch ? `/tickets/guest?batch=${encodeURIComponent(batch)}&token=${encodeURIComponent(token)}` : `/tickets/guest?order=${encodeURIComponent(order)}&token=${encodeURIComponent(token)}` }}>{cs ? "Vytvořit účet" : "Create account"}</Link> · <Link className="underline underline-offset-2" to="/login" search={{ redirect: batch ? `/tickets/guest?batch=${encodeURIComponent(batch)}&token=${encodeURIComponent(token)}` : `/tickets/guest?order=${encodeURIComponent(order)}&token=${encodeURIComponent(token)}` }}>{cs ? "Přihlásit se" : "Log in"}</Link></p>}
               <Link className="mt-6 inline-block text-sm underline underline-offset-2" to="/events">{cs ? "Prohlédnout další akce" : "Browse more events"}</Link>
             </>}
     </div>

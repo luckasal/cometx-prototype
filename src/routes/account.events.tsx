@@ -9,15 +9,16 @@ import { formatMoney } from "@/lib/pricing";
 import { readTicketCart, writeTicketCart } from "@/lib/ticket-cart";
 
 export const Route = createFileRoute("/account/events")({
-  validateSearch: (search: Record<string, unknown>): { purchase?: true; order?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { purchase?: true; order?: string; batch?: string } => ({
     ...(search["purchase"] === "success" ? { purchase: true as const } : {}),
     ...(typeof search["order"] === "string" ? { order: search["order"] } : {}),
+    ...(typeof search["batch"] === "string" ? { batch: search["batch"] } : {}),
   }),
   component: AccountEventsPage,
 });
 
 function AccountEventsPage() {
-  const { purchase, order: completedOrderId } = Route.useSearch();
+  const { purchase, order: completedOrderId, batch: completedBatchId } = Route.useSearch();
   const { language } = useLanguage();
   const cs = language === "cs";
   const fetchTickets = useServerFn(getMyPurchasedTickets);
@@ -28,12 +29,14 @@ function AccountEventsPage() {
   const lines = data?.flatMap((order) => (order.ticket_order_items ?? []).map((item) => ({ order, item }))) ?? [];
 
   useEffect(() => {
-    if (!purchase || !completedOrderId || !data) return;
-    const order = data.find((item) => item.id === completedOrderId && ["confirmed", "free"].includes(item.status));
-    const eventSlug = order?.events?.[0]?.slug;
-    if (!eventSlug) return;
-    writeTicketCart(readTicketCart().filter((line) => line.eventSlug !== eventSlug));
-  }, [purchase, completedOrderId, data]);
+    if (!purchase || (!completedOrderId && !completedBatchId) || !data) return;
+    const completed = completedBatchId
+      ? data.filter((item) => item.checkout_batch_id === completedBatchId)
+      : data.filter((item) => item.id === completedOrderId);
+    if (!completed.length || completed.some((item) => !["confirmed", "free"].includes(item.status))) return;
+    const eventSlugs = new Set(completed.map((item) => item.events?.[0]?.slug).filter(Boolean));
+    writeTicketCart(readTicketCart().filter((line) => !eventSlugs.has(line.eventSlug)));
+  }, [purchase, completedOrderId, completedBatchId, data]);
 
   return <Section>
     <SectionHeading eyebrow={cs ? "Nákupy" : "Purchases"} title={cs ? "Moje vstupenky" : "My tickets"} />

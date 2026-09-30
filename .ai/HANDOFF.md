@@ -2,6 +2,17 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-09-28: multi-event cart, single combined purchase
+
+- Last agent: Codex
+- Branch: `codex-dev`; local changes, not deployed.
+- What changed: the cart now keeps and displays multiple event groups with attendee names per ticket. One checkout creates one Stripe test-mode Checkout Session and a separate order per event; fulfillment confirms the batch atomically, issues one ticket per attendee, and preserves private guest access. Event-scoped customer ticket access/account cleanup is batch-aware.
+- Files changed: `src/lib/ticket-cart.ts`, `src/routes/cart.tsx`, `src/lib/ticket-orders.functions.ts`, `src/lib/ticket-orders.server.ts`, `src/routes/api/public/stripe-webhook.ts`, `src/routes/tickets.guest.tsx`, `src/routes/account.events.tsx`, `src/routeTree.gen.ts`, `drizzle/migrations/0007_multi_event_checkout.sql`, ticket cart/database tests.
+- Migrations: `0007_multi_event_checkout.sql` added and tested in isolated PostgreSQL; not applied to Supabase.
+- Validation: TypeScript check, focused ticket cart/database tests, and `git diff --check` passed. No Stripe session, payment, migration, or deployment was performed.
+- Unresolved issues: apply migration 0007 to the target Supabase project and deploy this branch before the live/staging cart can use batch checkout. Mixed-currency carts are prevented because one Stripe Checkout Session uses one currency. Guest ticket email requires the existing configured email mode; secure access links are still generated.
+- What needs review: SQL RPC/RLS/grants and concurrency in the target Supabase; end-to-end sandbox checkout/webhook across two events; cancellation and partial failure handling; attendee/contact emails and account visibility.
+
 ## Template
 
 - Last agent: Codex or Claude
@@ -14,6 +25,16 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - What needs review: exact flows, schema, permissions, or edge cases
 
 ## Setup note
+
+## 2026-09-28: event-scoped cart
+
+- Last agent: Codex
+- Branch: `codex-dev`; local changes, not deployed.
+- What changed: adding tickets from another event replaces the active cart; multiple ticket types/quantities from one event remain together. Legacy mixed carts retain only the last appended event. Cart displays one event total.
+- Files changed: `src/lib/ticket-cart.ts`, `src/routes/cart.tsx`, `tests/ticket-cart.test.mjs`, `tests/ticket-database.test.mjs`.
+- Migrations: none; existing database order validation already rejects tickets belonging to another event. Existing Stripe session creation uses the order's paid line items.
+- Validation: TypeScript and diff checks passed; cart regression and isolated database tests passed, including mixed-event rejection without an order being created.
+- What needs review: browser checkout flow; no external Stripe session/payment was created during this task.
 
 ## 2026-09-28: ticket cart and pre-payment review
 

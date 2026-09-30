@@ -1,4 +1,5 @@
-export type TicketCartLine = { eventSlug: string; ticketId: string; quantity: number };
+export type TicketAttendeeDraft = { firstName: string; lastName: string };
+export type TicketCartLine = { eventSlug: string; ticketId: string; quantity: number; attendees?: TicketAttendeeDraft[] };
 
 const CART_KEY = "cometx-ticket-cart-v1";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -14,7 +15,10 @@ export function readTicketCart(): TicketCartLine[] {
       typeof line.eventSlug === "string" && SLUG.test(line.eventSlug) &&
       typeof line.ticketId === "string" && UUID.test(line.ticketId) &&
       Number.isInteger(line.quantity) && line.quantity > 0 && line.quantity <= 10,
-    );
+    ).map((line) => ({ ...line, attendees: Array.isArray(line.attendees) ? line.attendees.slice(0, line.quantity).map((person) => ({
+      firstName: typeof person?.firstName === "string" ? person.firstName.slice(0, 120) : "",
+      lastName: typeof person?.lastName === "string" ? person.lastName.slice(0, 120) : "",
+    })) : [] }));
   } catch {
     return [];
   }

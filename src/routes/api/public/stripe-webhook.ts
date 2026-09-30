@@ -28,7 +28,10 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
       }
       if (["checkout.session.completed", "checkout.session.async_payment_succeeded","checkout.session.expired","checkout.session.async_payment_failed"].includes(event.type)) {
         try {
-          if (event.data.object.metadata?.["kind"] === "ticket_order") {
+          if (event.data.object.metadata?.["kind"] === "ticket_checkout_batch") {
+            const { applyTicketCheckoutBatchPaymentEvent } = await import("@/lib/ticket-orders.server");
+            await applyTicketCheckoutBatchPaymentEvent(event.type, event.data.object);
+          } else if (event.data.object.metadata?.["kind"] === "ticket_order") {
             const { applyTicketOrderPaymentEvent } = await import("@/lib/ticket-orders.server");
             await applyTicketOrderPaymentEvent(event.type,event.data.object);
           } else if (event.data.object.metadata?.["kind"] === "ticket_checkout") {
