@@ -4,7 +4,7 @@ type AnalyticsWindow = Window & { dataLayer?: unknown[]; gtag?: (...args: unknow
 
 const allowedParameters = new Set([
   "event_slug", "event_id", "event_type", "ticket_type", "ticket_type_id", "membership_tier", "quantity", "value",
-  "currency", "event_count", "cart_value", "pricing_type", "error_type", "placement", "plan", "partner_id", "destination", "method",
+  "currency", "event_count", "cart_value", "pricing_type", "error_type", "placement", "plan", "cta_id", "partner_id", "destination", "method",
 ]);
 let lastPageLocation: string | null = null;
 const consentKey = "cometx-analytics-consent-v1";
@@ -70,6 +70,19 @@ export function trackEvent(name: string, parameters: AnalyticsParameters = {}): 
     page_referrer: safeReferrer(),
   };
   analyticsWindow.gtag?.("event", name, payload);
+}
+
+/** Track only explicitly named CTAs; never infer or send rendered button text. */
+export function trackCtaClick(ctaId: string): void {
+  const safeId = ctaId.toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
+  if (!safeId) return;
+  trackEvent(`cta_click_${safeId}`, { cta_id: safeId });
+}
+
+export function trackCtaClickFromElement(event: MouseEvent): void {
+  if (typeof window === "undefined" || !(event.target instanceof Element)) return;
+  const cta = event.target.closest<HTMLElement>("[data-analytics-cta]");
+  if (cta) trackCtaClick(cta.dataset["analyticsCta"] ?? "");
 }
 
 /** Dedupe one confirmed outcome per checkout key for the current browser tab. */

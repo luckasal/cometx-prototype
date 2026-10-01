@@ -375,7 +375,7 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                             {Array.from({length:basketMax + 1},(_,i)=>i).map(n=><option key={n} value={n}>{n}</option>)}
                           </select>
                         </label>
-                        <Button variant="signal" className="mt-4 w-full" disabled={quantity < 1 || data.isPreview || !open || ticket.soldOut || !saleOpen || !ticket.price.eligible}
+                        <Button variant="signal" data-analytics-cta="event_add_ticket" className="mt-4 w-full" disabled={quantity < 1 || data.isPreview || !open || ticket.soldOut || !saleOpen || !ticket.price.eligible}
                           onClick={() => onAddToCart(ticket.id, quantity)}>
                           {cs ? "Přidat do košíku" : "Add to cart"}
                           <ArrowRight className="size-4" />

@@ -46,11 +46,13 @@ function AnalyticsPage() {
           <p className="text-sm text-muted-foreground">
             {data.period} · Consent based GA4 data may be lower than total site traffic.
           </p>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             {[
               ["Visitors", data.visitors],
               ["Sessions", data.sessions],
               ["Page views", data.pageViews],
+              ["Bounce rate", `${(data.bounceRate * 100).toFixed(1)}%`],
+              ["Avg. session", `${Math.floor(data.averageSessionDuration / 60)}m ${Math.round(data.averageSessionDuration % 60)}s`],
             ].map(([label, value]) => (
               <div key={label} className="rounded-2xl border border-border bg-card p-5">
                 <p className="eyebrow text-muted-foreground">{label}</p>
@@ -63,6 +65,21 @@ function AnalyticsPage() {
           <div className="grid gap-8 xl:grid-cols-2">
             <ReportTable title="Where visits came from" label="Channel" rows={data.channels} />
             <ReportTable title="Most viewed pages" label="Page" rows={data.pages} />
+          </div>
+          <div className="grid gap-8 xl:grid-cols-2">
+            <ReportTable title="Visits by device" label="Device" rows={data.devices} />
+            <ReportTable title="Visits by country" label="Country" rows={data.countries} />
+            <ReportTable title="New vs. returning visitors" label="Visitor type" rows={data.visitorTypes} />
+            <ReportTable title="Entry pages" label="Landing page" rows={data.landingPages} />
+            <AdminTable head={["Date", "Sessions", "Page views"]}>
+              {data.dailyTraffic.length ? data.dailyTraffic.map((row) => (
+                <tr key={row.date}>
+                  <td className="px-4 py-3">{row.date.slice(0, 4)}-{row.date.slice(4, 6)}-{row.date.slice(6, 8)}</td>
+                  <td className="px-4 py-3 tabular-nums">{row.sessions.toLocaleString()}</td>
+                  <td className="px-4 py-3 tabular-nums">{row.pageViews.toLocaleString()}</td>
+                </tr>
+              )) : <tr><td className="px-4 py-3" colSpan={3}>No data yet.</td></tr>}
+            </AdminTable>
           </div>
           <div className="grid gap-8 xl:grid-cols-2">
             <FunnelTable title="Ticket journey" steps={ticketSteps} events={data.events} />

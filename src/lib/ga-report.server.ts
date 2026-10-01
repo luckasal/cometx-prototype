@@ -80,11 +80,16 @@ export async function readGaReport() {
     return response.json() as Promise<Report>;
   }
 
-  const [summary, channels, pages, events] = await Promise.all([
-    run([], ["activeUsers", "sessions", "screenPageViews"], 1),
+  const [summary, channels, pages, events, devices, countries, landingPages, dailyTraffic, visitorTypes] = await Promise.all([
+    run([], ["activeUsers", "sessions", "screenPageViews", "bounceRate", "averageSessionDuration"], 1),
     run(["sessionDefaultChannelGroup"], ["sessions"], 10),
     run(["pagePath"], ["screenPageViews"], 10),
     run(["eventName"], ["eventCount"], 100),
+    run(["deviceCategory"], ["sessions"], 10),
+    run(["country"], ["sessions"], 10),
+    run(["landingPage"], ["sessions"], 10),
+    run(["date"], ["sessions", "screenPageViews"], 31),
+    run(["newVsReturning"], ["activeUsers"], 2),
   ]);
   return {
     configured: true as const,
@@ -92,6 +97,8 @@ export async function readGaReport() {
     visitors: count(summary.totals?.[0] ?? summary.rows?.[0]),
     sessions: count(summary.totals?.[0] ?? summary.rows?.[0], 1),
     pageViews: count(summary.totals?.[0] ?? summary.rows?.[0], 2),
+    bounceRate: count(summary.totals?.[0] ?? summary.rows?.[0], 3),
+    averageSessionDuration: count(summary.totals?.[0] ?? summary.rows?.[0], 4),
     channels: (channels.rows ?? []).map((row) => ({
       name: row.dimensionValues?.[0]?.value ?? "Unknown",
       count: count(row),
@@ -100,6 +107,15 @@ export async function readGaReport() {
       name: row.dimensionValues?.[0]?.value ?? "/",
       count: count(row),
     })),
+    devices: (devices.rows ?? []).map((row) => ({ name: row.dimensionValues?.[0]?.value ?? "Unknown", count: count(row) })),
+    countries: (countries.rows ?? []).map((row) => ({ name: row.dimensionValues?.[0]?.value ?? "Unknown", count: count(row) })),
+    landingPages: (landingPages.rows ?? []).map((row) => ({ name: row.dimensionValues?.[0]?.value ?? "/", count: count(row) })),
+    dailyTraffic: (dailyTraffic.rows ?? []).map((row) => ({
+      date: row.dimensionValues?.[0]?.value ?? "",
+      sessions: count(row),
+      pageViews: count(row, 1),
+    })),
+    visitorTypes: (visitorTypes.rows ?? []).map((row) => ({ name: row.dimensionValues?.[0]?.value ?? "Unknown", count: count(row) })),
     events: Object.fromEntries(
       (events.rows ?? []).map((row) => [row.dimensionValues?.[0]?.value ?? "", count(row)]),
     ),

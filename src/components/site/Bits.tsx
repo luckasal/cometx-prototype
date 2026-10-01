@@ -134,6 +134,7 @@ export function EventCard({
     <Link
       to="/events/$slug"
       params={{ slug: event.slug }}
+      data-analytics-cta={`event_card_${event.slug}`}
       className="group flex flex-col overflow-hidden rounded-3xl bg-card transition-colors hover:bg-paper"
     >
       <div className="aspect-[16/10] overflow-hidden bg-muted">

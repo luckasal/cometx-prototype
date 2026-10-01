@@ -18,7 +18,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { AnalyticsConsent } from "@/components/site/AnalyticsConsent";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import { initializeAnalytics, trackOutboundClick, trackPageView } from "@/lib/analytics";
+import { initializeAnalytics, trackCtaClickFromElement, trackOutboundClick, trackPageView } from "@/lib/analytics";
 import { brandAssets } from "@/lib/brand-assets";
 
 function NotFoundComponent() {
@@ -147,7 +147,11 @@ function RootComponent() {
   }, []);
   useEffect(() => {
     document.addEventListener("click", trackOutboundClick);
-    return () => document.removeEventListener("click", trackOutboundClick);
+    document.addEventListener("click", trackCtaClickFromElement);
+    return () => {
+      document.removeEventListener("click", trackOutboundClick);
+      document.removeEventListener("click", trackCtaClickFromElement);
+    };
   }, []);
   useEffect(() => {
     trackPageView(pathname);

@@ -34,6 +34,7 @@ Analytics runs only after the visitor grants consent in the app's analytics prom
 | `whatsapp_click` | `src/routes/__root.tsx` delegated external-link click handler; WhatsApp link is clicked | Destination hostname only |
 | `partner_click` | `src/routes/partners.tsx`; partner website link is clicked | `partner_id`, destination hostname only |
 | `outbound_link` | `src/routes/__root.tsx` delegated external-link click handler; non-CometX HTTP(S) link is clicked | Destination hostname only |
+| `cta_click_<cta_id>` | `src/routes/__root.tsx`; a link/button explicitly marked with `data-analytics-cta` is clicked | `cta_id`; event name contains the same fixed code identifier; no rendered text or destination URL |
 
 `purchase` is deduplicated by checkout batch/order in the browser and requires server-confirmed payment plus issued tickets; a return URL by itself is not proof of purchase. It is emitted on the successful return page, so a buyer who never returns to CometX may not be counted. Payment records remain authoritative. `payment_failed` likewise requires a failed status recorded by the server/webhook; browser-side validation alone never reports a payment failure. `payment_cancelled` records only the return from the explicit Stripe cancellation URL. These events are emitted only with analytics consent. The helper allowlists safe event properties; names, email addresses, attendee fields, order/batch keys, and raw error text are excluded. Signed-in status is not sent. A real paid membership checkout is not enabled yet; membership activation is not inferred from a CTA click, and no membership checkout-start event is fabricated.
 
@@ -45,6 +46,14 @@ Analytics runs only after the visitor grants consent in the app's analytics prom
 - Newsletter: successful `newsletter_signup` events.
 
 These event counts describe actions, not user-level cohort conversion rates. Ticket metadata is supplied when it describes one event/ticket selection; aggregated multi-event carts report aggregate quantity, event count, value and currency rather than assigning a misleading single event/ticket.
+
+## Wix analytics coverage comparison
+
+Wix documents traffic/session trends, traffic source and category, new vs returning visitors, device and country, entry pages, page visits, button clicks, order conversion, contact-channel clicks, and (for Wix Stores) sales, order value, top items, and abandoned carts. CometX app tracking stays in the existing GA4 property/Measurement ID; nothing here changes Wix settings or joins Wix history into app reports.
+
+The authenticated `/admin/analytics` GA4 report now includes users, sessions, page views, bounce rate, average session duration, acquisition channels, popular pages, device, country, entry pages, daily traffic, and custom ticket/membership/action event counts. Traffic attribution is provided by GA4 session channel grouping and standard UTM/source processing. CTA clicks are recorded for explicitly tagged high-value links/buttons as `cta_click_<id>` so they remain visible in standard GA4 event reports; register the `cta_id` event parameter as an event-scoped custom dimension in GA4 only if you need it as a separate table dimension.
+
+Differences/limits: GA4 consent and ad-blocking mean visitor counts can differ from Wix; Wix historical reports remain in Wix and are not imported. CometX does not identify visitors or show real-time individual visitor journeys. Ticket conversion uses CometX's event-specific funnel rather than Wix Stores' product funnel. GA4 does not currently receive standard item arrays for ticket lines, so Wix-style top-selling-item/product-pair and abandoned-cart recovery reports are not available; use the event/ticket funnel and payment/order records as the source of truth. Button click coverage is intentionally limited to marked CTAs (plus dedicated ticket, membership, WhatsApp, partner, and outbound events), not every decorative/link element on the site. Sales-by-source/order-value views should be compared against confirmed CometX payment records, since purchase reporting depends on a consented buyer returning to the app.
 
 ## Configuration and DebugView
 

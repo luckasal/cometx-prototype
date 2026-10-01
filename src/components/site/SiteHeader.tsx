@@ -77,7 +77,7 @@ export function SiteHeader() {
             <ShoppingCart className="size-4" />
             <span className="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-accent text-[10px] leading-none font-bold text-accent-foreground">{cartCount}</span>
           </Link>
-          {!loading && !user && <Button asChild variant="signal" size="sm"><Link to="/membership" onClick={() => trackEvent("membership_cta_click", { placement: "header" })}>{cs ? "Přidat se" : "Join CometX"}</Link></Button>}
+          {!loading && !user && <Button asChild variant="signal" size="sm"><Link to="/membership" data-analytics-cta="join_membership_header" onClick={() => trackEvent("membership_cta_click", { placement: "header" })}>{cs ? "Přidat se" : "Join CometX"}</Link></Button>}
         </div>
 
         <Link to="/cart" className="relative ml-auto inline-flex items-center gap-1 rounded-full p-2 text-ink-foreground hover:text-accent xl:hidden" aria-label={`${cs ? "Košík" : "Cart"}: ${ticketCartCountLabel(cartCount, cs)}`}>
