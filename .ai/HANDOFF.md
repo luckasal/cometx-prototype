@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-01: local backoffice sign-in diagnosis
+
+- Task: `LOCAL-AUTH-01` — restore `/admin` in the Phase 2A local preview.
+- Result: verified the global client middleware sends an Authorization bearer header. Server validation now uses the Supabase URL/public key taken from the already-running CometX client configuration and was run with Supabase network access; the current browser token is rejected with `AuthSessionMissingError` (stale/revoked for that Auth project). The login page is open at `http://127.0.0.1:3004/login?redirect=%2Fadmin` for a fresh manual sign-in.
+- No production data was changed; no credentials or tokens were printed or saved. No application source changes remain from diagnostics.
+- Blocker: this worktree has no local `SUPABASE_SERVICE_ROLE_KEY`; Phase 2A event sales metrics use the server-only key, so the event list needs that secret supplied through the existing secure local environment after sign-in. Do not put it in chat or commit it.
+- Validation: local route responded HTTP 200; browser reproduced AuthSessionMissingError, then confirmed the clean login screen. No test suite was run.
+- Exact next task: fresh sign-in on port 3004, then verify `/admin/events` with the server-only Supabase key available in the local server environment.
+
 ## 2026-10-01: event admin Phase 2A — list and overview
 
 - Task completed: `EVENT-ADMIN-2A` — event list search/filters, sales summary and quick actions; per-event Overview tab alongside the existing editor.
