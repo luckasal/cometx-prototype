@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-01: platform tooling cleanup
+
+- Task completed: `PLATFORM-CLEANUP-01` — removed inherited platform-specific build/auth-preview/error-reporting wiring and standardized this checkout on pnpm.
+- Branch / implementation commit: `codex/event-ops` / `f575dc7`.
+- Files changed: `AGENTS.md`, `README.md`, `SETUP.md`, `package.json`, `pnpm-lock.yaml`, removed `bun.lock` and `bunfig.toml`, `.env.example`, `CMS_SETUP.md`, `drizzle.config.ts`, `vite.config.ts`, `src/integrations/supabase/auth-middleware.ts`, `src/integrations/supabase/client.server.ts`, `src/integrations/supabase/client.ts`, `src/integrations/supabase/cron-auth.ts`, removed `src/integrations/supabase/previewAuthStorage.ts` and `src/lib/lovable-error-reporting.ts`, `src/routes/__root.tsx`, `.ai/TASKS.md`.
+- Tests/checks run: TypeScript `tsc --noEmit` passed; production `vite build` passed; focused analytics/event/ticket tests passed (19/19); `git diff --check` passed. Full test suite has 4 existing environment/runtime failures: Node 22 strip-only TypeScript cannot parse a parameter property in `StripeRequestError`; isolated render tests cannot resolve React from a `data:` URL; PGlite test runtime dependency is absent. Other tests passed.
+- Decisions: Supabase browser sessions now use standard `localStorage`; Vite directly configures TanStack Start, Tailwind, React and Nitro, retaining the previous Cloudflare-module build target. Migration and cron secret names are now `SUPABASE_DB_URL`, `CRON_SECRET`, and optional `CRON_SECRET_PREVIOUS`. Secret values were not read, copied, or changed. Hosting environment settings were not inspected or changed.
+- Known issues: if hosting still uses retired environment variable names, scheduled jobs or Drizzle migration commands will need the new names before use. The full test-suite runtime issues listed above remain.
+- Exact next recommended task: verify any existing hosting-side migration/cron variables and rename them to the neutral names above if needed; then deploy only after confirming the hosting target matches the retained Nitro preset.
+
 ## 2026-10-01: event admin Phase 2A — list and overview
 
 - Task completed: `EVENT-ADMIN-2A` — event list search/filters, sales summary and quick actions; per-event Overview tab alongside the existing editor.
