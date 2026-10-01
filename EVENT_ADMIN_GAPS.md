@@ -1,8 +1,37 @@
 # Event admin gap audit
 
 **Audit date:** 2026-10-01
-**Scope:** Active application in `cometx-codex` on `codex-dev`; admin and public event, ticket, order, and account-ticket flows.
-**Method:** Source and migration review. Phase 2A implementation status is appended below.
+**Scope:** Initial audit of `cometx-codex` on `codex-dev`, updated for `codex/event-admin-phase-2a`; admin and public event, ticket, order, and account-ticket flows.
+**Method:** Source and migration review plus focused implementation checks. Full customer/admin/backend requirements are preserved in `EVENT_SYSTEM_SPEC.md`.
+
+## Master specification status
+
+DONE means implemented and locally checked for the stated slice; it does not mean deployed or verified against the hosted database. PARTIAL means existing functionality does not cover the entire requirement. MISSING means the requested capability is absent from this branch. RELEASE BLOCKER marks prerequisites for production readiness.
+
+| Requirement | Status | Remaining work / evidence |
+| --- | --- | --- |
+| Customer discovery/detail | PARTIAL | Existing event pages/content; upcoming/past discovery, availability and all buyer states need full runtime verification. |
+| Customer/member pricing | PARTIAL | Server pricing and entitlements exist; verify actual plan rules and group-ticket benefit policy. |
+| Multi-event cart | PARTIAL | Existing grouped cart; matching hosted schema and end-to-end checkout verification pending. |
+| Buyer and attendee details | PARTIAL | Buyer/attendee separation exists; verify first/last names and legacy compatibility throughout checkout and issued tickets. |
+| Checkout | PARTIAL | Existing contact/ticket/payment flow; required event policies/consents and complete review flow remain. |
+| Payment and fulfillment | RELEASE BLOCKER | Pending migrations and missing full sandbox payment/webhook verification; free and failed/cancelled payment cases need verification. |
+| Post-purchase / My CometX / guest access | PARTIAL | Confirmed-ticket and secure-link paths exist; delivery setup and full purchase/access verification pending. |
+| Admin event list | PARTIAL | Phase 2A implemented; duplicate/cancel quick actions and separate publication/capacity list presentation remain. Metrics require server configuration. |
+| Event workspace | PARTIAL | Overview, Orders and existing editor available here. Other operational sections remain. |
+| Overview | DONE | Implemented Phase 2A, unavailable-metrics handling Phase 2B; live sales verification still blocked by server configuration. |
+| Tickets management | PARTIAL | Existing ticket fields; dedicated workspace, archived-ticket management, sold counts and limits remain. |
+| Settings | PARTIAL | Existing dates/capacity; checkout field configuration, consents, policies, message and order-limit settings remain. |
+| Orders read workspace | DONE | Phase 3A: per-event server search/filter/pagination and expandable buyer/payment/issued-ticket details. Live database verification pending. |
+| Orders actions / full discount history | MISSING | Resend, refund/cancel actions and original-price/discount snapshots remain. Current UI displays recorded price basis, not invented savings. Pre-issuance attendee names are not shown. |
+| Guests/check-in/export | PARTIAL | Implemented separately on `codex/event-ops` (`ce82633`); not integrated here. Its migration `0010` and live check-in verification remain pending. Do not reimplement independently. |
+| Per-event Emails | MISSING | Global backend confirmation delivery exists; per-event controls/content/delivery state remain. |
+| Promotion | PARTIAL | Public/preview URLs exist; sharing tools, coupons, campaigns and sponsor connections remain. |
+| Event analytics | MISSING | Event workspace reports/funnel/time series missing; never substitute invented traffic figures for unavailable GA4 data. |
+| Backend/data separation | PARTIAL | Existing entities and server boundaries; verify complete ledger/fulfillment paths and reconcile branches. |
+| No Lovable dependencies | RELEASE BLOCKER | This branch still has inherited build/preview dependencies. Cleanup exists on `codex/event-ops` (`f575dc7`); integrate/review separately. |
+| Data safety / release | RELEASE BLOCKER | Transactional event save, pending schema release, capacity/payment verification and secure server configuration remain. |
+| Event lifecycle | PARTIAL | Publication and operational states stored separately; complete operational transitions and cancellation policy/actions remain. |
 
 ## Executive summary
 
@@ -13,10 +42,10 @@ Event creation/editing, multiple ticket types, guest/member pricing, a multi-eve
 | Target area | Current state | Gap / impact |
 | --- | --- | --- |
 | **Event list** | `/admin/events` has title/slug search, lifecycle and event-type filters, image, lifecycle status, start date/time, location, ticket sales/revenue, last modified, and edit/view/preview/publish/unpublish/delete actions. Add event is available. If sales metrics are unavailable, event rows remain visible and unavailable values are shown as “—”. | Duplicate action is not available. Sales totals intentionally cover confirmed paid/free ticket orders and confirmed legacy registrations. Server-side metrics still require secure admin configuration; no staff-facing key or provider setup is shown. |
-| **Event overview/detail** | `/admin/events/$id` opens an Overview tab with publication/registration states, preview/public URL, date/time/location/type/capacity, ticket count/capacity progress, confirmed revenue, five recent orders, and a setup checklist. Existing event editing is available on a separate Edit event tab. If metrics are unavailable, event details and editing remain available while sales/order values are marked unavailable. | Other requested detail areas (Orders, Guests, Tickets workspace, Settings, Emails, Promotion, and Analytics) remain unimplemented. Preview displays saved event data. |
+| **Event overview/detail** | `/admin/events/$id` opens an Overview tab with publication/registration states, preview/public URL, date/time/location/type/capacity, ticket count/capacity progress, confirmed revenue, five recent orders, and a setup checklist. Orders and the existing Edit event tab are available. If metrics are unavailable, event details and editing remain available while sales/order values are marked unavailable. | Guests integration, Tickets workspace, Settings, Emails, Promotion, and Analytics remain unfinished on this branch. Preview displays saved event data. |
 | **Tickets** | The event form supports multiple active ticket types with public price, optional explicit member price or entitlement-based benefits, sale start/end, per-type capacity, and free/required/discount entitlements. Removed ticket types are marked inactive by save logic. Server-side pricing and checkout validation exist. | No sold count or capacity progress in the editor; no explicit early-bird pricing concept (a separately configured ticket/sale window is the available workaround); no archive/unarchive management for inactive ticket types. Stripe product/price synchronization runs in server code, but the save response exposes a generic “online payments are not ready” warning to staff when sync is unavailable, so the provider integration is not entirely invisible. |
 | **Settings** | Event registration open/close dates and event status are editable. Checkout currently requests buyer and attendee names/email in the cart; server validation caps a basket at 10 tickets. | No per-event checkout-field configuration, per-ticket attendee-field configuration, configurable order limit, policy/consent configuration, event confirmation-message settings, or cancellation/refund policy controls. The 10-ticket limit is a code-level rule, not an event setting. |
-| **Orders** | `/admin/orders` provides global text search and status filter, buyer/contact details, event/ticket breakdown, attendee names and codes, amount, buyer kind, order/payment status, and creation date. | It is not scoped to an event and has no order-detail route/action. It fetches only the latest 500 orders, and its totals cover only that result. No resend/access-ticket action is available in this UI. Cancellation and refund actions are explicitly disabled. |
+| **Orders** | Event workspace now has an Orders tab with server-side search by buyer/email/full order UUID, status/buyer filters, exact count and pages of 20. Expandable detail shows event-only lines/issued attendees/ticket codes, recorded pricing basis, order/payment/refund/cancel states, creation date and full order total. Legacy single-event schema is supported. | Live data verification requires server configuration. Search does not include attendee names/ticket codes. Pre-issuance attendee names and historical numeric discount amounts are not displayed. Resend/refund/cancellation actions remain missing. Existing global `/admin/orders` still has its 500-order cap. |
 | **Guests / attendees** | Attendee records and ticket codes are visible nested under orders. Buyer kind is stored as member/guest. | No dedicated per-event attendee roster, attendee search/filter, check-in control, member-vs-guest attendee view, contact link, or CSV export. The display says “Account holder” for signed-in buyers; that does not establish active membership. Existing attendee statuses include `checked_in`, but the admin UI does not provide check-in operations. |
 | **Emails** | Guest ticket confirmation delivery is implemented server-side through Resend when required configuration is available. Resend settings are shown generically on the global integrations page. | No per-event email settings or staff controls for confirmation, reminders, cancellation/update, or post-event messages. Staff cannot enable/disable these event messages in event detail. Delivery configuration and retry/operational status are not surfaced as event operations. |
 | **Promotion** | Public event URL/preview are available from the edit form. | No event coupon/discount management, newsletter campaign link, share controls, or event-linked GA4/conversion report link. |
@@ -58,10 +87,18 @@ Event creation/editing, multiple ticket types, guest/member pricing, a multi-eve
 
 ## Suggested implementation sequence
 
-1. **Event operations foundation (remaining):** per-event Orders and Guests views; attendee export and check-in action; robust order detail and staff action boundaries.
+1. **Event operations foundation (remaining):** review/integrate the existing Guests/check-in/export work from `codex/event-ops`; coordinate server configuration and pending migrations for runtime verification. Orders read workspace is implemented here; safe resend/refund/cancel actions remain separate work.
 2. **Ticket and event configuration:** improve ticket lifecycle/sold counts; add required checkout/attendee fields, configurable order limit, policies, confirmation/cancellation settings; make event/ticket saves transactional.
 3. **Communications and promotion:** event-specific message controls and delivery visibility; coupons and newsletter/share links.
 4. **Event analytics:** per-event views/funnel and sales/capacity reporting with clear data sources and GA4 links.
 5. **Release verification:** coordinate pending migrations with matching code, verify server secrets and Resend readiness without exposing provider mechanics, and run a sandbox checkout through signed webhook fulfillment and purchased-ticket access.
 
 This is an audit only. No feature implementation is included in Phase 1.
+
+## Phase 3A completion (2026-10-01): per-event Orders
+
+- Scope implemented: authenticated admin Orders tab, server-side buyer/email/full UUID search, order-status/buyer filters, exact-count pagination, and expandable order details with issued attendee/ticket records.
+- Multi-event orders show only this event's lines/attendees and subtotal. Full order amount and payment state are explicitly labelled for all events. Signed-in buyers are not labelled active members; recorded member/included price basis is shown per line.
+- Read-only implementation; no migration, provider operation, hosted data mutation, or other event phase. New endpoint authorizes admin before importing privileged data access; output explicitly excludes guest tokens and provider identifiers. Known legacy schema fallback preserves all filters and event scope.
+- Checks: TypeScript passed; eight focused tests passed (event scoping, pagination/filtering, legacy fallback, failure behavior, search escaping, validation, admin denial before privileged import, and real component rendering).
+- RELEASE BLOCKER: live staff/hosted-order checks remain pending because this preview lacks the server-only Supabase key. Error/retry state is explicit and never presented as an empty order history. Other-branch work is recorded above, not claimed as integrated.

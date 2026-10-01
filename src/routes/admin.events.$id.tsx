@@ -10,6 +10,7 @@ import { AdminPage } from "@/components/admin/AdminBits";
 import { EventForm, type EventFormValues, type TicketDraft, type WorkshopDraft } from "@/components/admin/EventForm";
 import { ErrorBlock, LoadingBlock, StatusPill } from "@/components/site/Bits";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EventOrders } from "@/components/admin/EventOrders";
 
 export const Route = createFileRoute("/admin/events/$id")({
   component: EditEventPage,
@@ -169,9 +170,11 @@ function EditEventPage() {
       <Tabs defaultValue="overview" className="space-y-5">
         <TabsList aria-label="Event sections" className="h-auto flex-wrap justify-start gap-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="edit">Edit event</TabsTrigger>
         </TabsList>
         <TabsContent value="overview"><EventOverview event={initialEvent} metrics={metrics} ticketCount={data.tickets.length} /></TabsContent>
+        <TabsContent value="orders"><EventOrders eventId={e.id} /></TabsContent>
         <TabsContent value="edit"><p className="mb-5 text-sm text-muted-foreground">Save changes before refreshing the public preview.</p><EventForm initialEvent={initialEvent} initialTickets={initialTickets} initialSpeakerIds={data.speakerIds} initialWorkshops={initialWorkshops} /></TabsContent>
       </Tabs>
     </AdminPage>
