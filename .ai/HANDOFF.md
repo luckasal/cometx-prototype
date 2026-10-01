@@ -20,6 +20,16 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Known issue: local preview must retain network access to Supabase. Configure read-only GA4 credentials to populate metrics.
 - Exact next recommended task: configure staging GA4 report credentials and verify counts against GA4.
 
+## 2026-10-01: consent-gated public analytics and conversion signals
+
+- Task completed: `ANALYTICS-CONSENT-01` — analytics tags and events now require explicit visitor opt-in; public route tracking is SPA-aware and excludes admin paths. Added consent preferences, privacy-safe outbound/WhatsApp tracking, account signup, canonical ticket funnel events, and confirmed membership activation; corrected cart checkout metadata to use server-provided event and membership data.
+- Owner / branch / worktree: Codex / `codex/analytics-admin` / `cometx-analytics-admin`.
+- Implementation commit: `9dd0b84`.
+- Files changed: `src/lib/analytics.ts`, `src/components/site/AnalyticsConsent.tsx`, `src/components/site/EventDetailTemplate.tsx`, `src/components/site/SiteFooter.tsx`, `src/routes/__root.tsx`, `src/routes/account.membership.tsx`, `src/routes/admin.analytics.tsx`, `src/routes/cart.tsx`, `src/routes/events.$slug.tsx`, `src/routes/membership.tsx`, `src/routes/register.tsx`, `tests/analytics.test.mjs`, `ANALYTICS.md`, `.ai/TASKS.md`.
+- Checks: TypeScript, production Vite build, four focused analytics tests and targeted ESLint rules (excluding Prettier and a pre-existing cart hook error) passed. Default ESLint reports repository-wide Prettier/line-ending findings plus the existing `useBuyerNameForAttendee` hook-in-callback error in `cart.tsx`; no unrelated fix was made.
+- Known issues/setup: GA4 measurement and reporting IDs/credentials are not configured in this worktree. `/admin/analytics` remains in setup state until `VITE_GA_MEASUREMENT_ID` and server-only GA4 Data API credentials are configured. Validate consent copy/privacy notice with CometX. Membership checkout is not enabled, so checkout-start/paid activation counts depend on a future real paid membership flow. Purchase remains browser return-page reporting after server-confirmed payment and issued tickets.
+- Exact next recommended task: securely configure staging GA4 measurement/report credentials, review consent/privacy wording, then verify events in GA4 DebugView and `/admin/analytics`.
+
 ## 2026-10-01: multi-Codex-thread collaboration setup
 
 - Task completed: `SETUP-01` — updated the existing repository instructions, shared context, task board, review format, and this handoff for independent Codex threads.
