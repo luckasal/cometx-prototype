@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-01: GA4 reports in staff admin
+
+- Task completed: `ANALYTICS-ADMIN-01` — added `/admin/analytics` with visitors, sessions, page views, acquisition channels, popular pages, and journey event counts; linked it from the staff dashboard and navigation.
+- Owner / branch / worktree: Codex / `codex/analytics-admin` / `cometx-analytics-admin`.
+- Implementation commit: `61866ba`.
+- Files changed: `src/lib/ga-report.server.ts`, `src/lib/admin-analytics.functions.ts`, `src/routes/admin.analytics.tsx`, `src/routes/admin.index.tsx`, `src/routes/admin.tsx`, `src/routeTree.gen.ts`, `.env.example`, `ANALYTICS.md`, `.ai/TASKS.md`.
+- Checks: production build, TypeScript check, focused ESLint, and `git diff --check` passed. No live GA4 property credentials were available for an API smoke test.
+- Known issues: server deployment must set `GA4_PROPERTY_ID`, `GA4_CLIENT_EMAIL`, `GA4_PRIVATE_KEY`, enable the GA4 Data API, and grant the service account property Viewer access. Existing browser purchase signal remains return-page dependent; event counts are not cohort conversion rates. No deployment or database change was made.
+- Exact next recommended task: configure the GA4 read-only credentials in staging and compare `/admin/analytics` with the GA4 property for the same 30-day period.
+
 ## 2026-10-01: multi-Codex-thread collaboration setup
 
 - Task completed: `SETUP-01` — updated the existing repository instructions, shared context, task board, review format, and this handoff for independent Codex threads.
