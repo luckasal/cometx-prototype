@@ -2,6 +2,17 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-01: Wix analytics parity comparison
+
+- Task: `ANALYTICS-WIX-PARITY-04`; status: done.
+- Branch/worktree: `codex/analytics-admin` / `cometx-analytics-admin`.
+- Implementation commit: `f43d5fa` (`Add Wix parity analytics breakdowns`).
+- What changed: added consent-gated click events for explicitly tagged high-value CTAs without sending button text; extended the existing server-side GA4 report with daily sessions/page views, country, device, landing page, new/returning visitors, bounce rate, and average session duration; documented coverage and remaining Wix differences.
+- Checks: TypeScript, focused ESLint (Prettier style rule disabled due CRLF baseline in touched files), six analytics tests, and whitespace-aware diff check pass.
+- Boundaries: Wix configuration and data were not accessed or changed. Existing GA4 setup/property and GA4 Data API server integration unchanged.
+- Known limitations: Wix historical data is separate; CometX does not provide real-time individual visitor journey views, item-array based top-ticket/product-pair reports, recoverable/abandoned cart reporting, or every-element click reporting. Event CTA dimension reports require registering `cta_id` as a GA4 event-scoped custom dimension if using the parameter dimension rather than event-name breakdowns. Admin reports still need valid existing server-side Data API credentials/property access to return live data.
+- Next: review commit; verify expanded reports in signed-in admin after confirming existing GA4 Data API environment/access. No deployment performed.
+
 ## 2026-10-01: GA4 event/ticket funnel
 
 - Task: `ANALYTICS-TICKET-FUNNEL-03`; status: done.
