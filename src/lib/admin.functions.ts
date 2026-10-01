@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 const idSchema = z.object({ id: z.string().uuid() });
@@ -559,6 +560,73 @@ export const adminListTicketOrders = createServerFn({ method: "GET" }).handler(a
   const { listAdminTicketOrders } = await import("./ticket-orders.server");
   return listAdminTicketOrders();
 });
+
+const eventAttendeesInput = z.object({ eventId: z.string().uuid() });
+const attendeeCheckInInput = z.object({ eventId: z.string().uuid(), attendeeId: z.string().uuid() });
+
+export const adminListEventAttendees = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => eventAttendeesInput.parse(d))
+  .handler(async ({ data }) => {
+    await admin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as unknown as SupabaseClient;
+    const rows: unknown[] = [];
+    const pageSize = 500;
+    for (let from = 0; ; from += pageSize) {
+      const { data: page, error } = await db.from("ticket_attendees")
+        .select("id,event_id,order_id,order_item_id,ticket_type_id,attendee_name,attendee_email,ticket_code,status,created_at,checked_in_at,checked_in_by,ticket_orders!inner(id,buyer_name,buyer_email,buyer_kind,status),ticket_order_items!inner(ticket_name)")
+        .eq("event_id", data.eventId)
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (error) throw new Error("Attendees could not be loaded. Please try again.");
+      rows.push(...(page ?? []));
+      if (!page || page.length < pageSize) break;
+    }
+    return JSON.parse(JSON.stringify(rows));
+  });
+
+export const adminCheckInEventAttendee = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => attendeeCheckInInput.parse(d))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./auth.server");
+    const actor = await requireAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as unknown as SupabaseClient;
+    const { data: attendee, error } = await db.from("ticket_attendees")
+      .select("id,status,ticket_orders!inner(status)")
+      .eq("id", data.attendeeId)
+      .eq("event_id", data.eventId)
+      .maybeSingle();
+    if (error || !attendee) throw new Error("This event ticket could not be found.");
+    const attendeeRow = attendee as unknown as {
+      status: string;
+      ticket_orders: { status: string } | { status: string }[] | null;
+    };
+    const orderStatus = Array.isArray(attendeeRow.ticket_orders)
+      ? attendeeRow.ticket_orders[0]?.status
+      : attendeeRow.ticket_orders?.status;
+    const { canCheckInEventTicket } = await import("./event-attendees");
+    if (attendeeRow.status === "checked_in") return { ok: true, alreadyCheckedIn: true };
+    if (!canCheckInEventTicket(attendeeRow.status, orderStatus ?? "")) {
+      throw new Error("Only a valid ticket from a confirmed order can be checked in.");
+    }
+
+    const { data: checkedIn, error: updateError } = await db.from("ticket_attendees")
+      .update({ status: "checked_in", checked_in_at: new Date().toISOString(), checked_in_by: actor.userId })
+      .eq("id", data.attendeeId)
+      .eq("event_id", data.eventId)
+      .eq("status", "valid")
+      .select("id")
+      .maybeSingle();
+    if (updateError) throw new Error("The ticket could not be checked in. Please try again.");
+    if (!checkedIn) {
+      const { data: current } = await db.from("ticket_attendees")
+        .select("status").eq("id", data.attendeeId).eq("event_id", data.eventId).maybeSingle();
+      if (current?.status === "checked_in") return { ok: true, alreadyCheckedIn: true };
+      throw new Error("The ticket status changed. Refresh the attendee list and try again.");
+    }
+    return { ok: true, alreadyCheckedIn: false };
+  });
 
 /* ------------------------------ structured content ---------------------------- */
 

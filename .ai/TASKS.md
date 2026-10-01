@@ -5,6 +5,7 @@ One active owner per task. Before editing, record a task ID, owner/thread, branc
 | ID | Task | Owner / branch | Status | Decision or blocker |
 | --- | --- | --- | --- | --- |
 | EVENT-ADMIN-2A | Event list search/filters/metrics/actions and event Overview tab | Codex / `codex/event-admin-phase-2a` | done | Implemented and typechecked. Other event tabs and excluded features remain for later phases. |
+| EVENT-OPS-2B | Event-scoped attendee roster, check-in and export | Codex / `codex/event-ops` | done | UI/server/migration implemented and focused checks pass. Migration `0010` remains unapplied and must follow pending `0007`–`0009`; runtime check-in awaits coordinated sandbox verification. |
 | SETUP-01 | Multi-Codex-thread repository instructions and handoff templates | setup thread / `codex-dev` | done | Documentation only; existing unfinished code preserved. |
 | EVENT-READ-01 | Verify and finish legacy event-capacity read compatibility | unassigned; current change in `cometx-codex` | in progress | `src/lib/events.functions.ts` is dirty; claim ownership before touching it. Do not deploy all of `codex-dev` without schema/release review. |
 | RELEASE-01 | Plan coordinated migrations `0007`–`0009` and checkout release | unassigned | blocked | Requires schema/security review and sandbox payment verification. |

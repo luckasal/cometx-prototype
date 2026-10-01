@@ -1,15 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { adminGetEvent } from "@/lib/admin.functions";
+import { adminCheckInEventAttendee, adminGetEvent, adminListEventAttendees } from "@/lib/admin.functions";
 import { formatEventLifecycleStatus } from "@/lib/event-admin";
 import type { AdminEventMetrics, AdminEventOrderSummary } from "@/lib/event-admin-metrics.server";
+import { canCheckInEventTicket, csvCell } from "@/lib/event-attendees";
 import { formatMoney } from "@/lib/pricing";
-import { AdminPage } from "@/components/admin/AdminBits";
+import { AdminPage, AdminTable, inputClass } from "@/components/admin/AdminBits";
 import { EventForm, type EventFormValues, type TicketDraft, type WorkshopDraft } from "@/components/admin/EventForm";
-import { ErrorBlock, LoadingBlock, StatusPill } from "@/components/site/Bits";
+import { EmptyBlock, ErrorBlock, LoadingBlock, StatusPill } from "@/components/site/Bits";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/events/$id")({
   component: EditEventPage,
@@ -94,6 +98,106 @@ function EventOverview({ event, metrics, ticketCount }: { event: EventFormValues
   </div>;
 }
 
+type EventAttendee = {
+  id: string;
+  event_id: string;
+  order_id: string;
+  attendee_name: string;
+  attendee_email: string;
+  ticket_code: string;
+  status: string;
+  created_at: string;
+  checked_in_at: string | null;
+  ticket_orders: { buyer_name: string; buyer_email: string; buyer_kind: string; status: string } | { buyer_name: string; buyer_email: string; buyer_kind: string; status: string }[];
+  ticket_order_items: { ticket_name: string } | { ticket_name: string }[];
+};
+
+function relationOne<T>(relation: T | T[] | null | undefined): T | null {
+  return Array.isArray(relation) ? relation[0] ?? null : relation ?? null;
+}
+
+function EventAttendees({ eventId, eventTitle }: { eventId: string; eventTitle: string }) {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const queryClient = useQueryClient();
+  const listAttendees = useServerFn(adminListEventAttendees);
+  const checkIn = useServerFn(adminCheckInEventAttendee);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["admin", "event-attendees", eventId],
+    queryFn: () => listAttendees({ data: { eventId } }),
+  });
+  const checkInMutation = useMutation({
+    mutationFn: (attendeeId: string) => checkIn({ data: { eventId, attendeeId } }),
+    onSuccess: (result) => {
+      toast.success(result.alreadyCheckedIn ? "Ticket was already checked in" : "Ticket checked in");
+      queryClient.invalidateQueries({ queryKey: ["admin", "event-attendees", eventId] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const attendees = (data ?? []) as EventAttendee[];
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return attendees.filter((attendee) => {
+      if (status !== "all" && attendee.status !== status) return false;
+      const order = relationOne(attendee.ticket_orders);
+      const ticket = relationOne(attendee.ticket_order_items);
+      return !term || [attendee.attendee_name, attendee.attendee_email, attendee.ticket_code, order?.buyer_name, order?.buyer_email, ticket?.ticket_name]
+        .some((value) => value?.toLowerCase().includes(term));
+    });
+  }, [attendees, search, status]);
+  const issuedCount = attendees.filter((attendee) => attendee.status === "valid" || attendee.status === "checked_in").length;
+  const checkedInCount = attendees.filter((attendee) => attendee.status === "checked_in").length;
+
+  function exportCsv() {
+    const header = ["Event", "Attendee", "Attendee email", "Ticket", "Ticket code", "Buyer", "Buyer email", "Buyer type", "Order status", "Ticket status", "Checked in at"];
+    const rows = filtered.map((attendee) => {
+      const order = relationOne(attendee.ticket_orders);
+      const ticket = relationOne(attendee.ticket_order_items);
+      return [eventTitle, attendee.attendee_name, attendee.attendee_email, ticket?.ticket_name, attendee.ticket_code, order?.buyer_name, order?.buyer_email, order?.buyer_kind, order?.status, attendee.status, attendee.checked_in_at]
+        .map(csvCell).join(",");
+    });
+    const blob = new Blob([[header.map(csvCell).join(","), ...rows].join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${eventTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "event"}-attendees.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return <div className="space-y-5">
+    <div className="grid gap-3 sm:grid-cols-3">
+      <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Issued tickets</p><p className="mt-2 text-2xl font-bold tabular-nums">{issuedCount}</p></div>
+      <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Checked in</p><p className="mt-2 text-2xl font-bold tabular-nums">{checkedInCount}</p></div>
+      <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Roster records</p><p className="mt-2 text-2xl font-bold tabular-nums">{attendees.length}</p></div>
+    </div>
+    <div className="flex flex-wrap gap-3">
+      <input className={`${inputClass} min-w-56 flex-1`} aria-label="Search attendees" placeholder="Search attendee, buyer, ticket code" value={search} onChange={(event) => setSearch(event.target.value)} />
+      <select className={inputClass} aria-label="Filter ticket status" value={status} onChange={(event) => setStatus(event.target.value)}><option value="all">All ticket statuses</option>{["valid", "checked_in", "cancelled", "refunded"].map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}</select>
+      <Button type="button" variant="outlineInk" onClick={exportCsv} disabled={!filtered.length}>Export CSV</Button>
+    </div>
+    {isLoading && <LoadingBlock label="Loading event attendees" />}
+    {error && <ErrorBlock error={error} />}
+    {data && attendees.length === 0 && <EmptyBlock title="No issued tickets for this event yet" />}
+    {data && attendees.length > 0 && filtered.length === 0 && <EmptyBlock title="No matching attendees" />}
+    {filtered.length > 0 && <AdminTable head={["Attendee", "Ticket", "Buyer", "Ticket code", "Status", "Check-in"]}>
+      {filtered.map((attendee) => {
+        const order = relationOne(attendee.ticket_orders);
+        const ticket = relationOne(attendee.ticket_order_items);
+        return <tr key={attendee.id} className="align-top [&>td]:px-4 [&>td]:py-3">
+          <td><strong>{attendee.attendee_name}</strong><span className="block text-xs text-muted-foreground">{attendee.attendee_email}</span></td>
+          <td>{ticket?.ticket_name ?? "Ticket"}</td>
+          <td><strong>{order?.buyer_name ?? "—"}</strong><span className="block text-xs text-muted-foreground">{order?.buyer_email} · {order?.buyer_kind === "member" ? "Account holder" : "Guest"}</span></td>
+          <td><code className="text-xs">{attendee.ticket_code}</code></td>
+          <td><StatusPill tone={attendee.status === "valid" || attendee.status === "checked_in" ? "success" : "muted"}>{attendee.status.replaceAll("_", " ")}</StatusPill></td>
+          <td>{canCheckInEventTicket(attendee.status, order?.status ?? "") ? <Button size="sm" variant="ink" disabled={checkInMutation.isPending} onClick={() => checkInMutation.mutate(attendee.id)}>Check in</Button> : attendee.checked_in_at ? <span className="text-xs text-muted-foreground">{new Date(attendee.checked_in_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span> : "—"}</td>
+        </tr>;
+      })}
+    </AdminTable>}
+    <p className="text-xs text-muted-foreground">This roster includes issued order tickets. Legacy registrations that do not have issued ticket records are not included.</p>
+  </div>;
+}
+
 function EditEventPage() {
   const { id } = Route.useParams();
   const fetchEvent = useServerFn(adminGetEvent);
@@ -167,9 +271,11 @@ function EditEventPage() {
       <Tabs defaultValue="overview" className="space-y-5">
         <TabsList aria-label="Event sections" className="h-auto flex-wrap justify-start gap-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="attendees">Attendees</TabsTrigger>
           <TabsTrigger value="edit">Edit event</TabsTrigger>
         </TabsList>
         <TabsContent value="overview"><EventOverview event={initialEvent} metrics={metrics} ticketCount={data.tickets.length} /></TabsContent>
+        <TabsContent value="attendees"><EventAttendees eventId={e.id} eventTitle={e.title} /></TabsContent>
         <TabsContent value="edit"><p className="mb-5 text-sm text-muted-foreground">Save changes before refreshing the public preview.</p><EventForm initialEvent={initialEvent} initialTickets={initialTickets} initialSpeakerIds={data.speakerIds} initialWorkshops={initialWorkshops} /></TabsContent>
       </Tabs>
     </AdminPage>

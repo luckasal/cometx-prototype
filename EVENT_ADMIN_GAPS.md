@@ -49,12 +49,21 @@ Event creation/editing, multiple ticket types, guest/member pricing, a multi-eve
 - Validation: `node node_modules/typescript/bin/tsc --noEmit` passed; `git -c core.whitespace=cr-at-eol diff --check` passed. No database/provider calls or app build were performed.
 - Remaining event-list/detail work is described in the table above; continue with the separately assigned next phase.
 
+## Phase 2B completion (2026-10-01)
+
+- Added an event-scoped attendee roster under each event's Attendees tab, with search, ticket-status filter, issued/checked-in counts, CSV export, and staff check-in for valid tickets belonging to confirmed or free orders.
+- Check-in is performed server-side after admin authorization and records the acting staff user and timestamp. It is idempotent for already checked-in tickets and scopes reads/updates to the selected event.
+- The roster reflects issued `ticket_attendees` records only; legacy registrations without issued ticket records remain outside the roster and require a separate reconciliation/product decision.
+- Added migration `0010_event_attendee_checkin_audit.sql` for check-in audit columns. It is not applied to Supabase and must follow migrations `0007`–`0009` before the new admin UI is deployed.
+- Validation: focused unit tests, TypeScript check, and CRLF-aware diff check passed. No database, browser, or sandbox-checkout test was performed.
+- Next: coordinate review/application of migrations `0007`–`0010`, then verify test-mode order fulfillment and event check-in against the target Supabase environment before deploying.
+
 ## Suggested implementation sequence
 
-1. **Event operations foundation (remaining):** per-event Orders and Guests views; attendee export and check-in action; robust order detail and staff action boundaries.
+1. **Event operations foundation (remaining):** per-event Orders/Guests views and robust order detail/staff action boundaries; attendee export and check-in are implemented but await migration and runtime verification.
 2. **Ticket and event configuration:** improve ticket lifecycle/sold counts; add required checkout/attendee fields, configurable order limit, policies, confirmation/cancellation settings; make event/ticket saves transactional.
 3. **Communications and promotion:** event-specific message controls and delivery visibility; coupons and newsletter/share links.
 4. **Event analytics:** per-event views/funnel and sales/capacity reporting with clear data sources and GA4 links.
 5. **Release verification:** coordinate pending migrations with matching code, verify server secrets and Resend readiness without exposing provider mechanics, and run a sandbox checkout through signed webhook fulfillment and purchased-ticket access.
 
-This is an audit only. No feature implementation is included in Phase 1.
+Phase 1 is the source and product-scope audit above. Phases 2A and 2B record the implementation completed so far; migrations and release verification remain separate coordinated work.
