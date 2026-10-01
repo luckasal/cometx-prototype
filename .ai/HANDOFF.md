@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-01: event admin Phase 2A — list and overview
+
+- Task completed: `EVENT-ADMIN-2A` — event list search/filters, sales summary and quick actions; per-event Overview tab alongside the existing editor.
+- Files changed: `src/routes/admin.events.index.tsx`, `src/routes/admin.events.$id.tsx`, `src/lib/admin.functions.ts`, `src/lib/event-admin.ts`, `src/lib/event-admin-metrics.server.ts`, `EVENT_ADMIN_GAPS.md`, `.ai/TASKS.md`, `.ai/HANDOFF.md`.
+- Validation: `node node_modules/typescript/bin/tsc --noEmit` passed. `git -c core.whitespace=cr-at-eol diff --check` passed. No app build, database/provider operation, or runtime UI session was run.
+- Decisions: order-ledger ticket/revenue totals count confirmed paid/free order lines and confirmed legacy registrations; revenue is grouped by currency. Recent orders display five rows. Metrics support the pre-`0008` single-event order-line schema. Lifecycle filters prioritize completed/cancelled over publication state; the Overview shows publication and registration status separately.
+- Known issues: event list metrics require ticket-order tables from migration `0006`, which the active project context says are applied. Hosted `0007`–`0009` and checkout verification remain pending. Duplicate-event action and all excluded detail sections remain unimplemented.
+- Implementation commit: `2dc4fd5`.
+- Exact next task: continue with the remaining event operations scope in `EVENT_ADMIN_GAPS.md`, with Orders/Guests separated from Tickets/Settings/Emails/Promotion/Analytics as requested.
+
 ## 2026-10-01: multi-Codex-thread collaboration setup
 
 - Task completed: `SETUP-01` — updated the existing repository instructions, shared context, task board, review format, and this handoff for independent Codex threads.
