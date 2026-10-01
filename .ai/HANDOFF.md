@@ -5,6 +5,8 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 ## 2026-10-01: local backoffice sign-in diagnosis
 
 - Task: `LOCAL-AUTH-01` — restore `/admin` in the Phase 2A local preview.
+- Files changed: `.ai/TASKS.md`, `.ai/HANDOFF.md` (task tracking only; no app source change remains).
+- Tracking commit: `088d170`.
 - Result: verified the global client middleware sends an Authorization bearer header. Server validation now uses the Supabase URL/public key taken from the already-running CometX client configuration and was run with Supabase network access; the current browser token is rejected with `AuthSessionMissingError` (stale/revoked for that Auth project). The login page is open at `http://127.0.0.1:3004/login?redirect=%2Fadmin` for a fresh manual sign-in.
 - No production data was changed; no credentials or tokens were printed or saved. No application source changes remain from diagnostics.
 - Blocker: this worktree has no local `SUPABASE_SERVICE_ROLE_KEY`; Phase 2A event sales metrics use the server-only key, so the event list needs that secret supplied through the existing secure local environment after sign-in. Do not put it in chat or commit it.
