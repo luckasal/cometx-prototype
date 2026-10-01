@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-01: visual-only admin analytics dashboard preview
+
+- Task: `ANALYTICS-ADMIN-UI-01` — prepared a dashboard shell with empty KPI cards, traffic/source/page panels, and ticket, membership, and engagement funnels. Empty values are explicit; no sample numbers or traffic are fabricated. No reporting/API credentials, Wix, or analytics backend changes.
+- Owner / branch / worktree: Codex / `codex/analytics-admin` / `cometx-analytics-admin`.
+- Implementation commit: `234fc5a`.
+- Files changed: `src/routes/admin.analytics.tsx`, `.ai/TASKS.md`.
+- Checks: TypeScript, focused ESLint, and production Vite build passed.
+- Visual QA: local preview redirected to the login page because this browser session was not authenticated. Admin guards were not bypassed. The dashboard UI should be reviewed after signing in to the local admin preview.
+- Exact next recommended task: sign in to the local preview and inspect the empty-state dashboard layout; enable no real report fetching until separately authorized/configured.
+
 ## 2026-10-01: complete GA4 app tracking inventory
 
 - Task completed: `ANALYTICS-TRACKING-02` — added `partner_click` to the consent-aware GA4 helper and partner website links. It sends only a stable partner record ID and destination hostname. Updated `ANALYTICS.md` with all active event names, properties, firing locations, ticket/membership funnel definitions and DebugView steps.
