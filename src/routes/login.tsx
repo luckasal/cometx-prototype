@@ -45,7 +45,7 @@ function LoginPage() {
     }
     trackEvent("login", { method: "password" });
     toast.success("Welcome back");
-    window.location.href = safeReturnPath(redirect);
+    await navigate({ to: safeReturnPath(redirect) as never });
   }
 
   return (
