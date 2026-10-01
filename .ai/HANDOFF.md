@@ -2,6 +2,19 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-01: Phase 3A — event Orders workspace
+
+- Task: `EVENT-ADMIN-3A`; branch/worktree `codex/event-admin-phase-2a` / `cometx-event-admin-phase-2a`.
+- Implementation commit: `a6b071b`.
+- Files: `src/components/admin/EventOrders.tsx`, `src/lib/event-orders.ts`, `src/lib/event-orders.server.ts`, `src/lib/event-orders.functions.ts`, `src/routes/admin.events.$id.tsx`, `tests/event-orders.test.mjs`, `EVENT_SYSTEM_SPEC.md`, `EVENT_ADMIN_GAPS.md`, `.ai/TASKS.md`.
+- Added read-only Orders tab: buyer/email/full-reference search, status/buyer filters, exact count and database pagination, expandable buyer/payment/issued-ticket details. Multi-event orders expose only selected-event lines/attendees; full order total/payment state are labelled separately. Recorded member/included price basis is shown without inventing discount amounts or membership status.
+- Admin authorization runs before privileged module imports. Explicit field projection excludes guest tokens/provider IDs. Known legacy line-event schema errors retry with parent-event scope; other failures show an error/retry state, never an empty history.
+- Checks: TypeScript passed; 8 focused tests passed, including authorization boundary, event isolation, pagination, legacy fallback, filter escaping and real component rendering; focused ESLint and staged whitespace checks passed.
+- No migrations, hosted data writes, provider calls, or production deployment. Runtime staff/order verification remains pending: local preview lacks server-only Supabase key and the current browser is on login. Pre-issuance attendee names, numeric historical discounts, resend/refund/cancel actions remain gaps.
+- Master spec preserved verbatim in `EVENT_SYSTEM_SPEC.md`; audit now labels DONE/PARTIAL/MISSING/RELEASE BLOCKER and distinguishes other-branch work. Guests/check-in/export exists on `codex/event-ops` (`ce82633`); platform cleanup exists there (`f575dc7`). Neither is integrated here. A coordination message failed with “thread not found”; committed task-board ownership was inspected and no active Orders task was recorded.
+- Pre-existing generated `src/routeTree.gen.ts` change remains unstaged.
+- Exact next phase: review/integrate existing Guests/check-in/export from `codex/event-ops`, coordinating its pending migration and hosted checks. Do not rebuild it independently or start automatically.
+
 ## 2026-10-01: event admin remains useful without metrics
 
 - Task: `EVENT-ADMIN-2B` — keep event list and Overview available when server-side sales/order metrics cannot load.
