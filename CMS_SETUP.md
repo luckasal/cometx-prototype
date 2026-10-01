@@ -9,12 +9,16 @@ Run `supabase/real-content-2026.sql` once after the core migrations to seed the 
 Set these in Vercel for the production and preview environments:
 
 - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_DB_URL` for Drizzle migration tooling; keep this database connection string server-side
+- `CRON_SECRET` and optionally `CRON_SECRET_PREVIOUS` for authenticated scheduled requests
 - `RESEND_API_KEY` when newsletter delivery is ready
 - `RESEND_FROM_EMAIL` with a sender/domain verified in Resend, for guest ticket confirmations
 - `GUEST_TICKET_TOKEN_SECRET` (at least 32 random characters) to sign/encrypt private guest ticket access links
 - `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in **test mode only** for sandbox purchases
 - `SITE_URL` set to the exact HTTPS site origin used for Checkout redirects and guest ticket links
 - `VITE_GA_MEASUREMENT_ID` and/or `VITE_GTM_CONTAINER_ID` after analytics tags are added
+
+When updating an existing deployment, rename any retired vendor-prefixed database-migration or cron-secret environment variables to the neutral names above before deploying. Secret values should remain in the hosting provider's server-only environment; never copy them into `VITE_*` variables or Git.
 
 Migrations `0005_hidden_ticket_payments.sql` and `0006_ticket_orders_and_guests.sql` were applied to the CometX Supabase project in the earlier ticketing release. Before enabling the combined multi-event checkout, verify that `0007_multi_event_checkout.sql` is present, then apply `0008_single_multi_event_order.sql` followed by `0009_membership_event_pricing.sql` in order and deploy the matching app build as a coordinated release. `0007` adds the checkout/guest-access envelope; `0008` makes one order/payment cover all event lines, stores each named attendee separately, and issues one linked ticket per attendee. The Stripe **test-mode** webhook must point to `/api/public/stripe-webhook`. Verify one sandbox payment covering two events and a webhook replay before promoting. Do not enable live payments. Migration `0010_event_attendee_checkin_audit.sql` adds check-in time and staff actor fields; apply it only after the checkout migrations and before deploying the admin check-in UI. Do not enable live payments. Membership Billing, Connect, Terminal, automated tax and initiating refunds remain out of scope.
 

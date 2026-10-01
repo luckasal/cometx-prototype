@@ -1,6 +1,6 @@
 # CometX
 
-This is the active CometX application imported from the supplied Lovable archive. It uses TanStack Start, React, strict TypeScript, Tailwind, Supabase and Stripe test mode. It preserves the imported dark/lime CometX design and images. See DEVELOPMENT.md for verified behavior and remaining work.
+This is the active CometX application. It uses TanStack Start, React, strict TypeScript, Tailwind, Supabase and Stripe test mode. It uses the CometX dark/lime brand system and official assets. See DEVELOPMENT.md for verified behavior and remaining work.
 
 ## Local development
 

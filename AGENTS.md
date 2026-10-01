@@ -1,14 +1,3 @@
-<!-- LOVABLE:BEGIN -->
-> [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
->
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
-<!-- LOVABLE:END -->
-
 ## CometX multi-thread workflow
 
 Every Codex thread must, before editing, read this file plus `.ai/CONTEXT.md`, `.ai/TASKS.md`, and `.ai/HANDOFF.md`; read `.ai/REVIEW.md` when reviewing or resolving findings. Inspect `git status --short --branch` and recent commits (`git log -5 --oneline`).

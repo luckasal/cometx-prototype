@@ -5,7 +5,7 @@ Active app: `imported-cometx` (TanStack Start). Keep the existing frontend.
 ## Supabase
 
 Your project is `vlcssswzlvamtscyobbv`, in the CometX organisation, Europe (Ireland).
-The old Lovable project is no longer used by the active app.
+This file describes an earlier stakeholder prototype and is retained only as historical setup context. For current development, use `README.md`, `CMS_SETUP.md`, and the shared instructions in `AGENTS.md` and `.ai/`.
 
 Enable email/password signup in Authentication → Sign In / Providers.
 For this isolated demo, **Confirm email is off**. No email provider is needed.
