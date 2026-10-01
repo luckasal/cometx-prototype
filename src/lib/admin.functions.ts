@@ -74,29 +74,50 @@ const eventSchema = z.object({
 
 export const adminListEvents = createServerFn({ method: "GET" }).handler(async () => {
   const db = await admin();
-  const { data } = await db
+  const { data, error } = await db
     .from("events")
-    .select("id,title,slug,event_type,publish_state,event_status,start_date,capacity,featured")
+    .select("id,title,slug,event_type,publish_state,event_status,start_date,end_date,venue,address,capacity,featured,hero_image_url,short_description,description,registration_start,registration_end,updated_at")
     .order("start_date", { ascending: false });
-  return data ?? [];
+  if (error) throw new Error(error.message);
+  const events = data ?? [];
+  const { getAdminEventMetrics } = await import("./event-admin-metrics.server");
+  const metrics = await getAdminEventMetrics(events.map((event) => event.id));
+  return events.map((event) => ({ ...event, metrics: metrics[event.id] }));
 });
 
 export const adminGetEvent = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => {
     const db = await admin();
-    const [{ data: event }, { data: tickets }, { data: speakers }, { data: workshops }] = await Promise.all([
+    const [eventResult, ticketsResult, speakersResult, workshopsResult] = await Promise.all([
       db.from("events").select("*").eq("id", data.id).maybeSingle(),
       db.from("ticket_types").select("*").eq("event_id", data.id).eq("active", true).order("sort_order"),
       db.from("event_speakers").select("speaker_id").eq("event_id", data.id),
       db.from("workshops").select("*").eq("event_id", data.id).order("start_time"),
     ]);
+    for (const result of [eventResult, ticketsResult, speakersResult, workshopsResult]) {
+      if (result.error) throw new Error(result.error.message);
+    }
+    const event = eventResult.data;
+    if (!event) return null;
+    const { getAdminEventMetrics } = await import("./event-admin-metrics.server");
     return {
       event,
-      tickets: tickets ?? [],
-      speakerIds: (speakers ?? []).map((s) => s.speaker_id),
-      workshops: workshops ?? [],
+      tickets: ticketsResult.data ?? [],
+      speakerIds: (speakersResult.data ?? []).map((s) => s.speaker_id),
+      workshops: workshopsResult.data ?? [],
+      metrics: (await getAdminEventMetrics([event.id]))[event.id],
     };
+  });
+
+export const adminSetEventPublishState = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), publishState: z.enum(["published", "unpublished"]) }).parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin();
+    const { data: event, error } = await db.from("events").update({ publish_state: data.publishState }).eq("id", data.id).select("id").maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!event) throw new Error("This event could not be updated.");
+    return { ok: true };
   });
 
 export const adminSaveEvent = createServerFn({ method: "POST" })

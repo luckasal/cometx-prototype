@@ -1,0 +1,60 @@
+# Event admin gap audit
+
+**Audit date:** 2026-10-01
+**Scope:** Active application in `cometx-codex` on `codex-dev`; admin and public event, ticket, order, and account-ticket flows.
+**Method:** Source and migration review. Phase 2A implementation status is appended below.
+
+## Executive summary
+
+Event creation/editing, multiple ticket types, guest/member pricing, a multi-event cart, Stripe checkout, webhook fulfillment, and purchased-ticket views already exist. Phase 2A adds the requested event list management and per-event Overview. The remaining admin work is still substantial. The public purchase flow has foundations, but production readiness is not established: migrations `0007`–`0009` are pending in the connected Supabase project, and the Stripe test checkout/webhook flow has not had an end-to-end purchase verified.
+
+## Admin target coverage
+
+| Target area | Current state | Gap / impact |
+| --- | --- | --- |
+| **Event list** | `/admin/events` has title/slug search, lifecycle and event-type filters, image, lifecycle status, start date/time, location, ticket sales/revenue, last modified, and edit/view/preview/publish/unpublish/delete actions. Add event is available. | Duplicate action is not available. Sales totals intentionally cover confirmed paid/free ticket orders and confirmed legacy registrations. |
+| **Event overview/detail** | `/admin/events/$id` opens an Overview tab with publication/registration states, preview/public URL, date/time/location/type/capacity, ticket count/capacity progress, confirmed revenue, five recent orders, and a setup checklist. Existing event editing is available on a separate Edit event tab. | Other requested detail areas (Orders, Guests, Tickets workspace, Settings, Emails, Promotion, and Analytics) remain unimplemented. Preview displays saved event data. |
+| **Tickets** | The event form supports multiple active ticket types with public price, optional explicit member price or entitlement-based benefits, sale start/end, per-type capacity, and free/required/discount entitlements. Removed ticket types are marked inactive by save logic. Server-side pricing and checkout validation exist. | No sold count or capacity progress in the editor; no explicit early-bird pricing concept (a separately configured ticket/sale window is the available workaround); no archive/unarchive management for inactive ticket types. Stripe product/price synchronization runs in server code, but the save response exposes a generic “online payments are not ready” warning to staff when sync is unavailable, so the provider integration is not entirely invisible. |
+| **Settings** | Event registration open/close dates and event status are editable. Checkout currently requests buyer and attendee names/email in the cart; server validation caps a basket at 10 tickets. | No per-event checkout-field configuration, per-ticket attendee-field configuration, configurable order limit, policy/consent configuration, event confirmation-message settings, or cancellation/refund policy controls. The 10-ticket limit is a code-level rule, not an event setting. |
+| **Orders** | `/admin/orders` provides global text search and status filter, buyer/contact details, event/ticket breakdown, attendee names and codes, amount, buyer kind, order/payment status, and creation date. | It is not scoped to an event and has no order-detail route/action. It fetches only the latest 500 orders, and its totals cover only that result. No resend/access-ticket action is available in this UI. Cancellation and refund actions are explicitly disabled. |
+| **Guests / attendees** | Attendee records and ticket codes are visible nested under orders. Buyer kind is stored as member/guest. | No dedicated per-event attendee roster, attendee search/filter, check-in control, member-vs-guest attendee view, contact link, or CSV export. The display says “Account holder” for signed-in buyers; that does not establish active membership. Existing attendee statuses include `checked_in`, but the admin UI does not provide check-in operations. |
+| **Emails** | Guest ticket confirmation delivery is implemented server-side through Resend when required configuration is available. Resend settings are shown generically on the global integrations page. | No per-event email settings or staff controls for confirmation, reminders, cancellation/update, or post-event messages. Staff cannot enable/disable these event messages in event detail. Delivery configuration and retry/operational status are not surfaced as event operations. |
+| **Promotion** | Public event URL/preview are available from the edit form. | No event coupon/discount management, newsletter campaign link, share controls, or event-linked GA4/conversion report link. |
+| **Analytics** | Consent-aware GA4 helpers exist; checkout/purchase signal wiring is documented in `ANALYTICS.md`. | No per-event analytics view for views, funnel, orders, sales over time, gross/net sales, or capacity progress. The admin order page has a limited confirmed-revenue total but no event attribution analytics or funnel. |
+
+## Public flow and backend coverage
+
+| Capability | Current state | Remaining verification / gap |
+| --- | --- | --- |
+| Guest and member prices | Server code calculates the quote from ticket price and current membership entitlements; database reservation/checkout functions repeat membership and capacity checks. | Confirm configured member benefits and eligibility against the target release data. Do not rely on browser-calculated prices. |
+| Multiple ticket types, quantities, cart | Event pages allow ticket selection; `/cart` supports multiple ticket lines/events, quantity changes, and attendee names per ticket. Basket limits and currency constraints are enforced. | The current documented checkout has no end-to-end production-like verification. |
+| Stripe payment and ticket issuance | Stripe is handled server-side; signed webhook fulfillment is the confirmation path. `/account/events` shows purchased/issued tickets; guest tickets have a secure guest-access route. | `.ai/CONTEXT.md` and `DEVELOPMENT.md` report hosted migrations `0007`–`0009` pending and no complete sandbox checkout/webhook purchase verified. Release must coordinate code, migrations, environment configuration, and test-mode verification. |
+| Supabase source of truth | Event, ticket, order, payment, and attendee data are stored/read through Supabase; Stripe is used for payment processing. Admin server functions require an admin. | `adminSaveEvent` performs event, speaker, ticket, and workshop writes as separate operations rather than one database transaction; failures after an earlier write can leave a partial save. A transactional save boundary and recovery behavior should be addressed before treating event editing as production-ready. |
+| Stripe sync visibility | Provider calls are contained in server-side ticket payment code. | The event form receives `paymentSyncReady` and displays a warning when sync is not ready. Decide how staff should be informed of actionable availability while keeping Stripe mechanics hidden. |
+| Refund/cancellation | Order statuses include cancelled/refunded and the order page reports them. | The UI explicitly states refund and cancellation actions are not enabled. Automatic refunds are also identified as unimplemented in the handoff history. Define staff action and provider/database reconciliation before enabling these statuses operationally. |
+
+## Release and repository notes
+
+- The active project is `cometx-codex`; the parent workspace is an older Next.js/Payload scaffold. The root-level `.ai/CONTEXT.md`, `.ai/TASKS.md`, and `.ai/HANDOFF.md` requested at the workspace root do not exist; the active app's `.ai` directory contains the applicable project guidance.
+- `.ai/CONTEXT.md` says migrations `0007`–`0009` are pending in connected Supabase. `DEVELOPMENT.md` says no sandbox checkout/webhook purchase has been verified. This is a release blocker for claiming the entire public purchase flow production-ready, independent of admin UI gaps.
+- `src/lib/events.functions.ts` has a pre-existing uncommitted event-capacity compatibility change tracked as `EVENT-READ-01`. This audit did not modify it.
+- The active project has no `.ai/REVIEW.md`-based review finding added by this audit; this document is a product-scope gap inventory, not a code review.
+
+## Phase 2A completion (2026-10-01)
+
+- Implemented event-list search, lifecycle/event-type filters, image/title, start, location, sold count, confirmed revenue, last modified, and edit/view/preview/publish/unpublish/delete actions.
+- Added server-side event sales summaries using ticket orders and confirmed legacy registrations. Metrics page through matching order rows, report confirmed order revenue by currency, and fall back to the pre-`0008` single-event ticket-order schema.
+- Added an Overview/Edit event tab arrangement. Overview includes links, event facts, capacity progress, revenue, recent order summary, and setup completeness checks.
+- Phase boundaries observed: no Orders or Guests pages/actions, ticket editor changes, Emails, Promotion, or Analytics work.
+- Validation: `node node_modules/typescript/bin/tsc --noEmit` passed; `git -c core.whitespace=cr-at-eol diff --check` passed. No database/provider calls or app build were performed.
+- Remaining event-list/detail work is described in the table above; continue with the separately assigned next phase.
+
+## Suggested implementation sequence
+
+1. **Event operations foundation (remaining):** per-event Orders and Guests views; attendee export and check-in action; robust order detail and staff action boundaries.
+2. **Ticket and event configuration:** improve ticket lifecycle/sold counts; add required checkout/attendee fields, configurable order limit, policies, confirmation/cancellation settings; make event/ticket saves transactional.
+3. **Communications and promotion:** event-specific message controls and delivery visibility; coupons and newsletter/share links.
+4. **Event analytics:** per-event views/funnel and sales/capacity reporting with clear data sources and GA4 links.
+5. **Release verification:** coordinate pending migrations with matching code, verify server secrets and Resend readiness without exposing provider mechanics, and run a sandbox checkout through signed webhook fulfillment and purchased-ticket access.
+
+This is an audit only. No feature implementation is included in Phase 1.
