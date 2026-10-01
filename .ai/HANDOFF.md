@@ -2,6 +2,18 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-01: GA4 event/ticket funnel
+
+- Task: `ANALYTICS-TICKET-FUNNEL-03`; status: done.
+- Branch: `codex/analytics-admin`.
+- Implementation commit: `f3b6c53` (`Track complete event ticket funnel in GA4`).
+- What changed: added consent-gated events-list and member-pricing signals, pricing categories, cart view/quantity/removal values, validated attendee submission, checkout error and cancellation signals, and server-confirmed failed-payment tracking. Purchase remains restricted to server-confirmed paid orders with issued tickets and is deduplicated in the browser. Added safe event/ticket metadata where it can be uniquely identified and documented all requested events plus the event and member-pricing funnels.
+- Files: `src/lib/analytics.ts`, `src/routes/events.index.tsx`, `src/routes/events.$slug.tsx`, `src/components/site/EventDetailTemplate.tsx`, `src/routes/cart.tsx`, `src/routes/account.events.tsx`, `src/routes/tickets.guest.tsx`, `ANALYTICS.md`, `tests/analytics.test.mjs`, `.ai/TASKS.md`.
+- Validation: TypeScript check, six focused analytics tests, focused ESLint, and `git diff --check` pass. No real checkout/payment was run.
+- Boundaries: existing Measurement ID and consent gate retained; no Wix, Google Cloud, GA4 property, or admin reporting changes. No attendee/buyer PII or checkout identifiers are sent.
+- Known limitation: purchase and failed-payment browser events are observed when a buyer's account/guest order view loads; GA4 may miss purchasers who never return to the app. Server order/payment records remain authoritative. Verify event arrival in GA4 DebugView after deployment and consent.
+- Next: review this commit; deployment owner should verify the existing `VITE_GA_MEASUREMENT_ID` environment value and confirm consent behavior in DebugView. No database migration or deployment performed.
+
 ## 2026-10-01: visual-only admin analytics dashboard preview
 
 - Task: `ANALYTICS-ADMIN-UI-01` — prepared a dashboard shell with empty KPI cards, traffic/source/page panels, and ticket, membership, and engagement funnels. Empty values are explicit; no sample numbers or traffic are fabricated. No reporting/API credentials, Wix, or analytics backend changes.
