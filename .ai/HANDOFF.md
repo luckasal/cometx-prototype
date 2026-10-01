@@ -22,6 +22,15 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Known issues: no Supabase migration, browser flow, or sandbox payment/check-in was performed. The roster includes issued order attendee records only; legacy registrations without issued ticket records are excluded. Do not deploy the UI until migrations and the matching build are coordinated.
 - Exact next recommended task: review the `0007`–`0010` migration sequence and verify sandbox checkout/webhook issuance plus per-event check-in in the target environment; then address legacy registrations and per-event order detail/guest operations.
 
+## 2026-10-01: preserve post-login return route
+
+- Task completed: `AUTH-REDIRECT-01` — password login now returns through TanStack client-side navigation to the validated `safeReturnPath`, keeping the live auth provider state during protected-route navigation.
+- Branch / implementation commit: `codex/event-ops` / `f9ce7c7`.
+- Files changed: `src/routes/login.tsx`, `.ai/TASKS.md`.
+- Tests/checks run: TypeScript `tsc --noEmit` passed; focused attendee tests passed. An additional `business.test.mjs` attempt could not run under Node 22 strip-only TypeScript because an imported Stripe client uses unsupported parameter-property syntax. No credentials were entered and no authenticated redirect was end-to-end tested.
+- Known issues: the browser still requires the user to complete sign-in again after this hot update; no admin/database authorization is bypassed. The local server uses the existing non-secret Supabase public configuration only; no server secret was added.
+- Exact next task: sign in once at local `/login?redirect=%2Fadmin%2Fevents`, verify arrival at the event list, and confirm staff access before opening a particular event's Attendees tab.
+
 ## 2026-10-01: multi-Codex-thread collaboration setup
 
 - Task completed: `SETUP-01` — updated the existing repository instructions, shared context, task board, review format, and this handoff for independent Codex threads.
