@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-01: multi-Codex-thread collaboration setup
+
+- Task completed: `SETUP-01` — updated the existing repository instructions, shared context, task board, review format, and this handoff for independent Codex threads.
+- Files changed: `AGENTS.md`, `.ai/CONTEXT.md`, `.ai/TASKS.md`, `.ai/REVIEW.md`, `.ai/HANDOFF.md`.
+- Commit hash: `ba73cd8` (workflow/context/task/review changes); this handoff is recorded in the following commit.
+- Tests/checks run: inspected branch status and five recent commits; scoped `git diff --check` for the documentation files passed. No app code or runtime tests were needed.
+- Known issues/decisions: the pre-existing `src/lib/events.functions.ts` compatibility edit and untracked `.agents/`, `CHECKOUT_GAP.md`, and `skills-lock.json` remain untouched. `0007`–`0009` migrations and a coordinated release remain pending. No worktree, deployment, database, or product-feature change was made.
+- Exact next recommended task: assign Thread B `EVENT-READ-01`; have it inspect and claim the unfinished local event-read edit, verify the event page, and hand it to Thread C for review before any release.
+
 ## 2026-09-30: local signed-in ticket read compatibility
 
 - Last agent: Codex; branch: `codex-dev`; commit: this handoff commit.
@@ -105,14 +114,13 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## Template
 
-- Last agent: Codex or Claude
-- Branch: `codex-dev` or `claude-review`
-- Commit: full or short Git SHA
-- What changed: concise outcome
-- Files changed: key paths
-- Migrations: added/applied/not applied, with filenames
-- Unresolved issues: blockers and known limitations
-- What needs review: exact flows, schema, permissions, or edge cases
+- Task completed: task ID and specific outcome
+- Owner / branch / worktree: thread name and isolated checkout
+- Files changed: exact paths
+- Commit hash: implementation commit SHA; use a separate handoff commit when recording it
+- Tests/checks run: commands and result
+- Known issues/decisions: blockers, migrations, release state, or none
+- Exact next recommended task: one actionable task ID and owner/role
 
 ## Setup note
 
