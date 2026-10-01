@@ -1,4 +1,8 @@
-# Codex self-review (requested because Claude review is unavailable)
+# CometX review log
+
+Thread C (or an assigned reviewer) records findings against a branch and commit. Use **BLOCKER** for unsafe or broken behavior that prevents release, **IMPORTANT** for significant defects or maintainability/security risks to fix before merge, and **NICE TO HAVE** for non-blocking improvements. Include file/line, evidence, impact, and recommended fix. Mark resolved findings with the fixing commit; do not erase historical findings.
+
+## Historical self-review (predates the multi-Codex-thread workflow)
 
 Reviewed branch: `codex-dev`
 Reviewed commits: `96f7e0ae95a7b0c0bb9c8a1bb8358d445e33e745` and `0133387fcafee59975c863c9332b7bfeb1b35255`

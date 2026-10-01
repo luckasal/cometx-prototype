@@ -1,34 +1,24 @@
-# Parallel task split
+# CometX task board
 
-These are the initial backlogs, not claims of completed work. Do not start large feature work during workspace setup.
+One active owner per task. Before editing, record a task ID, owner/thread, branch/worktree, scope, status, and dependency. Use `unassigned`, `in progress`, `blocked`, `review`, or `done`. A suggested role is not an assignment.
 
-## Codex tasks (`codex-dev`)
+| ID | Task | Owner / branch | Status | Decision or blocker |
+| --- | --- | --- | --- | --- |
+| SETUP-01 | Multi-Codex-thread repository instructions and handoff templates | setup thread / `codex-dev` | done | Documentation only; existing unfinished code preserved. |
+| EVENT-READ-01 | Verify and finish legacy event-capacity read compatibility | unassigned; current change in `cometx-codex` | in progress | `src/lib/events.functions.ts` is dirty; claim ownership before touching it. Do not deploy all of `codex-dev` without schema/release review. |
+| RELEASE-01 | Plan coordinated migrations `0007`–`0009` and checkout release | unassigned | blocked | Requires schema/security review and sandbox payment verification. |
 
-- Event draft, private preview, publish, and unpublish workflow.
-- Admin CMS usability for normal CometX staff.
-- Event images and existing CometX assets.
-- Contacts and members separation, linking, search, and export.
-- Flexible event, ticket, member pricing, and capacity model.
-- Newsletter signup and contact database integration.
-- Stripe ready payment, invoice, and receipt structure without live payments.
-- Apply the official brandbook to the current UI.
-- Remove placeholder and demo content without inventing CometX facts.
-- Fix build and runtime issues.
+## Suggested role lanes
 
-## Claude tasks (`claude-review`)
+- **Thread A — UI/frontend:** event and cart presentation, responsive behavior, accessibility. Claim a concrete task and avoid backend/schema changes unless agreed.
+- **Thread B — backend/Supabase/Stripe:** server reads, migrations, RLS, auth and payment logic. Use test mode and coordinate hosted writes.
+- **Thread C — QA/review/security:** reproduce issues, review diffs and migration/deployment risk, record findings in `REVIEW.md`; do not rewrite unrelated code.
 
-- Review Supabase schema and migration order.
-- Review row level security and admin permissions.
-- Review Auth and secret handling.
-- Review contacts versus members data model.
-- Review ticket and registration capacity integrity.
-- Review Stripe and payment data model.
-- Review environment variable exposure and deployment setup.
-- Review maintainability and edge cases; identify blockers before merge.
+## Handoff sequence
 
-## Workflow
+1. Start from an independent worktree/branch; read the required context, check status and recent commits, then claim a narrowly scoped task here.
+2. Implement only owned work. Communicate dependencies or overlapping files before either thread edits them.
+3. Run minimal relevant checks. Set task status to `review`, `blocked`, or `done`, recording decisions and blockers.
+4. Commit only owned files, append a handoff entry with the implementation commit hash, and commit that handoff. Stop for review/next assignment. Do not merge to `main` with BLOCKER or IMPORTANT findings.
 
-1. Codex works only on `codex-dev`, makes small commits, runs build/typecheck/relevant tests, updates `.ai/HANDOFF.md`, pushes, and stops for review.
-2. Claude works only on `claude-review`, fetches `codex-dev`, reviews its commit/diff against the intended base, writes prioritized findings to `.ai/REVIEW.md`, commits and pushes the review, and avoids broad unrelated rewrites.
-3. Codex fetches `claude-review` and reads `.ai/REVIEW.md` from that branch, fixes BLOCKER and IMPORTANT findings on `codex-dev`, reruns checks, updates `.ai/HANDOFF.md`, and requests another review.
-4. Merge into `main` only when review is clean. Never force push or rewrite published history.
+Historical backlog and implementation notes remain in Git history and `.ai/HANDOFF.md`; do not infer that an old item is complete without checking code and the target environment.
