@@ -11,6 +11,7 @@ import {
   StatusPill,
 } from "@/components/site/Bits";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackPartnerClick } from "@/lib/analytics";
 
 export const Route = createFileRoute("/partners")({
   head: () => ({
@@ -73,6 +74,7 @@ function PartnersPage() {
                     href={partner.website_url}
                     target="_blank"
                     rel="noreferrer noopener"
+                    onClick={() => trackPartnerClick(partner.id, partner.website_url!)}
                     className="mt-6 text-sm underline underline-offset-4"
                   >
                     {cs ? "Navštívit web" : "Visit website"}

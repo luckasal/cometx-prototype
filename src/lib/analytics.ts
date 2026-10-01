@@ -4,7 +4,7 @@ type AnalyticsWindow = Window & { dataLayer?: unknown[]; gtag?: (...args: unknow
 
 const allowedParameters = new Set([
   "event_slug", "event_id", "event_type", "ticket_type", "ticket_type_id", "membership_tier", "quantity", "value",
-  "currency", "event_count", "placement", "plan", "destination", "method",
+  "currency", "event_count", "placement", "plan", "partner_id", "destination", "method",
 ]);
 let lastPageLocation: string | null = null;
 const consentKey = "cometx-analytics-consent-v1";
@@ -94,6 +94,16 @@ export function trackOutboundClick(event: MouseEvent): void {
   if (target.hostname === "wa.me" || target.hostname === "whatsapp.com" || target.hostname.endsWith(".whatsapp.com")) {
     trackEvent("whatsapp_click", { destination: target.hostname });
   }
+}
+
+/** Track a partner referral with a stable record ID and hostname only. */
+export function trackPartnerClick(partnerId: string, href: string): void {
+  if (typeof window === "undefined" || !partnerId || partnerId.length > 200) return;
+  let target: URL;
+  try { target = new URL(href, window.location.href); }
+  catch { return; }
+  if (!/^https?:$/.test(target.protocol) || target.hostname === window.location.hostname) return;
+  trackEvent("partner_click", { partner_id: partnerId, destination: target.hostname });
 }
 
 export function trackPageView(pathname: string): void {
