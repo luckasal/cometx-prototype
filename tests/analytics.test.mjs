@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getAnalyticsConsent, purchaseMetadata, sanitizeAnalyticsLocation, trackConfirmedPurchase, trackEvent, trackPageView } from '../src/lib/analytics.ts';
+import { getAnalyticsConsent, purchaseMetadata, sanitizeAnalyticsLocation, ticketPricingType, trackConfirmedPurchase, trackEvent, trackPageView } from '../src/lib/analytics.ts';
 
 const issuedAttendee = (status = 'valid') => ({ status });
 
@@ -60,6 +60,35 @@ test('purchase metadata rejects unconfirmed, unpaid, mixed-currency, or unissued
   ]) {
     assert.equal(purchaseMetadata([paidOrder({ ticket_order_items: [item] })]), null);
   }
+});
+
+test('single-event purchase adds only non-identifying event and ticket metadata', () => {
+  const order = paidOrder({
+    ticket_order_items: [{
+      event_id: 'event-one',
+      ticket_type_id: 'ticket-one',
+      ticket_name: 'Standard',
+      events: [{ slug: 'sample-event' }],
+      quantity: 1,
+      ticket_attendees: [issuedAttendee()],
+    }],
+  });
+  assert.deepEqual(purchaseMetadata([order]), {
+    value: 50,
+    currency: 'CHF',
+    quantity: 1,
+    event_count: 1,
+    event_id: 'event-one',
+    event_slug: 'sample-event',
+    ticket_type_id: 'ticket-one',
+    ticket_type: 'Standard',
+  });
+});
+
+test('ticket pricing category is non-identifying and reflects included/member/public prices', () => {
+  assert.equal(ticketPricingType({ benefitType: 'public', includedInMembership: false }), 'public');
+  assert.equal(ticketPricingType({ benefitType: 'discount', includedInMembership: false }), 'member');
+  assert.equal(ticketPricingType({ benefitType: 'free', includedInMembership: false }), 'included');
 });
 
 test('analytics location excludes query parameters and fragments', () => {

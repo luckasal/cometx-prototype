@@ -4,7 +4,7 @@ type AnalyticsWindow = Window & { dataLayer?: unknown[]; gtag?: (...args: unknow
 
 const allowedParameters = new Set([
   "event_slug", "event_id", "event_type", "ticket_type", "ticket_type_id", "membership_tier", "quantity", "value",
-  "currency", "event_count", "placement", "plan", "partner_id", "destination", "method",
+  "currency", "event_count", "cart_value", "pricing_type", "error_type", "placement", "plan", "partner_id", "destination", "method",
 ]);
 let lastPageLocation: string | null = null;
 const consentKey = "cometx-analytics-consent-v1";
@@ -70,6 +70,27 @@ export function trackEvent(name: string, parameters: AnalyticsParameters = {}): 
     page_referrer: safeReferrer(),
   };
   analyticsWindow.gtag?.("event", name, payload);
+}
+
+/** Dedupe one confirmed outcome per checkout key for the current browser tab. */
+export function trackEventOnce(name: string, dedupeKey: string, parameters: AnalyticsParameters = {}): void {
+  if (typeof window === "undefined" || !dedupeKey || getAnalyticsConsent() !== "granted" ||
+    window.location.pathname.startsWith("/admin") || !analyticsConfig().gaId) return;
+  const storageKey = `cometx-ga-event-v1:${name}:${dedupeKey}`;
+  try {
+    if (window.localStorage.getItem(storageKey)) return;
+  } catch {
+    trackEvent(name, parameters);
+    return;
+  }
+  trackEvent(name, parameters);
+  try { window.localStorage.setItem(storageKey, "1"); }
+  catch { /* Tracking must not affect the checkout result. */ }
+}
+
+export function ticketPricingType(price: { benefitType: string; includedInMembership: boolean }): "public" | "member" | "included" {
+  if (price.includedInMembership || price.benefitType === "free") return "included";
+  return price.benefitType === "public" ? "public" : "member";
 }
 
 /** Capture external-link intent without sending link paths, invite codes, or query parameters. */
@@ -146,6 +167,9 @@ type PurchaseOrder = {
   currency: string;
   ticket_order_items: {
     event_id: string;
+    ticket_type_id?: string;
+    ticket_name?: string;
+    events?: { slug?: string }[];
     quantity: number;
     ticket_attendees: { status: string }[];
   }[];
@@ -153,7 +177,7 @@ type PurchaseOrder = {
 };
 
 /** Only a paid, confirmed order with one issued ticket per attendee is a purchase. */
-export function purchaseMetadata(orders: readonly PurchaseOrder[]): { value: number; currency: string; quantity: number; event_count: number } | null {
+export function purchaseMetadata(orders: readonly PurchaseOrder[]): Record<string, string | number> | null {
   if (!orders.length || orders.some((order) => order.status !== "confirmed" || !order.ticket_order_items?.length ||
     !order.payments?.some((payment) => payment.status === "paid"))) return null;
   const currency = orders[0]!.currency.toUpperCase();
@@ -163,12 +187,44 @@ export function purchaseMetadata(orders: readonly PurchaseOrder[]): { value: num
     line.ticket_attendees.filter((ticket) => ticket.status === "valid" || ticket.status === "checked_in").length < line.quantity)) return null;
   const amountMinor = orders.reduce((sum, order) => sum + Number(order.amount_minor), 0);
   if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) return null;
-  return {
+  const metadata: Record<string, string | number> = {
     value: amountMinor / 100,
     currency,
     quantity: lines.reduce((sum, line) => sum + line.quantity, 0),
     event_count: new Set(lines.map((line) => line.event_id)).size,
   };
+  const eventIds = new Set(lines.map((line) => line.event_id));
+  const ticketIds = new Set(lines.flatMap((line) => line.ticket_type_id ? [line.ticket_type_id] : []));
+  const eventSlugs = new Set(lines.flatMap((line) => line.events?.[0]?.slug ? [line.events[0].slug] : []));
+  const ticketNames = new Set(lines.flatMap((line) => line.ticket_name ? [line.ticket_name] : []));
+  if (eventIds.size === 1) metadata["event_id"] = [...eventIds][0]!;
+  if (eventSlugs.size === 1) metadata["event_slug"] = [...eventSlugs][0]!;
+  if (ticketIds.size === 1) metadata["ticket_type_id"] = [...ticketIds][0]!;
+  if (ticketNames.size === 1) metadata["ticket_type"] = [...ticketNames][0]!;
+  return metadata;
+}
+
+/** Emit payment failure only when the app reads a failed payment recorded by the server/webhook. */
+export function trackConfirmedPaymentFailure(paymentKey: string, orders: readonly PurchaseOrder[]): void {
+  if (!paymentKey || !orders.length || !orders.some((order) => order.payments?.some((payment) => payment.status === "failed"))) return;
+  const lines = orders.flatMap((order) => order.ticket_order_items ?? []);
+  const currencies = new Set(orders.map((order) => order.currency.toUpperCase()));
+  const eventIds = new Set(lines.map((line) => line.event_id));
+  const slugs = new Set(lines.flatMap((line) => line.events?.[0]?.slug ? [line.events[0].slug] : []));
+  const ticketIds = new Set(lines.flatMap((line) => line.ticket_type_id ? [line.ticket_type_id] : []));
+  const names = new Set(lines.flatMap((line) => line.ticket_name ? [line.ticket_name] : []));
+  const value = orders.reduce((sum, order) => sum + Number(order.amount_minor), 0) / 100;
+  const params: AnalyticsParameters = {
+    quantity: lines.reduce((sum, line) => sum + line.quantity, 0),
+    event_count: eventIds.size,
+    ...(Number.isFinite(value) && value > 0 ? { value, cart_value: value } : {}),
+    ...(currencies.size === 1 ? { currency: [...currencies][0] } : {}),
+    ...(eventIds.size === 1 ? { event_id: [...eventIds][0] } : {}),
+    ...(slugs.size === 1 ? { event_slug: [...slugs][0] } : {}),
+    ...(ticketIds.size === 1 ? { ticket_type_id: [...ticketIds][0] } : {}),
+    ...(names.size === 1 ? { ticket_type: [...names][0] } : {}),
+  };
+  trackEventOnce("payment_failed", paymentKey, params);
 }
 
 /** A Stripe return URL alone is not proof of payment; callers pass server-confirmed orders. */

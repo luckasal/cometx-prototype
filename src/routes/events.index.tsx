@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useRef } from "react";
 import { listEvents } from "@/lib/public.functions";
 import {
   EventCard,
@@ -12,6 +13,7 @@ import {
   SectionHeading,
 } from "@/components/site/Bits";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/events/")({
   head: () => ({
@@ -42,6 +44,12 @@ function EventsPage() {
     queryKey: ["events"],
     queryFn: () => fetchEvents(),
   });
+  const listViewSent = useRef(false);
+  useEffect(() => {
+    if (!data || listViewSent.current) return;
+    listViewSent.current = true;
+    trackEvent("events_list_view", { event_count: new Set([...data.featured, ...data.upcoming, ...data.past].map((event) => event.slug)).size });
+  }, [data]);
 
   return (
     <>
