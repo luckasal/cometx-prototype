@@ -2,6 +2,17 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-01: nine-tab workspace UI
+
+- Task `EVENT-WORKSPACE-UI`, implementation commit `9aac624`, branch `codex/event-admin-phase-2a`.
+- Files: `src/components/admin/EventForm.tsx`, `src/routes/admin.events.$id.tsx`, `EVENT_ADMIN_GAPS.md`, `.ai/TASKS.md`, and this handoff.
+- Added requested navigation order: Overview, Tickets, Settings, Orders, Guests, Emails, Promotion, Analytics, Edit content. Overview/Orders remain functional; unimplemented sections use honest informational shells.
+- Existing ticket controls are shown under Tickets; registration/status/event capacity under Settings; content/date/location/speakers/programme/featured under Edit content. A single continuously mounted EventForm preserves editor state between tabs and uses the existing save payload/actions. New-event form retains all sections. Backend code, schema and provider behavior unchanged.
+- Ticket removal retains archive-on-save semantics and now explains it. No fabricated sold/remaining/revenue counts or editable settings without persistence; unsupported per-ticket reporting/archive restoration and checkout/policy/message settings are explicitly recorded as gaps.
+- Checks: TypeScript passed; scoped/staged whitespace checks passed. Reviewed the focused diff to confirm form state/mutations/payload are unchanged. No live saving or browser interaction verification performed; no hosted data changed.
+- Pre-existing `src/routeTree.gen.ts` change remains unstaged. No deployment or migration.
+- Next phase requires a new instruction; follow user P0 priorities. Guests implementation exists on the separate event-ops branch and must be reviewed/integrated rather than duplicated. Unsupported settings/ticket reporting require a separate backend phase.
+
 ## 2026-10-01: Phase 3A — event Orders workspace
 
 - Task: `EVENT-ADMIN-3A`; branch/worktree `codex/event-admin-phase-2a` / `cometx-event-admin-phase-2a`.
