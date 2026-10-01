@@ -12,8 +12,7 @@ const consentKey = "cometx-analytics-consent-v1";
 export type AnalyticsConsentChoice = "granted" | "denied";
 
 export function analyticsConfigured(): boolean {
-  const { gtmId, gaId } = analyticsConfig();
-  return Boolean(gtmId || gaId);
+  return Boolean(analyticsConfig().gaId);
 }
 
 export function getAnalyticsConsent(): AnalyticsConsentChoice | null {
@@ -48,10 +47,7 @@ function safeReferrer(): string {
 }
 
 function analyticsConfig() {
-  return {
-    gtmId: import.meta.env["VITE_GTM_CONTAINER_ID"] as string | undefined,
-    gaId: import.meta.env["VITE_GA_MEASUREMENT_ID"] as string | undefined,
-  };
+  return { gaId: import.meta.env["VITE_GA_MEASUREMENT_ID"] as string | undefined };
 }
 
 function safeParameters(parameters: AnalyticsParameters): AnalyticsParameters {
@@ -64,8 +60,8 @@ function safeParameters(parameters: AnalyticsParameters): AnalyticsParameters {
 
 export function trackEvent(name: string, parameters: AnalyticsParameters = {}): void {
   if (typeof window === "undefined" || getAnalyticsConsent() !== "granted" || window.location.pathname.startsWith("/admin")) return;
-  const { gtmId, gaId } = analyticsConfig();
-  if (!gtmId && !gaId) return;
+  const { gaId } = analyticsConfig();
+  if (!gaId) return;
   initializeAnalytics();
   const analyticsWindow = window as AnalyticsWindow;
   const payload = {
@@ -73,12 +69,7 @@ export function trackEvent(name: string, parameters: AnalyticsParameters = {}): 
     page_location: sanitizeAnalyticsLocation(window.location.href),
     page_referrer: safeReferrer(),
   };
-  if (gtmId) {
-    analyticsWindow.dataLayer ??= [];
-    analyticsWindow.dataLayer.push({ event: name, ...payload });
-  } else {
-    analyticsWindow.gtag?.("event", name, payload);
-  }
+  analyticsWindow.gtag?.("event", name, payload);
 }
 
 /** Capture external-link intent without sending link paths, invite codes, or query parameters. */
@@ -110,8 +101,8 @@ export function trackPageView(pathname: string): void {
   if (typeof window === "undefined") return;
   if (pathname.startsWith("/admin")) { lastPageLocation = null; return; }
   if (getAnalyticsConsent() !== "granted") return;
-  const { gtmId, gaId } = analyticsConfig();
-  if (!gtmId && !gaId) return;
+  const { gaId } = analyticsConfig();
+  if (!gaId) return;
   initializeAnalytics();
   const location = sanitizeAnalyticsLocation(new URL(pathname, window.location.origin).href);
   if (location === lastPageLocation) return;
@@ -122,39 +113,29 @@ export function trackPageView(pathname: string): void {
   };
   lastPageLocation = location;
   const analyticsWindow = window as AnalyticsWindow;
-  if (gtmId) {
-    analyticsWindow.dataLayer ??= [];
-    analyticsWindow.dataLayer.push({ event: "page_view", ...payload });
-  } else {
-    analyticsWindow.gtag?.("event", "page_view", payload);
-  }
+  analyticsWindow.gtag?.("event", "page_view", payload);
 }
 
 export function initializeAnalytics(): void {
   if (typeof window === "undefined" || getAnalyticsConsent() !== "granted" || window.location.pathname.startsWith("/admin")) return;
   const analyticsWindow = window as AnalyticsWindow;
-  const { gtmId, gaId } = analyticsConfig();
-  if (!gtmId && !gaId) return;
-  const scriptId = gtmId ? "cometx-gtm" : "cometx-ga";
+  const { gaId } = analyticsConfig();
+  if (!gaId) return;
+  const scriptId = "cometx-ga";
   if (document.getElementById(scriptId)) return;
   analyticsWindow.dataLayer ??= [];
   const script = document.createElement("script");
   script.id = scriptId;
   script.async = true;
   script.referrerPolicy = "no-referrer";
-  if (gtmId) {
-    analyticsWindow.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
-    script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`;
-  } else if (gaId) {
-    analyticsWindow.gtag = (...args) => analyticsWindow.dataLayer?.push(args);
-    analyticsWindow.gtag("js", new Date());
-    analyticsWindow.gtag("config", gaId, {
-      send_page_view: false,
-      page_location: sanitizeAnalyticsLocation(window.location.href),
-      page_referrer: safeReferrer(),
-    });
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaId)}`;
-  }
+  analyticsWindow.gtag = (...args) => analyticsWindow.dataLayer?.push(args);
+  analyticsWindow.gtag("js", new Date());
+  analyticsWindow.gtag("config", gaId, {
+    send_page_view: false,
+    page_location: sanitizeAnalyticsLocation(window.location.href),
+    page_referrer: safeReferrer(),
+  });
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaId)}`;
   document.head.append(script);
 }
 
@@ -192,7 +173,7 @@ export function purchaseMetadata(orders: readonly PurchaseOrder[]): { value: num
 
 /** A Stripe return URL alone is not proof of payment; callers pass server-confirmed orders. */
 export function trackConfirmedPurchase(purchaseKey: string, orders: readonly PurchaseOrder[]): void {
-  if (typeof window === "undefined" || getAnalyticsConsent() !== "granted" || !purchaseKey || !analyticsConfig().gaId && !analyticsConfig().gtmId) return;
+  if (typeof window === "undefined" || getAnalyticsConsent() !== "granted" || !purchaseKey || !analyticsConfig().gaId) return;
   const metadata = purchaseMetadata(orders);
   if (!metadata) return;
   const storageKey = `cometx-ga-purchase-v1:${purchaseKey}`;

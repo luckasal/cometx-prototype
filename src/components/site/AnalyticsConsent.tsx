@@ -26,7 +26,7 @@ export function AnalyticsConsent() {
       if (getAnalyticsConsent() === "granted") {
         initializeAnalytics();
         trackPageView(window.location.pathname);
-      } else if (document.getElementById("cometx-ga") || document.getElementById("cometx-gtm")) {
+      } else if (document.getElementById("cometx-ga")) {
         window.location.reload();
       }
     };
