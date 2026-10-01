@@ -12,6 +12,16 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Implementation commit: `2dc4fd5`.
 - Exact next task: continue with the remaining event operations scope in `EVENT_ADMIN_GAPS.md`, with Orders/Guests separated from Tickets/Settings/Emails/Promotion/Analytics as requested.
 
+## 2026-10-01: event operations Phase 2B — attendee roster, check-in and export
+
+- Task completed: `EVENT-OPS-2B` — added an event-scoped attendee roster to the event admin page with search, status filtering, ticket counts, CSV export and admin check-in.
+- Branch / implementation commit: `codex/event-ops` / `ce82633`.
+- Files changed: `src/routes/admin.events.$id.tsx`, `src/lib/admin.functions.ts`, `src/lib/event-attendees.ts`, `tests/event-attendees.test.mjs`, `drizzle/migrations/0010_event_attendee_checkin_audit.sql`, `CMS_SETUP.md`, `EVENT_ADMIN_GAPS.md`, `.ai/TASKS.md`.
+- Migrations: added `0010_event_attendee_checkin_audit.sql`; not applied. It must follow coordinated migrations `0007`–`0009`, which remain pending in the connected Supabase project.
+- Tests/checks run: focused attendee tests (2/2), TypeScript `tsc --noEmit`, production Vite build, and `git -c core.whitespace=cr-at-eol diff --check` passed.
+- Known issues: no Supabase migration, browser flow, or sandbox payment/check-in was performed. The roster includes issued order attendee records only; legacy registrations without issued ticket records are excluded. Do not deploy the UI until migrations and the matching build are coordinated.
+- Exact next recommended task: review the `0007`–`0010` migration sequence and verify sandbox checkout/webhook issuance plus per-event check-in in the target environment; then address legacy registrations and per-event order detail/guest operations.
+
 ## 2026-10-01: multi-Codex-thread collaboration setup
 
 - Task completed: `SETUP-01` — updated the existing repository instructions, shared context, task board, review format, and this handoff for independent Codex threads.
