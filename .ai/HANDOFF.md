@@ -12,6 +12,14 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Known issues: server deployment must set `GA4_PROPERTY_ID`, `GA4_CLIENT_EMAIL`, `GA4_PRIVATE_KEY`, enable the GA4 Data API, and grant the service account property Viewer access. Existing browser purchase signal remains return-page dependent; event counts are not cohort conversion rates. No deployment or database change was made.
 - Exact next recommended task: configure the GA4 read-only credentials in staging and compare `/admin/analytics` with the GA4 property for the same 30-day period.
 
+## 2026-10-01: local admin preview authentication
+
+- Task completed: `ANALYTICS-ADMIN-02` — confirmed the signed-in browser attached a bearer token. The sandboxed local dev server's Supabase `getUser` call failed with a network `fetch failed`; restarted that server with network access and verified `/admin/analytics` renders the staff navigation and GA4 setup state for the signed-in administrator.
+- Files changed: `.ai/TASKS.md`, `.ai/HANDOFF.md` only. Temporary diagnostic logs were removed; authentication and analytics application code are unchanged.
+- Checks: browser state showed the working admin page; `git diff --check` passed. GA4 report data remains unverified because the local preview has no GA4 Data API credentials.
+- Known issue: local preview must retain network access to Supabase. Configure read-only GA4 credentials to populate metrics.
+- Exact next recommended task: configure staging GA4 report credentials and verify counts against GA4.
+
 ## 2026-10-01: multi-Codex-thread collaboration setup
 
 - Task completed: `SETUP-01` — updated the existing repository instructions, shared context, task board, review format, and this handoff for independent Codex threads.
