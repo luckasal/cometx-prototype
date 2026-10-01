@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-01: event admin remains useful without metrics
+
+- Task: `EVENT-ADMIN-2B` — keep event list and Overview available when server-side sales/order metrics cannot load.
+- Files changed: `src/lib/admin.functions.ts`, `src/routes/admin.events.index.tsx`, `src/routes/admin.events.$id.tsx`, `src/integrations/supabase/client.server.ts`, `EVENT_ADMIN_GAPS.md`, `.ai/TASKS.md`.
+- Implementation commit: `e5fb3ce`.
+- Result: event content no longer disappears when metrics fail; unknown ticket/revenue/order values are shown as unavailable, not zero. Staff receive a neutral message and no Lovable or server-key setup instructions.
+- Checks: `node node_modules/typescript/bin/tsc --noEmit` passed; focused `git -c core.whitespace=cr-at-eol diff --check` passed. No database, payment provider, migration, or production data changes.
+- Known issue: sales/order totals remain unavailable until the server-only Supabase admin key is configured securely. Runtime UI verification is pending: the screenshot's port 3001 server is the separate `cometx-event-ops` worktree; this commit is on `cometx-event-admin-phase-2a`. The generated `src/routeTree.gen.ts` modification was pre-existing and left unstaged.
+- Exact next task: after review, verify the Phase 2A worktree `/admin/events` with a staff session, then implement a separate Orders/Guests phase from the audit.
+
 ## 2026-10-01: local backoffice sign-in diagnosis
 
 - Task: `LOCAL-AUTH-01` — restore `/admin` in the Phase 2A local preview.
