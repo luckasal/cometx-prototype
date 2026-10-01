@@ -143,11 +143,19 @@ function CartPage() {
           const ticket = query.data?.tickets.find((item) => item.id === line.ticketId);
           return ticket ? [{ line, ticket }] : [];
         }));
-        trackEvent("checkout_start", {
+        trackEvent("begin_checkout", {
           event_count: groups.length,
           quantity: lines.reduce((sum, line) => sum + line.quantity, 0),
           value: ticketRows.reduce((sum, { line, ticket }) => sum + ticket.price.finalPrice * line.quantity, 0),
           currency: ticketRows[0]?.ticket.price.currency,
+          ...ticketRows.length === 1 ? {
+            event_id: eventQueries.find((query) => query.data?.event.slug === ticketRows[0]?.line.eventSlug)?.data?.event.id,
+            event_slug: ticketRows[0]?.line.eventSlug,
+            event_type: eventQueries.find((query) => query.data?.event.slug === ticketRows[0]?.line.eventSlug)?.data?.event.eventType,
+            ticket_type: ticketRows[0]?.ticket.name,
+            ticket_type_id: ticketRows[0]?.ticket.id,
+            membership_tier: eventQueries.find((query) => query.data?.event.slug === ticketRows[0]?.line.eventSlug)?.data?.membershipName ?? undefined,
+          } : {},
         });
       } else trackEvent("free_ticket_issued", { event_count: groups.length });
       if (result.url) { window.location.assign(result.url); return; }

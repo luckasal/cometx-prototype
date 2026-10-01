@@ -15,9 +15,10 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
+import { AnalyticsConsent } from "@/components/site/AnalyticsConsent";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import { initializeAnalytics, trackPageView } from "@/lib/analytics";
+import { initializeAnalytics, trackOutboundClick, trackPageView } from "@/lib/analytics";
 import { brandAssets } from "@/lib/brand-assets";
 
 function NotFoundComponent() {
@@ -141,8 +142,16 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isAdmin = pathname.startsWith("/admin");
 
-  useEffect(() => { initializeAnalytics(); }, []);
-  useEffect(() => { trackPageView(pathname); }, [pathname]);
+  useEffect(() => {
+    initializeAnalytics();
+  }, []);
+  useEffect(() => {
+    document.addEventListener("click", trackOutboundClick);
+    return () => document.removeEventListener("click", trackOutboundClick);
+  }, []);
+  useEffect(() => {
+    trackPageView(pathname);
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -157,6 +166,7 @@ function RootComponent() {
             {!isAdmin && <SiteFooter />}
           </div>
           <Toaster position="top-center" />
+          <AnalyticsConsent />
         </AuthProvider>
       </LanguageProvider>
     </QueryClientProvider>

@@ -3,10 +3,37 @@ type AnalyticsParameters = Record<string, AnalyticsValue>;
 type AnalyticsWindow = Window & { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void };
 
 const allowedParameters = new Set([
-  "event_slug", "event_id", "ticket_type", "ticket_type_id", "quantity", "value",
+  "event_slug", "event_id", "event_type", "ticket_type", "ticket_type_id", "membership_tier", "quantity", "value",
   "currency", "event_count", "placement", "plan", "destination", "method",
 ]);
 let lastPageLocation: string | null = null;
+const consentKey = "cometx-analytics-consent-v1";
+
+export type AnalyticsConsentChoice = "granted" | "denied";
+
+export function analyticsConfigured(): boolean {
+  const { gtmId, gaId } = analyticsConfig();
+  return Boolean(gtmId || gaId);
+}
+
+export function getAnalyticsConsent(): AnalyticsConsentChoice | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = window.localStorage.getItem(consentKey);
+    return stored === "granted" || stored === "denied" ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setAnalyticsConsent(choice: AnalyticsConsentChoice): void {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(consentKey, choice); }
+  catch { /* Storage can be unavailable in private browsing. */ }
+  const { gaId } = analyticsConfig();
+  if (gaId) (window as unknown as Record<string, unknown>)[`ga-disable-${gaId}`] = choice !== "granted";
+  window.dispatchEvent(new Event("cometx-analytics-consent-changed"));
+}
 
 /** Private guest-ticket tokens and other query values must never reach analytics. */
 export function sanitizeAnalyticsLocation(url: string): string {
@@ -36,7 +63,7 @@ function safeParameters(parameters: AnalyticsParameters): AnalyticsParameters {
 }
 
 export function trackEvent(name: string, parameters: AnalyticsParameters = {}): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || getAnalyticsConsent() !== "granted" || window.location.pathname.startsWith("/admin")) return;
   const { gtmId, gaId } = analyticsConfig();
   if (!gtmId && !gaId) return;
   initializeAnalytics();
@@ -54,8 +81,25 @@ export function trackEvent(name: string, parameters: AnalyticsParameters = {}): 
   }
 }
 
+/** Capture external-link intent without sending link paths, invite codes, or query parameters. */
+export function trackOutboundClick(event: MouseEvent): void {
+  if (typeof window === "undefined" || !(event.target instanceof Element)) return;
+  const anchor = event.target.closest("a[href]");
+  if (!anchor) return;
+  let target: URL;
+  try { target = new URL(anchor.getAttribute("href") ?? "", window.location.href); }
+  catch { return; }
+  if (!/^https?:$/.test(target.protocol) || target.hostname === window.location.hostname) return;
+  trackEvent("outbound_link", { destination: target.hostname });
+  if (target.hostname === "wa.me" || target.hostname === "whatsapp.com" || target.hostname.endsWith(".whatsapp.com")) {
+    trackEvent("whatsapp_click", { destination: target.hostname });
+  }
+}
+
 export function trackPageView(pathname: string): void {
-  if (typeof window === "undefined" || pathname.startsWith("/admin")) return;
+  if (typeof window === "undefined") return;
+  if (pathname.startsWith("/admin")) { lastPageLocation = null; return; }
+  if (getAnalyticsConsent() !== "granted") return;
   const { gtmId, gaId } = analyticsConfig();
   if (!gtmId && !gaId) return;
   initializeAnalytics();
@@ -77,7 +121,7 @@ export function trackPageView(pathname: string): void {
 }
 
 export function initializeAnalytics(): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || getAnalyticsConsent() !== "granted" || window.location.pathname.startsWith("/admin")) return;
   const analyticsWindow = window as AnalyticsWindow;
   const { gtmId, gaId } = analyticsConfig();
   if (!gtmId && !gaId) return;
@@ -138,7 +182,7 @@ export function purchaseMetadata(orders: readonly PurchaseOrder[]): { value: num
 
 /** A Stripe return URL alone is not proof of payment; callers pass server-confirmed orders. */
 export function trackConfirmedPurchase(purchaseKey: string, orders: readonly PurchaseOrder[]): void {
-  if (typeof window === "undefined" || !purchaseKey || !analyticsConfig().gaId && !analyticsConfig().gtmId) return;
+  if (typeof window === "undefined" || getAnalyticsConsent() !== "granted" || !purchaseKey || !analyticsConfig().gaId && !analyticsConfig().gtmId) return;
   const metadata = purchaseMetadata(orders);
   if (!metadata) return;
   const storageKey = `cometx-ga-purchase-v1:${purchaseKey}`;
@@ -146,5 +190,5 @@ export function trackConfirmedPurchase(purchaseKey: string, orders: readonly Pur
     if (window.localStorage.getItem(storageKey)) return;
     window.localStorage.setItem(storageKey, "1");
   } catch { /* Analytics must never block access to purchased tickets. */ }
-  trackEvent("purchase_success", metadata);
+  trackEvent("purchase", metadata);
 }

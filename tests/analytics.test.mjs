@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { purchaseMetadata, sanitizeAnalyticsLocation } from '../src/lib/analytics.ts';
+import { getAnalyticsConsent, purchaseMetadata, sanitizeAnalyticsLocation, trackConfirmedPurchase, trackEvent, trackPageView } from '../src/lib/analytics.ts';
 
 const issuedAttendee = (status = 'valid') => ({ status });
 
@@ -68,4 +68,29 @@ test('analytics location excludes query parameters and fragments', () => {
     'https://cometx.example/account/events',
   );
   assert.equal(sanitizeAnalyticsLocation('https://cometx.example/'), 'https://cometx.example/');
+});
+
+test('analytics remains inert until a visitor grants consent', () => {
+  const originalWindow = globalThis.window;
+  const originalDocument = globalThis.document;
+  const stored = new Map();
+  globalThis.window = {
+    location: { href: 'https://cometx.example/events?token=private', pathname: '/events', origin: 'https://cometx.example' },
+    localStorage: {
+      getItem: (key) => stored.get(key) ?? null,
+      setItem: (key, value) => stored.set(key, value),
+    },
+  };
+  globalThis.document = { title: 'Events' };
+  try {
+    assert.equal(getAnalyticsConsent(), null);
+    trackEvent('event_view', { event_slug: 'example' });
+    trackPageView('/events');
+    trackConfirmedPurchase('private-order-id', [paidOrder()]);
+    assert.equal(stored.size, 0);
+    assert.equal(globalThis.window.dataLayer, undefined);
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.document = originalDocument;
+  }
 });

@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 import { getAccountOverview } from "@/lib/membership.functions";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +45,16 @@ function AccountMembershipPage() {
     if (checkout === "cancelled") toast("Checkout cancelled - nothing was charged.");
     return undefined;
   }, [checkout, refetch]);
+
+  useEffect(() => {
+    if (checkout !== "success" || data?.membership?.status !== "active") return;
+    const activationKey = `cometx-membership-activated:${data.membership.planSlug}`;
+    try {
+      if (window.sessionStorage.getItem(activationKey)) return;
+      window.sessionStorage.setItem(activationKey, "1");
+    } catch { /* Analytics must not affect access to the membership page. */ }
+    trackEvent("membership_activated", { membership_tier: data.membership.planSlug });
+  }, [checkout, data?.membership?.planSlug, data?.membership?.status]);
 
   return (
     <Section>

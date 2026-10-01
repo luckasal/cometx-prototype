@@ -17,6 +17,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { BrandXElement } from "./BrandXElement";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "./Bits";
+import { trackEvent } from "@/lib/analytics";
 
 type Props = {
   data: EventDetail;
@@ -324,7 +325,21 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                           <span>{cs ? "Počet vstupenek" : "Quantity"}</span>
                           <select aria-label={cs ? `Počet vstupenek: ${ticket.name}` : `Ticket quantity: ${ticket.name}`} className="min-h-10 rounded-full bg-background px-4" value={quantity}
                             disabled={data.isPreview || !open || ticket.soldOut || !saleOpen || !ticket.price.eligible}
-                            onChange={e=>setQuantities(previous=>({...previous,[ticket.id]:Math.min(Number(e.target.value),Math.max(0,10-tickets.reduce((sum,other)=>sum+(other.id===ticket.id?0:previous[other.id]??0),0)))}))}>
+                            onChange={e => {
+                              const next = Math.min(Number(e.target.value), Math.max(0, 10 - otherQuantity));
+                              if (quantity === 0 && next > 0) trackEvent("ticket_select", {
+                                event_id: event.id,
+                                event_slug: event.slug,
+                                event_type: event.eventType,
+                                ticket_type: ticket.name,
+                                ticket_type_id: ticket.id,
+                                quantity: next,
+                                value: ticket.price.finalPrice * next,
+                                currency: ticket.price.currency,
+                                membership_tier: data.membershipName ?? undefined,
+                              });
+                              setQuantities(previous => ({ ...previous, [ticket.id]: next }));
+                            }}>
                             {Array.from({length:basketMax + 1},(_,i)=>i).map(n=><option key={n} value={n}>{n}</option>)}
                           </select>
                         </label>

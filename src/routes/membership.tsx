@@ -119,7 +119,7 @@ function MembershipPage() {
                       variant={index === 1 ? "signal" : "outlineInk"}
                       className="w-full"
                       disabled={checkoutMutation.isPending}
-                      onClick={() => { trackEvent("membership_cta_click", { plan: plan.slug }); checkoutMutation.mutate(plan.slug); }}
+                      onClick={() => { trackEvent("membership_cta_click", { plan: plan.slug, membership_tier: plan.slug, value: plan.annualPrice, currency: plan.currency }); checkoutMutation.mutate(plan.slug); }}
                     >
                       {checkoutMutation.isPending ? (cs ? "Ukládáme členství…" : "Saving membership...") : (cs ? `Zvolit ${plan.name}` : `Join ${plan.name}`)}
                     </Button>
@@ -127,7 +127,7 @@ function MembershipPage() {
                     <Button
                       variant={index === 1 ? "signal" : "outlineInk"}
                       className="w-full"
-                      onClick={() => { trackEvent("membership_cta_click", { plan: plan.slug, destination: "register" }); navigate({ to: "/register", search: { redirect: "/membership" } }); }}
+                      onClick={() => { trackEvent("membership_cta_click", { plan: plan.slug, membership_tier: plan.slug, value: plan.annualPrice, currency: plan.currency, destination: "register" }); navigate({ to: "/register", search: { redirect: "/membership" } }); }}
                     >
                       {cs ? "Pro členství si vytvořte účet" : "Create account to join"}
                     </Button>

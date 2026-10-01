@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { safeReturnPath } from "@/lib/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackEvent } from "@/lib/analytics";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 
@@ -63,6 +64,7 @@ function RegisterPage() {
       toast.error(error.message);
       return;
     }
+    if (data.user?.identities?.length) trackEvent("signup", { method: "email" });
     if (!data.session) {
       setConfirmationSent(true);
       return;

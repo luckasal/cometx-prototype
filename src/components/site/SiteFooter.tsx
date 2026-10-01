@@ -7,13 +7,22 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { subscribeNewsletter } from "@/lib/public.functions";
 import { trackEvent } from "@/lib/analytics";
+import { AnalyticsPreferenceButton } from "./AnalyticsConsent";
 
 export function SiteFooter() {
   const { language } = useLanguage();
   const cs = language === "cs";
   const [email, setEmail] = useState("");
   const subscribe = useServerFn(subscribeNewsletter);
-  const signup = useMutation({ mutationFn: () => subscribe({ data: { email } }), onSuccess: () => { trackEvent("newsletter_signup", { placement: "footer" }); toast.success(cs ? "Jste přihlášeni k odběru." : "You're subscribed."); setEmail(""); }, onError: (error: Error) => toast.error(error.message) });
+  const signup = useMutation({
+    mutationFn: () => subscribe({ data: { email } }),
+    onSuccess: () => {
+      trackEvent("newsletter_signup", { placement: "footer" });
+      toast.success(cs ? "Jste přihlášeni k odběru." : "You're subscribed.");
+      setEmail("");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
   return (
     <footer className="mt-24 bg-ink text-ink-foreground">
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
@@ -21,14 +30,22 @@ export function SiteFooter() {
           <div>
             <CometXLogo footer />
             <p className="mt-4 max-w-sm text-sm text-ink-foreground/65">
-              {cs ? "Švýcarská nezisková organizace propojující české a slovenské expaty prostřednictvím vzdělávání, kultury a profesní sítě s dotekem domova." : "A Swiss nonprofit connecting Czech and Slovak expats through education, culture and a professional network with a touch of homeland."}
+              {cs
+                ? "Švýcarská nezisková organizace propojující české a slovenské expaty prostřednictvím vzdělávání, kultury a profesní sítě s dotekem domova."
+                : "A Swiss nonprofit connecting Czech and Slovak expats through education, culture and a professional network with a touch of homeland."}
             </p>
             <address className="mt-5 not-italic text-xs leading-6 text-ink-foreground/55">
-              CHE-424.450.235<br />
-              Untere Vogelsangstrasse 193, 8400 Winterthur<br />
-              <a href="mailto:info@cometx.ch" className="hover:text-accent">info@cometx.ch</a>
-              <br />IBAN: CH98 0026 9269 1309 2601 K
-              <br />BIC: UBSWCHZH80A
+              CHE-424.450.235
+              <br />
+              Untere Vogelsangstrasse 193, 8400 Winterthur
+              <br />
+              <a href="mailto:info@cometx.ch" className="hover:text-accent">
+                info@cometx.ch
+              </a>
+              <br />
+              IBAN: CH98 0026 9269 1309 2601 K
+              <br />
+              BIC: UBSWCHZH80A
             </address>
           </div>
 
@@ -42,10 +59,32 @@ export function SiteFooter() {
           />
           <div>
             <h4 className="eyebrow text-ink-foreground/45">{cs ? "Newsletter" : "Newsletter"}</h4>
-            <p className="mt-4 text-sm text-ink-foreground/65">{cs ? "Novinky o akcích a komunitě, přímo do schránky." : "Event and community news, straight to your inbox."}</p>
-            <form className="mt-4 flex gap-2" onSubmit={(event) => { event.preventDefault(); signup.mutate(); }}>
-              <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="min-w-0 flex-1 rounded-full border border-ink-foreground/30 bg-transparent px-3 py-2 text-sm text-ink-foreground placeholder:text-ink-foreground/35" />
-              <button disabled={signup.isPending} className="rounded-full bg-accent px-3 py-2 text-xs font-bold text-accent-foreground">{signup.isPending ? "…" : (cs ? "Odebírat" : "Subscribe")}</button>
+            <p className="mt-4 text-sm text-ink-foreground/65">
+              {cs
+                ? "Novinky o akcích a komunitě, přímo do schránky."
+                : "Event and community news, straight to your inbox."}
+            </p>
+            <form
+              className="mt-4 flex gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                signup.mutate();
+              }}
+            >
+              <input
+                required
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                className="min-w-0 flex-1 rounded-full border border-ink-foreground/30 bg-transparent px-3 py-2 text-sm text-ink-foreground placeholder:text-ink-foreground/35"
+              />
+              <button
+                disabled={signup.isPending}
+                className="rounded-full bg-accent px-3 py-2 text-xs font-bold text-accent-foreground"
+              >
+                {signup.isPending ? "…" : cs ? "Odebírat" : "Subscribe"}
+              </button>
             </form>
           </div>
           <FooterColumn
@@ -69,12 +108,55 @@ export function SiteFooter() {
         <div className="mt-14 flex flex-col gap-2 border-t border-ink-foreground/15 pt-6 text-xs text-ink-foreground/50 sm:flex-row sm:justify-between">
           <span>&copy; {new Date().getFullYear()} CometX - Come and Meet Expats</span>
           <span className="flex flex-wrap gap-4">
-            <a href="https://www.cometx.ch/_files/ugd/41f758_b4416cc4324a440fae43acc5bf10defd.pdf" target="_blank" rel="noreferrer noopener" className="hover:text-accent">{cs ? "Obchodní podmínky" : "Terms"}</a>
-            <a href="https://www.cometx.ch/_files/ugd/41f758_cf8654296bfe4790be7ac44abfe07fbd.pdf" target="_blank" rel="noreferrer noopener" className="hover:text-accent">{cs ? "Ochrana soukromí" : "Privacy"}</a>
-            <a href="https://www.instagram.com/cometx_ch/" target="_blank" rel="noreferrer noopener" className="hover:text-accent">Instagram</a>
-            <a href="https://www.linkedin.com/in/cometx-ch" target="_blank" rel="noreferrer noopener" className="hover:text-accent">LinkedIn</a>
-            <a href="https://www.youtube.com/@cometx" target="_blank" rel="noreferrer noopener" className="hover:text-accent">YouTube</a>
-            <a href="https://chat.whatsapp.com/DczHatSCHRSADY6phvkdfe" target="_blank" rel="noreferrer noopener" className="hover:text-accent">WhatsApp</a>
+            <AnalyticsPreferenceButton />
+            <a
+              href="https://www.cometx.ch/_files/ugd/41f758_b4416cc4324a440fae43acc5bf10defd.pdf"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="hover:text-accent"
+            >
+              {cs ? "Obchodní podmínky" : "Terms"}
+            </a>
+            <a
+              href="https://www.cometx.ch/_files/ugd/41f758_cf8654296bfe4790be7ac44abfe07fbd.pdf"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="hover:text-accent"
+            >
+              {cs ? "Ochrana soukromí" : "Privacy"}
+            </a>
+            <a
+              href="https://www.instagram.com/cometx_ch/"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="hover:text-accent"
+            >
+              Instagram
+            </a>
+            <a
+              href="https://www.linkedin.com/in/cometx-ch"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="hover:text-accent"
+            >
+              LinkedIn
+            </a>
+            <a
+              href="https://www.youtube.com/@cometx"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="hover:text-accent"
+            >
+              YouTube
+            </a>
+            <a
+              href="https://chat.whatsapp.com/DczHatSCHRSADY6phvkdfe"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="hover:text-accent"
+            >
+              WhatsApp
+            </a>
           </span>
         </div>
       </div>
@@ -82,13 +164,7 @@ export function SiteFooter() {
   );
 }
 
-function FooterColumn({
-  title,
-  links,
-}: {
-  title: string;
-  links: { to: string; label: string }[];
-}) {
+function FooterColumn({ title, links }: { title: string; links: { to: string; label: string }[] }) {
   return (
     <div>
       <h4 className="eyebrow text-ink-foreground/45">{title}</h4>

@@ -41,9 +41,10 @@ function AnalyticsPage() {
         <div className="rounded-2xl border border-border bg-card p-6 text-sm">
           <h2 className="font-semibold">Connect GA4 reporting</h2>
           <p className="mt-2 text-muted-foreground">
-            Set GA4_PROPERTY_ID, GA4_CLIENT_EMAIL and GA4_PRIVATE_KEY as server environment
-            variables, enable the Google Analytics Data API, and grant the service account Viewer
-            access to the property. Traffic reports will appear here after deployment.
+            Set VITE_GA_MEASUREMENT_ID for visitor tracking. To display reports here, set
+            GA4_PROPERTY_ID, GA4_CLIENT_EMAIL and GA4_PRIVATE_KEY as server environment variables,
+            enable the Google Analytics Data API, and grant the service account Viewer access to the
+            property. Traffic reports will appear after deployment and data collection.
           </p>
         </div>
       )}
