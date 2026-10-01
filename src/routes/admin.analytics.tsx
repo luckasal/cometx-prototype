@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { Activity, BarChart3, Eye, MousePointerClick, UsersRound } from "lucide-react";
 import { getAdminAnalytics } from "@/lib/admin-analytics.functions";
 import { AdminPage, AdminTable } from "@/components/admin/AdminBits";
 import { ErrorBlock, LoadingBlock } from "@/components/site/Bits";
@@ -38,15 +39,7 @@ function AnalyticsPage() {
       {isLoading && <LoadingBlock label="Loading Google Analytics" />}
       {error && <ErrorBlock error={error} />}
       {data && !data.configured && (
-        <div className="rounded-2xl border border-border bg-card p-6 text-sm">
-          <h2 className="font-semibold">Connect GA4 reporting</h2>
-          <p className="mt-2 text-muted-foreground">
-            Set VITE_GA_MEASUREMENT_ID for visitor tracking. To display reports here, set
-            GA4_PROPERTY_ID, GA4_CLIENT_EMAIL and GA4_PRIVATE_KEY as server environment variables,
-            enable the Google Analytics Data API, and grant the service account Viewer access to the
-            property. Traffic reports will appear after deployment and data collection.
-          </p>
-        </div>
+        <AnalyticsPreview />
       )}
       {data?.configured && (
         <div className="space-y-8">
@@ -98,6 +91,111 @@ function AnalyticsPage() {
   );
 }
 
+function AnalyticsPreview() {
+  const metrics = [
+    { label: "Visitors", icon: <UsersRound className="size-5" />, detail: "People who visit your site" },
+    { label: "Sessions", icon: <Activity className="size-5" />, detail: "Visits across the selected period" },
+    { label: "Page views", icon: <Eye className="size-5" />, detail: "Public pages viewed" },
+    { label: "Key actions", icon: <MousePointerClick className="size-5" />, detail: "Ticket and membership events" },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <section className="flex flex-col gap-4 rounded-2xl border border-accent/30 bg-accent/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="flex gap-4">
+          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent/15 text-accent-foreground">
+            <BarChart3 className="size-5" />
+          </span>
+          <div>
+            <h2 className="font-semibold">Analytics dashboard preview</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              This is the prepared dashboard layout. Metrics stay blank until GA4 reporting is connected; no sample traffic is shown.
+              The app can collect consented visits with the existing Measurement ID without changing Wix.
+            </p>
+          </div>
+        </div>
+        <span className="w-fit shrink-0 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground">
+          Waiting for report data
+        </span>
+      </section>
+
+      <section aria-label="Traffic overview">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="eyebrow text-muted-foreground">Website performance</p>
+            <h2 className="mt-1 font-display text-xl font-bold">Traffic overview</h2>
+          </div>
+          <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground">
+            Previous 30 days · preview
+          </span>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric) => (
+            <article key={metric.label} className="rounded-2xl border border-border/60 bg-card p-5">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <p className="text-sm font-medium">{metric.label}</p>
+                <span className="grid size-9 place-items-center rounded-xl bg-accent/10 text-accent-foreground">
+                  {metric.icon}
+                </span>
+              </div>
+              <p className="mt-4 font-display text-3xl font-extrabold tracking-tight">—</p>
+              <p className="mt-1 text-xs text-muted-foreground">{metric.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <EmptyReportPanel title="Traffic over time" description="Daily visits and page views will appear here." />
+        <EmptyReportPanel title="Where visits come from" description="Acquisition channels will appear here." />
+        <EmptyReportPanel title="Most viewed pages" description="Your top public pages will appear here." />
+        <section className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6">
+          <div className="mb-5">
+            <p className="eyebrow text-muted-foreground">Conversion journey</p>
+            <h2 className="mt-1 font-display text-xl font-bold">Ticket funnel</h2>
+          </div>
+          <FunnelTable title="" steps={ticketSteps} events={{}} />
+        </section>
+        <section className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6">
+          <div className="mb-5">
+            <p className="eyebrow text-muted-foreground">Member journey</p>
+            <h2 className="mt-1 font-display text-xl font-bold">Membership funnel</h2>
+          </div>
+          <FunnelTable title="" steps={membershipSteps} events={{}} />
+        </section>
+        <section className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6">
+          <div className="mb-5">
+            <p className="eyebrow text-muted-foreground">Engagement</p>
+            <h2 className="mt-1 font-display text-xl font-bold">Other conversions</h2>
+          </div>
+          <FunnelTable title="" steps={[
+            ["Newsletter signups", "newsletter_signup"],
+            ["Partner clicks", "partner_click"],
+            ["WhatsApp clicks", "whatsapp_click"],
+            ["Logins", "login"],
+            ["Signups", "signup"],
+          ]} events={{}} />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function EmptyReportPanel({ title, description }: { title: string; description: string }) {
+  return (
+    <section className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6">
+      <h2 className="font-display text-xl font-bold">{title}</h2>
+      <div className="mt-5 grid h-44 place-items-center rounded-xl border border-dashed border-border bg-background/60 px-6 text-center">
+        <div>
+          <BarChart3 className="mx-auto size-7 text-muted-foreground/50" />
+          <p className="mt-3 text-sm font-medium text-muted-foreground">No report data yet</p>
+          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ReportTable({
   title,
   label,
@@ -109,7 +207,7 @@ function ReportTable({
 }) {
   return (
     <section>
-      <h2 className="mb-4 font-display text-xl font-bold">{title}</h2>
+      {title && <h2 className="mb-4 font-display text-xl font-bold">{title}</h2>}
       <AdminTable head={[label, "Count"]}>
         {rows.length ? (
           rows.map((row) => (
