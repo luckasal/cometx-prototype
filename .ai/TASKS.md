@@ -4,6 +4,7 @@ One active owner per task. Before editing, record a task ID, owner/thread, branc
 
 | ID | Task | Owner / branch | Status | Decision or blocker |
 | --- | --- | --- | --- | --- |
+| EVENT-WORKSPACE-UI | Nine-tab event workspace; move existing form sections | Event system / `codex/event-admin-phase-2a` | review | UI only; single retained form state/save payload; existing controls moved without duplication. Unsupported metrics/settings and empty sections are clearly identified. |
 | EVENT-ADMIN-3A | Per-event Orders: search, status filter, pagination, buyer/ticket/payment details | Event system / `codex/event-admin-phase-2a` | review | Implemented; TypeScript and 8 focused checks pass. Live hosted-order verification requires server configuration. Guests remains separate on `codex/event-ops`; no mutations or migrations in this phase. |
 | EVENT-ADMIN-2B | Keep event list and Overview usable when sales metrics are unavailable | Codex / `codex/event-admin-phase-2a` | review | Event details remain available; unavailable metrics display as “—”; staff no longer see provider configuration instructions. TypeScript passed; runtime UI check pending because port 3001 serves another worktree. |
 | EVENT-ADMIN-2A | Event list search/filters/metrics/actions and event Overview tab | Codex / `codex/event-admin-phase-2a` | done | Implemented and typechecked. Other event tabs and excluded features remain for later phases. |

@@ -18,9 +18,9 @@ DONE means implemented and locally checked for the stated slice; it does not mea
 | Payment and fulfillment | RELEASE BLOCKER | Pending migrations and missing full sandbox payment/webhook verification; free and failed/cancelled payment cases need verification. |
 | Post-purchase / My CometX / guest access | PARTIAL | Confirmed-ticket and secure-link paths exist; delivery setup and full purchase/access verification pending. |
 | Admin event list | PARTIAL | Phase 2A implemented; duplicate/cancel quick actions and separate publication/capacity list presentation remain. Metrics require server configuration. |
-| Event workspace | PARTIAL | Overview, Orders and existing editor available here. Other operational sections remain. |
+| Event workspace | DONE | UI navigation: Overview, Tickets, Settings, Orders, Guests, Emails, Promotion, Analytics, Edit content. Existing editor is shared across Tickets/Settings/Edit content; unimplemented sections are honest empty shells. Operational capabilities remain tracked separately below. |
 | Overview | DONE | Implemented Phase 2A, unavailable-metrics handling Phase 2B; live sales verification still blocked by server configuration. |
-| Tickets management | PARTIAL | Existing ticket fields; dedicated workspace, archived-ticket management, sold counts and limits remain. |
+| Tickets management | PARTIAL | Existing editor moved to Tickets, including prices/benefits, sale windows/capacity and archive-on-save removal. Archived-ticket restoration and per-type sold/remaining/revenue are unavailable without backend work. |
 | Settings | PARTIAL | Existing dates/capacity; checkout field configuration, consents, policies, message and order-limit settings remain. |
 | Orders read workspace | DONE | Phase 3A: per-event server search/filter/pagination and expandable buyer/payment/issued-ticket details. Live database verification pending. |
 | Orders actions / full discount history | MISSING | Resend, refund/cancel actions and original-price/discount snapshots remain. Current UI displays recorded price basis, not invented savings. Pre-issuance attendee names are not shown. |
@@ -94,6 +94,14 @@ Event creation/editing, multiple ticket types, guest/member pricing, a multi-eve
 5. **Release verification:** coordinate pending migrations with matching code, verify server secrets and Resend readiness without exposing provider mechanics, and run a sandbox checkout through signed webhook fulfillment and purchased-ticket access.
 
 This is an audit only. No feature implementation is included in Phase 1.
+
+## Workspace navigation phase (2026-10-01)
+
+- UI-only reorganization into the nine requested tabs in the requested order. Overview and Orders retain their existing content; Guests, Emails, Promotion and Analytics have informational empty shells without fabricated data or actions.
+- One EventForm instance remains mounted across tab navigation. Ticket fields moved to Tickets; registration dates, operational status and event capacity moved to Settings; title/slug/descriptions/images/date/location/speakers/programme/featured moved to Edit content. New-event creation retains its existing complete form.
+- Save payload, endpoints, publication actions and archive-on-save semantics remain unchanged. Shared save actions explain that saving applies across editor tabs and Save draft sets publication to draft.
+- Per-type sold/remaining/revenue and archived restoration are still unsupported by the current read model. Max tickets/order, custom buyer/attendee fields, policies/consents and confirmation/cancellation settings are not added as editable controls because this phase prohibits backend behavior changes. Settings explains current standard checkout behavior and these gaps.
+- P0/P1/P2 priorities supplied by the user govern subsequent work; no P2 features are authorized. This phase adds navigation, not completion of the missing operational features.
 
 ## Phase 3A completion (2026-10-01): per-event Orders
 

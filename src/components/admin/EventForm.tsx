@@ -108,11 +108,13 @@ export function EventForm({
   initialTickets,
   initialSpeakerIds,
   initialWorkshops,
+  section,
 }: {
   initialEvent: EventFormValues;
   initialTickets: TicketDraft[];
   initialSpeakerIds: string[];
   initialWorkshops: WorkshopDraft[];
+  section?: "tickets" | "settings" | "content";
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -237,7 +239,7 @@ export function EventForm({
         saveAs("draft");
       }}
     >
-      <section className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
+      <section hidden={!!section && section !== "content"} className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
         <h2 className="font-display text-lg font-bold">Basics</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Title">
@@ -303,9 +305,17 @@ export function EventForm({
         <Field label="Gallery image URLs" hint="One image URL per line. Optional on public pages.">
           <textarea className={textareaClass} rows={3} value={event.gallery_urls} onChange={(e) => set("gallery_urls", e.target.value)} placeholder="https://..." />
         </Field>
+        <label className="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={event.featured}
+            onChange={(e) => set("featured", e.target.checked)}
+          />
+          Feature this event on the homepage
+        </label>
       </section>
 
-      <section className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
+      <section hidden={!!section && section !== "content"} className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
         <h2 className="font-display text-lg font-bold">When and where</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Start">
@@ -341,7 +351,7 @@ export function EventForm({
         </div>
       </section>
 
-      <section className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
+      <section hidden={!!section && section !== "settings"} className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
         <h2 className="font-display text-lg font-bold">Registration</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Capacity" hint="Leave empty for unlimited.">
@@ -390,17 +400,16 @@ export function EventForm({
             />
           </Field>
         </div>
-        <label className="flex items-center gap-3 text-sm">
-          <input
-            type="checkbox"
-            checked={event.featured}
-            onChange={(e) => set("featured", e.target.checked)}
-          />
-          Feature this event on the homepage
-        </label>
+
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-border/60 bg-card p-6">
+      {section === "settings" && <section className="space-y-3 rounded-2xl border border-border/60 bg-card p-6">
+        <h2 className="font-display text-lg font-bold">Checkout and policies</h2>
+        <p className="text-sm text-muted-foreground">Checkout currently allows up to 10 tickets per basket. Buyer and attendee details use the standard checkout fields.</p>
+        <p className="text-sm text-muted-foreground">Per-event ticket limits, buyer and attendee field configuration, policies and consents, and confirmation/cancellation settings are not yet configurable.</p>
+      </section>}
+
+      <section hidden={!!section && section !== "content"} className="space-y-4 rounded-2xl border border-border/60 bg-card p-6">
         <h2 className="font-display text-lg font-bold">Speakers</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {speakers.map((speaker) => (
@@ -422,7 +431,7 @@ export function EventForm({
         </div>
       </section>
 
-      <section className="space-y-6 rounded-2xl border border-border/60 bg-card p-6">
+      <section hidden={!!section && section !== "tickets"} className="space-y-6 rounded-2xl border border-border/60 bg-card p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-bold">Ticket types</h2>
           <Button
@@ -439,8 +448,10 @@ export function EventForm({
             No ticket types yet. Without one, nobody can register.
           </p>
         )}
+        <p className="text-sm text-muted-foreground">Saved ticket types shown here are active. Removing a saved type archives it when you save. Archived types cannot yet be restored here. Sold, remaining and revenue per ticket are not available in this editor.</p>
         {tickets.map((ticket, index) => (
           <div key={index} className="space-y-4 border-t border-border pt-5">
+            <p className="text-xs text-muted-foreground">{ticket.id ? "Active ticket type" : "New ticket type · not saved"}</p>
             <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr_auto]">
               <Field label="Name">
                 <input
@@ -471,7 +482,7 @@ export function EventForm({
               <button
                 type="button"
                 className="mt-7 text-destructive"
-                aria-label="Remove ticket"
+                aria-label={ticket.id ? "Archive ticket on save" : "Remove unsaved ticket"}
                 onClick={() => setTickets((prev) => prev.filter((_, i) => i !== index))}
               >
                 <Trash2 className="size-4" />
@@ -519,12 +530,13 @@ export function EventForm({
         ))}
       </section>
 
-      <section className="space-y-6 rounded-2xl border border-border/60 bg-card p-6">
+      <section hidden={!!section && section !== "content"} className="space-y-6 rounded-2xl border border-border/60 bg-card p-6">
         <div className="flex items-center justify-between"><h2 className="font-display text-lg font-bold">Programme and workshops</h2><Button type="button" variant="outlineInk" size="sm" onClick={() => setWorkshops((previous) => [...previous, { ...emptyWorkshop }])}>Add workshop</Button></div>
         {workshops.length === 0 && <p className="text-sm text-muted-foreground">Optional. Add workshops or programme sessions shown on the public event page.</p>}
         {workshops.map((workshop, index) => <div key={workshop.id ?? index} className="space-y-4 border-t border-border pt-5"><div className="grid gap-4 sm:grid-cols-2"><Field label="Title"><input className={inputClass} value={workshop.title} onChange={(event) => setWorkshop(index, "title", event.target.value)} /></Field><Field label="Speaker"><select className={inputClass} value={workshop.speaker_id} onChange={(event) => setWorkshop(index, "speaker_id", event.target.value)}><option value="">No speaker</option>{speakers.map((speaker) => <option key={speaker.id} value={speaker.id}>{speaker.name}</option>)}</select></Field><Field label="Start"><input type="datetime-local" className={inputClass} value={workshop.start_time} onChange={(event) => setWorkshop(index, "start_time", event.target.value)} /></Field><Field label="End"><input type="datetime-local" className={inputClass} value={workshop.end_time} onChange={(event) => setWorkshop(index, "end_time", event.target.value)} /></Field><Field label="Location"><input className={inputClass} value={workshop.location} onChange={(event) => setWorkshop(index, "location", event.target.value)} /></Field><Field label="Capacity"><input type="number" min={1} className={inputClass} value={workshop.capacity} onChange={(event) => setWorkshop(index, "capacity", event.target.value)} /></Field></div><Field label="Description"><textarea className={textareaClass} value={workshop.description} onChange={(event) => setWorkshop(index, "description", event.target.value)} /></Field><div className="flex flex-wrap items-end justify-between gap-4"><Field label="Price (CHF)" className="w-40"><input type="number" min={0} className={inputClass} value={workshop.base_price} onChange={(event) => setWorkshop(index, "base_price", event.target.value)} /></Field><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={workshop.separate_registration_required} onChange={(event) => setWorkshop(index, "separate_registration_required", event.target.checked)} />Separate registration required</label><button type="button" className="text-xs text-destructive underline" onClick={() => setWorkshops((previous) => previous.filter((_, workshopIndex) => workshopIndex !== index))}>Remove</button></div></div>)}
       </section>
 
+      <p className="text-sm text-muted-foreground">Saving applies changes across Tickets, Settings and Edit content. Save before opening the public preview. Save draft also changes the publication state to draft.</p>
       <div className="flex flex-wrap gap-3">
         {event.id && event.slug && (
           <Button asChild type="button" variant="outlineInk" size="lg">
