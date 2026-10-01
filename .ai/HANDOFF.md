@@ -31,6 +31,14 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Known issues: the browser still requires the user to complete sign-in again after this hot update; no admin/database authorization is bypassed. The local server uses the existing non-secret Supabase public configuration only; no server secret was added.
 - Exact next task: sign in once at local `/login?redirect=%2Fadmin%2Fevents`, verify arrival at the event list, and confirm staff access before opening a particular event's Attendees tab.
 
+## 2026-10-01: local account session verification
+
+- Task completed: `AUTH-LOCAL-02` — restored local server access to Supabase Auth so a persisted browser session is validated server-side instead of being misreported as signed out.
+- Branch / state: `codex/event-ops`; no source-code or database change. Restarted the local Vite process on port 3001 with outbound network enabled, using only existing public Supabase configuration.
+- Verification: refreshed `/account`; it displayed the authenticated account overview and staff access card. A read-only Supabase Auth health request returned HTTP 200 with network access; the same request was blocked by the sandbox.
+- Known issue: the dev server must be started in an environment allowed to reach Supabase. Starting it in a network-restricted sandbox reproduces the false signed-out state. No service-role key was loaded or used for this verification.
+- Exact next task: continue event admin verification with the user on the already authenticated local account; coordinate pending migrations before testing check-in or deploying.
+
 ## 2026-10-01: multi-Codex-thread collaboration setup
 
 - Task completed: `SETUP-01` — updated the existing repository instructions, shared context, task board, review format, and this handoff for independent Codex threads.
