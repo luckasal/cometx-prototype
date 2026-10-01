@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-01: complete GA4 app tracking inventory
+
+- Task completed: `ANALYTICS-TRACKING-02` — added `partner_click` to the consent-aware GA4 helper and partner website links. It sends only a stable partner record ID and destination hostname. Updated `ANALYTICS.md` with all active event names, properties, firing locations, ticket/membership funnel definitions and DebugView steps.
+- Owner / branch / worktree: Codex / `codex/analytics-admin` / `cometx-analytics-admin`.
+- Implementation commit: `11ff628`.
+- Files changed: `src/lib/analytics.ts`, `src/routes/partners.tsx`, `ANALYTICS.md`, `.ai/TASKS.md`.
+- Checks: TypeScript, four focused analytics tests and targeted ESLint passed. No payment, Wix, GA4 property, Google Cloud, or admin reporting changes.
+- Known issues/setup: the new app needs `VITE_GA_MEASUREMENT_ID` in each deployment environment. Local ignored `.env.local` contains the user-provided ID; it is not committed. No GA4 DebugView session or payment was run. Paid membership checkout is not enabled; activation is only described as server-confirmed and is not inferred from interest.
+- Exact next recommended task: deploy the existing Measurement ID to the new app's intended environment and verify consent plus requested events in GA4 DebugView without changing Wix or GA4 property settings.
+
 ## 2026-10-01: GA4 reports in staff admin
 
 - Task completed: `ANALYTICS-ADMIN-01` — added `/admin/analytics` with visitors, sessions, page views, acquisition channels, popular pages, and journey event counts; linked it from the staff dashboard and navigation.
