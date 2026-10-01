@@ -4,6 +4,7 @@ One active owner per task. Before editing, record a task ID, owner/thread, branc
 
 | ID | Task | Owner / branch | Status | Decision or blocker |
 | --- | --- | --- | --- | --- |
+| EVENT-ADMIN-2B | Keep event list and Overview usable when sales metrics are unavailable | Codex / `codex/event-admin-phase-2a` | review | Event details remain available; unavailable metrics display as “—”; staff no longer see provider configuration instructions. TypeScript passed; runtime UI check pending because port 3001 serves another worktree. |
 | EVENT-ADMIN-2A | Event list search/filters/metrics/actions and event Overview tab | Codex / `codex/event-admin-phase-2a` | done | Implemented and typechecked. Other event tabs and excluded features remain for later phases. |
 | LOCAL-AUTH-01 | Restore authenticated server-function access in the local backoffice preview | Codex / `codex/event-admin-phase-2a` | blocked | Bearer forwarding works, but the browser's existing token is rejected by Supabase Auth (`AuthSessionMissingError`). A fresh sign-in is needed; local event metrics also require the server-only Supabase key, which is not in this worktree's environment. |
 | SETUP-01 | Multi-Codex-thread repository instructions and handoff templates | setup thread / `codex-dev` | done | Documentation only; existing unfinished code preserved. |

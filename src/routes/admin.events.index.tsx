@@ -16,7 +16,8 @@ function formatDate(value: string) {
   return new Date(value).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 }
 
-function eventRevenue(amounts: Record<string, number>) {
+function eventRevenue(amounts: Record<string, number> | null) {
+  if (!amounts) return "—";
   const entries = Object.entries(amounts);
   return entries.length ? entries.map(([currency, amount]) => formatMoney(amount / 100, currency)).join(" · ") : "—";
 }
@@ -91,6 +92,7 @@ function AdminEventsPage() {
 
       {isLoading && <LoadingBlock label="Loading events" />}
       {error && <ErrorBlock error={error} />}
+      {data?.some((event) => !event.metrics) && <p role="status" className="mb-4 rounded-xl border border-border/60 bg-card px-4 py-3 text-sm text-muted-foreground">Sales totals are temporarily unavailable. Event details and publishing are still available.</p>}
       {data && data.length === 0 && <EmptyBlock title="No events yet" hint="Add an event to start publishing your programme." />}
       {data && data.length > 0 && filtered.length === 0 && <EmptyBlock title="No matching events" hint="Change the search or filters and try again." />}
       {filtered.length > 0 && (
@@ -99,7 +101,7 @@ function AdminEventsPage() {
             const lifecycle = getEventLifecycleStatus(event);
             const eventPath = `/events/${encodeURIComponent(event.slug)}`;
             const previewPath = `${eventPath}?preview=1`;
-            const metrics = event.metrics ?? { ticketsSold: 0, revenueByCurrencyMinor: {} };
+            const metrics = event.metrics;
             return (
               <tr key={event.id} className="align-middle [&>td]:px-3 [&>td]:py-3">
                 <td className="min-w-56">
@@ -111,8 +113,8 @@ function AdminEventsPage() {
                 <td className="min-w-32"><StatusPill tone={lifecycleTone(lifecycle)}>{formatEventLifecycleStatus(lifecycle)}</StatusPill>{event.event_status !== "upcoming" && event.event_status !== "completed" && event.event_status !== "cancelled" && <span className="mt-1 block text-xs capitalize text-muted-foreground">{event.event_status.replaceAll("_", " ")}</span>}</td>
                 <td className="min-w-36 text-muted-foreground">{formatDate(event.start_date)}</td>
                 <td className="min-w-36 text-muted-foreground">{event.venue || event.address || "—"}</td>
-                <td className="text-center tabular-nums">{metrics.ticketsSold}</td>
-                <td className="min-w-28 whitespace-nowrap tabular-nums">{eventRevenue(metrics.revenueByCurrencyMinor)}</td>
+                <td className="text-center tabular-nums">{metrics?.ticketsSold ?? "—"}</td>
+                <td className="min-w-28 whitespace-nowrap tabular-nums">{eventRevenue(metrics?.revenueByCurrencyMinor ?? null)}</td>
                 <td className="min-w-36 text-muted-foreground">{formatDate(event.updated_at)}</td>
                 <td className="min-w-48"><div className="flex flex-wrap justify-end gap-x-3 gap-y-2 text-xs">
                   <Link to="/admin/events/$id" params={{ id: event.id }} className="underline underline-offset-4">Edit</Link>

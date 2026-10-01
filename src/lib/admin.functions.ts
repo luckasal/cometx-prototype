@@ -10,6 +10,19 @@ async function admin() {
   return getReadClient();
 }
 
+async function loadEventMetrics(eventIds: string[]) {
+  try {
+    const { getAdminEventMetrics } = await import("./event-admin-metrics.server");
+    return await getAdminEventMetrics(eventIds);
+  } catch (error) {
+    console.error(
+      "[event admin] Sales and order metrics are unavailable:",
+      error instanceof Error ? error.message : "Unexpected metrics error",
+    );
+    return null;
+  }
+}
+
 /* ---------------------------------- dashboard --------------------------------- */
 
 export const getAdminDashboard = createServerFn({ method: "GET" }).handler(async () => {
@@ -80,9 +93,8 @@ export const adminListEvents = createServerFn({ method: "GET" }).handler(async (
     .order("start_date", { ascending: false });
   if (error) throw new Error(error.message);
   const events = data ?? [];
-  const { getAdminEventMetrics } = await import("./event-admin-metrics.server");
-  const metrics = await getAdminEventMetrics(events.map((event) => event.id));
-  return events.map((event) => ({ ...event, metrics: metrics[event.id] }));
+  const metrics = await loadEventMetrics(events.map((event) => event.id));
+  return events.map((event) => ({ ...event, metrics: metrics?.[event.id] ?? null }));
 });
 
 export const adminGetEvent = createServerFn({ method: "GET" })
@@ -100,13 +112,13 @@ export const adminGetEvent = createServerFn({ method: "GET" })
     }
     const event = eventResult.data;
     if (!event) return null;
-    const { getAdminEventMetrics } = await import("./event-admin-metrics.server");
+    const metrics = await loadEventMetrics([event.id]);
     return {
       event,
       tickets: ticketsResult.data ?? [],
       speakerIds: (speakersResult.data ?? []).map((s) => s.speaker_id),
       workshops: workshopsResult.data ?? [],
-      metrics: (await getAdminEventMetrics([event.id]))[event.id],
+      metrics: metrics?.[event.id] ?? null,
     };
   });
 

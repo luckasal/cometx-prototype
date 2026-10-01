@@ -35,12 +35,13 @@ function formatDateRange(start: string, end: string | null) {
   return `${startText}–${endText}`;
 }
 
-function formatRevenue(amounts: Record<string, number>) {
+function formatRevenue(amounts: Record<string, number> | null) {
+  if (!amounts) return "—";
   const entries = Object.entries(amounts);
   return entries.length ? entries.map(([currency, amount]) => formatMoney(amount / 100, currency)).join(" · ") : "—";
 }
 
-function EventOverview({ event, metrics, ticketCount }: { event: EventFormValues & { updated_at?: string; event_type: string }; metrics: AdminEventMetrics; ticketCount: number }) {
+function EventOverview({ event, metrics, ticketCount }: { event: EventFormValues & { updated_at?: string; event_type: string }; metrics: AdminEventMetrics | null; ticketCount: number }) {
   const eventUrl = `/events/${encodeURIComponent(event.slug)}`;
   const publicEvent = event.publish_state === "published";
   const checks = [
@@ -54,14 +55,15 @@ function EventOverview({ event, metrics, ticketCount }: { event: EventFormValues
   ] as const;
   const readyCount = checks.filter(([, ready]) => ready).length;
   const capacity = Number(event.capacity);
-  const capacityProgress = event.capacity.trim() && Number.isFinite(capacity) && capacity > 0
+  const capacityProgress = metrics && event.capacity.trim() && Number.isFinite(capacity) && capacity > 0
     ? Math.min(metrics.ticketsSold / capacity, 1)
     : null;
 
   return <div className="space-y-6">
+    {!metrics && <p role="status" className="rounded-xl border border-border/60 bg-card px-4 py-3 text-sm text-muted-foreground">Sales and order totals are temporarily unavailable. Event details and editing are still available.</p>}
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Tickets sold</p><p className="mt-2 text-2xl font-bold tabular-nums">{metrics.ticketsSold}{capacityProgress !== null ? <span className="text-base font-medium text-muted-foreground"> / {capacity}</span> : null}</p>{capacityProgress !== null && <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-accent" style={{ width: `${capacityProgress * 100}%` }} /></div>}{capacityProgress === null && <p className="mt-2 text-xs text-muted-foreground">No event-wide capacity limit</p>}</div>
-      <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Confirmed revenue</p><p className="mt-2 text-2xl font-bold tabular-nums">{formatRevenue(metrics.revenueByCurrencyMinor)}</p><p className="mt-2 text-xs text-muted-foreground">Paid orders and confirmed legacy registrations</p></div>
+      <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Tickets sold</p><p className="mt-2 text-2xl font-bold tabular-nums">{metrics?.ticketsSold ?? "—"}{capacityProgress !== null ? <span className="text-base font-medium text-muted-foreground"> / {capacity}</span> : null}</p>{capacityProgress !== null && <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-accent" style={{ width: `${capacityProgress * 100}%` }} /></div>}{metrics && capacityProgress === null && <p className="mt-2 text-xs text-muted-foreground">No event-wide capacity limit</p>}</div>
+      <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Confirmed revenue</p><p className="mt-2 text-2xl font-bold tabular-nums">{formatRevenue(metrics?.revenueByCurrencyMinor ?? null)}</p><p className="mt-2 text-xs text-muted-foreground">Paid orders and confirmed legacy registrations</p></div>
       <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Publication</p><div className="mt-3"><StatusPill tone={publicEvent ? "signal" : "muted"}>{formatEventLifecycleStatus(event.publish_state)}</StatusPill></div><p className="mt-2 text-sm capitalize text-muted-foreground">Event status: {event.event_status.replaceAll("_", " ")}</p></div>
       <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Setup</p><p className="mt-2 text-2xl font-bold tabular-nums">{readyCount} / 7</p><p className="mt-2 text-xs text-muted-foreground">Content checks complete · publication is shown separately</p></div>
     </section>
@@ -88,8 +90,8 @@ function EventOverview({ event, metrics, ticketCount }: { event: EventFormValues
     </section>
 
     <section className="rounded-2xl border border-border/60 bg-card p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-display text-lg font-bold">Recent orders</h2><p className="mt-1 text-sm text-muted-foreground">Latest order activity for this event.</p></div><span className="text-xs text-muted-foreground">{metrics.recentOrders.length} shown</span></div>
-      {metrics.recentOrders.length === 0 ? <p className="mt-5 rounded-xl bg-background p-4 text-sm text-muted-foreground">No orders yet.</p> : <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[32rem] text-sm"><thead className="text-left text-xs uppercase tracking-widest text-muted-foreground"><tr><th className="py-2 pr-4">Buyer</th><th className="py-2 pr-4">Tickets</th><th className="py-2 pr-4">Total</th><th className="py-2 pr-4">Status</th><th className="py-2">Date</th></tr></thead><tbody className="divide-y divide-border">{metrics.recentOrders.map((order: AdminEventOrderSummary) => <tr key={order.id}><td className="py-3 pr-4">{order.buyerName}</td><td className="py-3 pr-4 tabular-nums">{order.ticketCount}</td><td className="py-3 pr-4">{formatRevenue(order.amountsByCurrencyMinor)}</td><td className="py-3 pr-4 capitalize">{order.status.replaceAll("_", " ")}</td><td className="py-3 text-muted-foreground">{new Date(order.createdAt).toLocaleDateString("en-GB")}</td></tr>)}</tbody></table></div>}
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-display text-lg font-bold">Recent orders</h2><p className="mt-1 text-sm text-muted-foreground">Latest order activity for this event.</p></div><span className="text-xs text-muted-foreground">{metrics ? `${metrics.recentOrders.length} shown` : "Unavailable"}</span></div>
+      {!metrics ? <p className="mt-5 rounded-xl bg-background p-4 text-sm text-muted-foreground">Order totals could not be loaded.</p> : metrics.recentOrders.length === 0 ? <p className="mt-5 rounded-xl bg-background p-4 text-sm text-muted-foreground">No orders yet.</p> : <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[32rem] text-sm"><thead className="text-left text-xs uppercase tracking-widest text-muted-foreground"><tr><th className="py-2 pr-4">Buyer</th><th className="py-2 pr-4">Tickets</th><th className="py-2 pr-4">Total</th><th className="py-2 pr-4">Status</th><th className="py-2">Date</th></tr></thead><tbody className="divide-y divide-border">{metrics.recentOrders.map((order: AdminEventOrderSummary) => <tr key={order.id}><td className="py-3 pr-4">{order.buyerName}</td><td className="py-3 pr-4 tabular-nums">{order.ticketCount}</td><td className="py-3 pr-4">{formatRevenue(order.amountsByCurrencyMinor)}</td><td className="py-3 pr-4 capitalize">{order.status.replaceAll("_", " ")}</td><td className="py-3 text-muted-foreground">{new Date(order.createdAt).toLocaleDateString("en-GB")}</td></tr>)}</tbody></table></div>}
     </section>
   </div>;
 }
@@ -122,7 +124,7 @@ function EditEventPage() {
     );
 
   const e = data.event;
-  const metrics = data.metrics as AdminEventMetrics;
+  const metrics = data.metrics as AdminEventMetrics | null;
   const initialEvent: EventFormValues = {
     id: e.id,
     title: e.title,
