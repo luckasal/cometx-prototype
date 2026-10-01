@@ -5,6 +5,7 @@ One active owner per task. Before editing, record a task ID, owner/thread, branc
 | ID | Task | Owner / branch | Status | Decision or blocker |
 | --- | --- | --- | --- | --- |
 | SETUP-01 | Multi-Codex-thread repository instructions and handoff templates | setup thread / `codex-dev` | done | Documentation only; existing unfinished code preserved. |
+| ANALYTICS-ADMIN-01 | Show GA4 traffic and conversion reports in staff admin | Codex / `codex/analytics-admin` worktree | done | Admin route and reports pass build/typecheck; deployment needs server-only GA4 Data API property and read-only service account setup. |
 | EVENT-READ-01 | Verify and finish legacy event-capacity read compatibility | unassigned; current change in `cometx-codex` | in progress | `src/lib/events.functions.ts` is dirty; claim ownership before touching it. Do not deploy all of `codex-dev` without schema/release review. |
 | RELEASE-01 | Plan coordinated migrations `0007`–`0009` and checkout release | unassigned | blocked | Requires schema/security review and sandbox payment verification. |
 

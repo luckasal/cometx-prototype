@@ -30,28 +30,39 @@ function AdminDashboard() {
       {isLoading && <LoadingBlock label="Loading numbers" />}
       {error && <ErrorBlock error={error} />}
       {data && (
-        <div className="grid gap-px overflow-hidden rounded-3xl border border-border/60 bg-border sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            ["Events", data.events, "/admin/events"],
-            ["Registrations", data.registrations, "/admin/registrations"],
-            ["Active members", data.activeMembers, "/admin/members"],
-            ["Articles", data.articles, "/admin/articles"],
-            ["Speakers", data.speakers, "/admin/speakers"],
-            ["Partners", data.partners, "/admin/partners"],
-            ["Contacts", data.contacts, "/admin/contacts"],
-            ["Payments", data.payments, "/admin/payments"],
-            ["Structured content", data.content, "/admin/content"],
-          ].map(([label, value, to]) => (
-            <Link
-              key={label as string}
-              to={to as string}
-              className="bg-card p-6 transition-colors hover:bg-paper"
-            >
-              <p className="eyebrow text-muted-foreground">{label as string}</p>
-              <p className="mt-3 font-display text-4xl font-extrabold">{value as number}</p>
-            </Link>
-          ))}
-        </div>
+        <>
+          <Link
+            to="/admin/analytics"
+            className="mb-6 block rounded-2xl border border-border bg-card p-5 transition-colors hover:bg-paper"
+          >
+            <p className="font-semibold">Website analytics →</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              See visits, sources, popular pages and conversion steps.
+            </p>
+          </Link>
+          <div className="grid gap-px overflow-hidden rounded-3xl border border-border/60 bg-border sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              ["Events", data.events, "/admin/events"],
+              ["Registrations", data.registrations, "/admin/registrations"],
+              ["Active members", data.activeMembers, "/admin/members"],
+              ["Articles", data.articles, "/admin/articles"],
+              ["Speakers", data.speakers, "/admin/speakers"],
+              ["Partners", data.partners, "/admin/partners"],
+              ["Contacts", data.contacts, "/admin/contacts"],
+              ["Payments", data.payments, "/admin/payments"],
+              ["Structured content", data.content, "/admin/content"],
+            ].map(([label, value, to]) => (
+              <Link
+                key={label as string}
+                to={to as string}
+                className="bg-card p-6 transition-colors hover:bg-paper"
+              >
+                <p className="eyebrow text-muted-foreground">{label as string}</p>
+                <p className="mt-3 font-display text-4xl font-extrabold">{value as number}</p>
+              </Link>
+            ))}
+          </div>
+        </>
       )}
     </AdminPage>
   );

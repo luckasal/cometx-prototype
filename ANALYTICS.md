@@ -25,3 +25,15 @@ The shared helper in `src/lib/analytics.ts` allowlists event metadata. It does n
 4. In GA4 web-stream Enhanced Measurement, turn off **Page changes based on browser history events** because this app sends manual SPA `page_view` events. Otherwise navigation may be double-counted (and private guest URL query strings may be captured by the automatic collector). Do the same for any GTM history triggers.
 
 Before enabling analytics on a production domain, review consent and privacy requirements and connect the site's consent mechanism; this task adds tracking only, not a consent banner.
+
+## Staff dashboard
+
+`/admin/analytics` shows the previous 30 complete days of GA4 visitors, sessions, page views, acquisition channels, popular page paths, and event counts for the ticket, membership, newsletter, and link journeys. The main `/admin` page links to it. The report is fetched only by an authenticated administrator through the GA4 Data API; credentials are never returned to the browser. Empty or absent events appear as a dash. These are independent event totals rather than user-level funnel conversion rates, and `purchase_success` still has the return-page limitation described above.
+
+Set these **server-only** deployment variables to enable the report:
+
+- `GA4_PROPERTY_ID`: numeric GA4 property ID, distinct from the public `G-...` Measurement ID.
+- `GA4_CLIENT_EMAIL`: Google Cloud service account email.
+- `GA4_PRIVATE_KEY`: its PEM private key. Store it as a secret; literal `\n` escapes are accepted.
+
+Enable the Google Analytics Data API in the service account's Google Cloud project and grant that service account Viewer access to the GA4 property. Redeploy, open `/admin/analytics` as staff, and compare the previous 30 complete days with GA4 Reports. No property or credentials are bundled into client JavaScript. Google Data API requests use the [official `runReport` endpoint](https://developers.google.com/analytics/devguides/reporting/data/v1/rest/v1beta/properties/runReport).
