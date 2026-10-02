@@ -14,6 +14,7 @@ import { EmptyBlock, ErrorBlock, LoadingBlock, StatusPill } from "@/components/s
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { EventOrders } from "@/components/admin/EventOrders";
 
 export const Route = createFileRoute("/admin/events/$id")({
   component: EditEventPage,
@@ -39,12 +40,13 @@ function formatDateRange(start: string, end: string | null) {
   return `${startText}–${endText}`;
 }
 
-function formatRevenue(amounts: Record<string, number>) {
+function formatRevenue(amounts: Record<string, number> | null) {
+  if (!amounts) return "—";
   const entries = Object.entries(amounts);
   return entries.length ? entries.map(([currency, amount]) => formatMoney(amount / 100, currency)).join(" · ") : "—";
 }
 
-function EventOverview({ event, metrics, ticketCount }: { event: EventFormValues & { updated_at?: string; event_type: string }; metrics: AdminEventMetrics; ticketCount: number }) {
+function EventOverview({ event, metrics, ticketCount }: { event: EventFormValues & { updated_at?: string; event_type: string }; metrics: AdminEventMetrics | null; ticketCount: number }) {
   const eventUrl = `/events/${encodeURIComponent(event.slug)}`;
   const publicEvent = event.publish_state === "published";
   const checks = [
@@ -58,14 +60,15 @@ function EventOverview({ event, metrics, ticketCount }: { event: EventFormValues
   ] as const;
   const readyCount = checks.filter(([, ready]) => ready).length;
   const capacity = Number(event.capacity);
-  const capacityProgress = event.capacity.trim() && Number.isFinite(capacity) && capacity > 0
+  const capacityProgress = metrics && event.capacity.trim() && Number.isFinite(capacity) && capacity > 0
     ? Math.min(metrics.ticketsSold / capacity, 1)
     : null;
 
   return <div className="space-y-6">
+    {!metrics && <p role="status" className="rounded-xl border border-border/60 bg-card px-4 py-3 text-sm text-muted-foreground">Sales and order totals are temporarily unavailable. Event details and editing are still available.</p>}
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Tickets sold</p><p className="mt-2 text-2xl font-bold tabular-nums">{metrics.ticketsSold}{capacityProgress !== null ? <span className="text-base font-medium text-muted-foreground"> / {capacity}</span> : null}</p>{capacityProgress !== null && <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-accent" style={{ width: `${capacityProgress * 100}%` }} /></div>}{capacityProgress === null && <p className="mt-2 text-xs text-muted-foreground">No event-wide capacity limit</p>}</div>
-      <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Confirmed revenue</p><p className="mt-2 text-2xl font-bold tabular-nums">{formatRevenue(metrics.revenueByCurrencyMinor)}</p><p className="mt-2 text-xs text-muted-foreground">Paid orders and confirmed legacy registrations</p></div>
+      <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Tickets sold</p><p className="mt-2 text-2xl font-bold tabular-nums">{metrics?.ticketsSold ?? "—"}{capacityProgress !== null ? <span className="text-base font-medium text-muted-foreground"> / {capacity}</span> : null}</p>{capacityProgress !== null && <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-accent" style={{ width: `${capacityProgress * 100}%` }} /></div>}{metrics && capacityProgress === null && <p className="mt-2 text-xs text-muted-foreground">No event-wide capacity limit</p>}</div>
+      <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Confirmed revenue</p><p className="mt-2 text-2xl font-bold tabular-nums">{formatRevenue(metrics?.revenueByCurrencyMinor ?? null)}</p><p className="mt-2 text-xs text-muted-foreground">Paid orders and confirmed legacy registrations</p></div>
       <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Publication</p><div className="mt-3"><StatusPill tone={publicEvent ? "signal" : "muted"}>{formatEventLifecycleStatus(event.publish_state)}</StatusPill></div><p className="mt-2 text-sm capitalize text-muted-foreground">Event status: {event.event_status.replaceAll("_", " ")}</p></div>
       <div className="rounded-2xl border border-border/60 bg-card p-5"><p className="text-xs uppercase tracking-widest text-muted-foreground">Setup</p><p className="mt-2 text-2xl font-bold tabular-nums">{readyCount} / 7</p><p className="mt-2 text-xs text-muted-foreground">Content checks complete · publication is shown separately</p></div>
     </section>
@@ -92,8 +95,8 @@ function EventOverview({ event, metrics, ticketCount }: { event: EventFormValues
     </section>
 
     <section className="rounded-2xl border border-border/60 bg-card p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-display text-lg font-bold">Recent orders</h2><p className="mt-1 text-sm text-muted-foreground">Latest order activity for this event.</p></div><span className="text-xs text-muted-foreground">{metrics.recentOrders.length} shown</span></div>
-      {metrics.recentOrders.length === 0 ? <p className="mt-5 rounded-xl bg-background p-4 text-sm text-muted-foreground">No orders yet.</p> : <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[32rem] text-sm"><thead className="text-left text-xs uppercase tracking-widest text-muted-foreground"><tr><th className="py-2 pr-4">Buyer</th><th className="py-2 pr-4">Tickets</th><th className="py-2 pr-4">Total</th><th className="py-2 pr-4">Status</th><th className="py-2">Date</th></tr></thead><tbody className="divide-y divide-border">{metrics.recentOrders.map((order: AdminEventOrderSummary) => <tr key={order.id}><td className="py-3 pr-4">{order.buyerName}</td><td className="py-3 pr-4 tabular-nums">{order.ticketCount}</td><td className="py-3 pr-4">{formatRevenue(order.amountsByCurrencyMinor)}</td><td className="py-3 pr-4 capitalize">{order.status.replaceAll("_", " ")}</td><td className="py-3 text-muted-foreground">{new Date(order.createdAt).toLocaleDateString("en-GB")}</td></tr>)}</tbody></table></div>}
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-display text-lg font-bold">Recent orders</h2><p className="mt-1 text-sm text-muted-foreground">Latest order activity for this event.</p></div><span className="text-xs text-muted-foreground">{metrics ? `${metrics.recentOrders.length} shown` : "Unavailable"}</span></div>
+      {!metrics ? <p className="mt-5 rounded-xl bg-background p-4 text-sm text-muted-foreground">Order totals could not be loaded.</p> : metrics.recentOrders.length === 0 ? <p className="mt-5 rounded-xl bg-background p-4 text-sm text-muted-foreground">No orders yet.</p> : <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[32rem] text-sm"><thead className="text-left text-xs uppercase tracking-widest text-muted-foreground"><tr><th className="py-2 pr-4">Buyer</th><th className="py-2 pr-4">Tickets</th><th className="py-2 pr-4">Total</th><th className="py-2 pr-4">Status</th><th className="py-2">Date</th></tr></thead><tbody className="divide-y divide-border">{metrics.recentOrders.map((order: AdminEventOrderSummary) => <tr key={order.id}><td className="py-3 pr-4">{order.buyerName}</td><td className="py-3 pr-4 tabular-nums">{order.ticketCount}</td><td className="py-3 pr-4">{formatRevenue(order.amountsByCurrencyMinor)}</td><td className="py-3 pr-4 capitalize">{order.status.replaceAll("_", " ")}</td><td className="py-3 text-muted-foreground">{new Date(order.createdAt).toLocaleDateString("en-GB")}</td></tr>)}</tbody></table></div>}
     </section>
   </div>;
 }
@@ -200,6 +203,8 @@ function EventAttendees({ eventId, eventTitle }: { eventId: string; eventTitle: 
 
 function EditEventPage() {
   const { id } = Route.useParams();
+  const [tab, setTab] = useState("overview");
+  const editing = tab === "tickets" || tab === "settings" || tab === "content";
   const fetchEvent = useServerFn(adminGetEvent);
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin", "event", id],
@@ -226,7 +231,7 @@ function EditEventPage() {
     );
 
   const e = data.event;
-  const metrics = data.metrics as AdminEventMetrics;
+  const metrics = data.metrics as AdminEventMetrics | null;
   const initialEvent: EventFormValues = {
     id: e.id,
     title: e.title,
@@ -268,15 +273,21 @@ function EditEventPage() {
 
   return (
     <AdminPage title={e.title} description={`Event workspace · /events/${e.slug}`}>
-      <Tabs defaultValue="overview" className="space-y-5">
-        <TabsList aria-label="Event sections" className="h-auto flex-wrap justify-start gap-1">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="attendees">Attendees</TabsTrigger>
-          <TabsTrigger value="edit">Edit event</TabsTrigger>
+      <Tabs value={tab} onValueChange={setTab} className="space-y-5">
+        <TabsList aria-label="Event sections" className="h-auto w-full flex-wrap justify-start gap-1">
+          {[["overview", "Overview"], ["tickets", "Tickets"], ["settings", "Settings"], ["orders", "Orders"], ["guests", "Guests"], ["emails", "Emails"], ["promotion", "Promotion"], ["analytics", "Analytics"], ["content", "Edit content"]].map(([value, label]) => <TabsTrigger key={value} value={value!}>{label}</TabsTrigger>)}
         </TabsList>
-        <TabsContent value="overview"><EventOverview event={initialEvent} metrics={metrics} ticketCount={data.tickets.length} /></TabsContent>
-        <TabsContent value="attendees"><EventAttendees eventId={e.id} eventTitle={e.title} /></TabsContent>
-        <TabsContent value="edit"><p className="mb-5 text-sm text-muted-foreground">Save changes before refreshing the public preview.</p><EventForm initialEvent={initialEvent} initialTickets={initialTickets} initialSpeakerIds={data.speakerIds} initialWorkshops={initialWorkshops} /></TabsContent>
+        <TabsContent value="overview"><EventOverview event={{ ...initialEvent, updated_at: e.updated_at }} metrics={metrics} ticketCount={data.tickets.length} /></TabsContent>
+        <TabsContent value="orders"><EventOrders eventId={e.id} /></TabsContent>
+        {[
+          ["emails", "Emails", "Per-event confirmation, reminder and update email controls are not configured here yet."],
+          ["promotion", "Promotion", "Promotion tools are not available here yet. The public or preview link is available in Overview."],
+          ["analytics", "Analytics", "Detailed event reports are not available here yet. Existing ticket and revenue totals are in Overview."],
+        ].map(([value, title, description]) => <TabsContent key={value} value={value!}><section className="rounded-2xl border border-border/60 bg-card p-6"><h2 className="font-display text-lg font-bold">{title}</h2><p className="mt-3 text-sm text-muted-foreground">{description}</p></section></TabsContent>)}
+        {/* Keep one editor mounted across tabs so unsaved values and mutations survive navigation. */}
+        <TabsContent forceMount value={editing ? tab : "content"} hidden={!editing}>
+          <EventForm initialEvent={initialEvent} initialTickets={initialTickets} initialSpeakerIds={data.speakerIds} initialWorkshops={initialWorkshops} section={tab === "tickets" ? "tickets" : tab === "settings" ? "settings" : "content"} />
+        </TabsContent>
       </Tabs>
     </AdminPage>
   );

@@ -43,9 +43,8 @@ function createSupabaseAdminClient() {
         ? ['SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY']
         : []),
     ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Check the server environment configuration.`;
-    console.error(`[Supabase] ${message}`);
-    throw new Error(message);
+    console.error(`[Supabase] Server-side admin client is missing configuration: ${missing.join(', ')}`);
+    throw new Error("Server-side data access is temporarily unavailable. Please contact a site administrator.");
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {

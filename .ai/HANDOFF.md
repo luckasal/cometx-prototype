@@ -11,6 +11,50 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Decisions: Supabase browser sessions now use standard `localStorage`; Vite directly configures TanStack Start, Tailwind, React and Nitro, retaining the previous Cloudflare-module build target. Migration and cron secret names are now `SUPABASE_DB_URL`, `CRON_SECRET`, and optional `CRON_SECRET_PREVIOUS`. Secret values were not read, copied, or changed. Hosting environment settings were not inspected or changed.
 - Known issues: if hosting still uses retired environment variable names, scheduled jobs or Drizzle migration commands will need the new names before use. The full test-suite runtime issues listed above remain.
 - Exact next recommended task: verify any existing hosting-side migration/cron variables and rename them to the neutral names above if needed; then deploy only after confirming the hosting target matches the retained Nitro preset.
+## 2026-10-01: nine-tab workspace UI
+
+- Task `EVENT-WORKSPACE-UI`, implementation commit `9aac624`, branch `codex/event-admin-phase-2a`.
+- Files: `src/components/admin/EventForm.tsx`, `src/routes/admin.events.$id.tsx`, `EVENT_ADMIN_GAPS.md`, `.ai/TASKS.md`, and this handoff.
+- Added requested navigation order: Overview, Tickets, Settings, Orders, Guests, Emails, Promotion, Analytics, Edit content. Overview/Orders remain functional; unimplemented sections use honest informational shells.
+- Existing ticket controls are shown under Tickets; registration/status/event capacity under Settings; content/date/location/speakers/programme/featured under Edit content. A single continuously mounted EventForm preserves editor state between tabs and uses the existing save payload/actions. New-event form retains all sections. Backend code, schema and provider behavior unchanged.
+- Ticket removal retains archive-on-save semantics and now explains it. No fabricated sold/remaining/revenue counts or editable settings without persistence; unsupported per-ticket reporting/archive restoration and checkout/policy/message settings are explicitly recorded as gaps.
+- Checks: TypeScript passed; scoped/staged whitespace checks passed. Reviewed the focused diff to confirm form state/mutations/payload are unchanged. No live saving or browser interaction verification performed; no hosted data changed.
+- Pre-existing `src/routeTree.gen.ts` change remains unstaged. No deployment or migration.
+- Next phase requires a new instruction; follow user P0 priorities. Guests implementation exists on the separate event-ops branch and must be reviewed/integrated rather than duplicated. Unsupported settings/ticket reporting require a separate backend phase.
+
+## 2026-10-01: Phase 3A — event Orders workspace
+
+- Task: `EVENT-ADMIN-3A`; branch/worktree `codex/event-admin-phase-2a` / `cometx-event-admin-phase-2a`.
+- Implementation commit: `a6b071b`.
+- Files: `src/components/admin/EventOrders.tsx`, `src/lib/event-orders.ts`, `src/lib/event-orders.server.ts`, `src/lib/event-orders.functions.ts`, `src/routes/admin.events.$id.tsx`, `tests/event-orders.test.mjs`, `EVENT_SYSTEM_SPEC.md`, `EVENT_ADMIN_GAPS.md`, `.ai/TASKS.md`.
+- Added read-only Orders tab: buyer/email/full-reference search, status/buyer filters, exact count and database pagination, expandable buyer/payment/issued-ticket details. Multi-event orders expose only selected-event lines/attendees; full order total/payment state are labelled separately. Recorded member/included price basis is shown without inventing discount amounts or membership status.
+- Admin authorization runs before privileged module imports. Explicit field projection excludes guest tokens/provider IDs. Known legacy line-event schema errors retry with parent-event scope; other failures show an error/retry state, never an empty history.
+- Checks: TypeScript passed; 8 focused tests passed, including authorization boundary, event isolation, pagination, legacy fallback, filter escaping and real component rendering; focused ESLint and staged whitespace checks passed.
+- No migrations, hosted data writes, provider calls, or production deployment. Runtime staff/order verification remains pending: local preview lacks server-only Supabase key and the current browser is on login. Pre-issuance attendee names, numeric historical discounts, resend/refund/cancel actions remain gaps.
+- Master spec preserved verbatim in `EVENT_SYSTEM_SPEC.md`; audit now labels DONE/PARTIAL/MISSING/RELEASE BLOCKER and distinguishes other-branch work. Guests/check-in/export exists on `codex/event-ops` (`ce82633`); platform cleanup exists there (`f575dc7`). Neither is integrated here. A coordination message failed with “thread not found”; committed task-board ownership was inspected and no active Orders task was recorded.
+- Pre-existing generated `src/routeTree.gen.ts` change remains unstaged.
+- Exact next phase: review/integrate existing Guests/check-in/export from `codex/event-ops`, coordinating its pending migration and hosted checks. Do not rebuild it independently or start automatically.
+
+## 2026-10-01: event admin remains useful without metrics
+
+- Task: `EVENT-ADMIN-2B` — keep event list and Overview available when server-side sales/order metrics cannot load.
+- Files changed: `src/lib/admin.functions.ts`, `src/routes/admin.events.index.tsx`, `src/routes/admin.events.$id.tsx`, `src/integrations/supabase/client.server.ts`, `EVENT_ADMIN_GAPS.md`, `.ai/TASKS.md`.
+- Implementation commit: `e5fb3ce`.
+- Result: event content no longer disappears when metrics fail; unknown ticket/revenue/order values are shown as unavailable, not zero. Staff receive a neutral message and no Lovable or server-key setup instructions.
+- Checks: `node node_modules/typescript/bin/tsc --noEmit` passed; focused `git -c core.whitespace=cr-at-eol diff --check` passed. No database, payment provider, migration, or production data changes.
+- Known issue: sales/order totals remain unavailable until the server-only Supabase admin key is configured securely. Runtime UI verification is pending: the screenshot's port 3001 server is the separate `cometx-event-ops` worktree; this commit is on `cometx-event-admin-phase-2a`. The generated `src/routeTree.gen.ts` modification was pre-existing and left unstaged.
+- Exact next task: after review, verify the Phase 2A worktree `/admin/events` with a staff session, then implement a separate Orders/Guests phase from the audit.
+
+## 2026-10-01: local backoffice sign-in diagnosis
+
+- Task: `LOCAL-AUTH-01` — restore `/admin` in the Phase 2A local preview.
+- Files changed: `.ai/TASKS.md`, `.ai/HANDOFF.md` (task tracking only; no app source change remains).
+- Tracking commit: `088d170`.
+- Result: verified the global client middleware sends an Authorization bearer header. Server validation now uses the Supabase URL/public key taken from the already-running CometX client configuration and was run with Supabase network access; the current browser token is rejected with `AuthSessionMissingError` (stale/revoked for that Auth project). The login page is open at `http://127.0.0.1:3004/login?redirect=%2Fadmin` for a fresh manual sign-in.
+- No production data was changed; no credentials or tokens were printed or saved. No application source changes remain from diagnostics.
+- Blocker: this worktree has no local `SUPABASE_SERVICE_ROLE_KEY`; Phase 2A event sales metrics use the server-only key, so the event list needs that secret supplied through the existing secure local environment after sign-in. Do not put it in chat or commit it.
+- Validation: local route responded HTTP 200; browser reproduced AuthSessionMissingError, then confirmed the clean login screen. No test suite was run.
+- Exact next task: fresh sign-in on port 3004, then verify `/admin/events` with the server-only Supabase key available in the local server environment.
 
 ## 2026-10-01: event admin Phase 2A — list and overview
 
