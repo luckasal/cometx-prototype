@@ -4,12 +4,12 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## 2026-10-02: repair Vercel integration preview runtime
 
-- Task completed to implementation stage: `VERCEL-RUNTIME-02` — fixed the Router runtime dependency mismatch and supplied the missing Supabase client configuration to the Vercel Preview branch.
+- Task: `VERCEL-RUNTIME-02` — fixed the Router runtime dependency mismatch and supplied server/browser Supabase client configuration to the Vercel Preview branch. Implementation is complete; preview verification remains in progress.
 - Branch / implementation commit: `codex/integration-release-20261002` / `ae8f166` (`Align TanStack router runtime versions`), pushed to GitHub. Vercel deployment `4smiPVnR8vzULTzMV6n5V4eU5VoU` built Ready, but the first runtime check reported missing Supabase client configuration.
-- Files changed: `package.json`, `pnpm-lock.yaml`, `.ai/TASKS.md`, this handoff. Vercel Preview-only settings added for `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`, scoped to `codex/integration-release-20261002`, using the existing CometX demo Supabase project. Production settings were not changed.
-- Checks: `git diff --check` passed before the dependency commit. Vercel remote build completed Ready. Browser check confirmed Router 500 was gone and exposed missing Supabase env; new Preview variables are visible with the intended branch scope. A fresh deploy with those settings is still required to verify a successful app response.
+- Files changed: `package.json`, `pnpm-lock.yaml`, `.ai/TASKS.md`, this handoff. Vercel Preview-only settings added for `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_PUBLISHABLE_KEY`, scoped to `codex/integration-release-20261002`, using the existing CometX demo Supabase project. Production settings were not changed.
+- Checks: `git diff --check` passed before the dependency commit. Vercel remote build completed Ready. Browser check confirmed Router 500 was gone and found that the event client reads the `VITE_` names at build time; all four config vars are now visible with the intended Preview branch scope. A fresh deployment must still verify the events response.
 - Known issues: do not treat the preview as healthy until `/` or `/events` visibly loads and runtime logs show no 500. Stripe/orders may still depend on pending migrations and server configuration documented elsewhere.
-- Exact next recommended task: trigger a new deployment for `codex/integration-release-20261002`, then verify public events load and check its runtime logs; do not deploy Production or apply migrations.
+- Exact next recommended task: trigger a new deployment for `codex/integration-release-20261002`, then verify public events load and check its runtime logs; do not deploy the Production target or apply migrations.
 
 ## 2026-10-02: resolve Vercel vulnerable dependency gate
 
