@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-02: read-only Vercel demo QA audit
+
+- Task completed: `VERCEL-QA-03` — smoke-tested key public, cart/account, and staff routes on `https://cometx-prototype.vercel.app` without form submission, payment, or data mutation.
+- Branch / implementation commit: `codex/integration-release-20261002` / `9453309` (`Document Vercel demo QA findings`); handoff documentation commit follows this entry.
+- Files changed: `VERCEL_QA_AUDIT.md`, `.ai/REVIEW.md`, `.ai/TASKS.md`, and this handoff.
+- Checks: read-only browser checks with waits up to 5 seconds; `git diff --check` passed. No app build/test was needed because no application code changed.
+- Known issues: event catalogue/detail, homepage community, community stories, partners, cart tickets/totals, account tickets, and admin payments remained loading. Admin event rows load but sales totals do not. Membership and informational/auth forms render; membership checkout says it is not available yet. Exact backend cause remains unconfirmed.
+- Exact next recommended task: diagnose the deployed server-function/Supabase request and client pending/error handling for the stuck reads; fix and re-run this route audit. Do not perform a paid checkout until event/cart reads work; keep `cometx.ch` untouched.
+
 ## 2026-10-02: repair Vercel integration preview runtime
 
 - Task: `VERCEL-RUNTIME-02` — fixed the Router runtime dependency mismatch and supplied server/browser Supabase client configuration to the Vercel Preview branch. Preview works, but canonical-domain verification is still in progress.
