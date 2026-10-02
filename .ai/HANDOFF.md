@@ -11,6 +11,12 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Known issues: production server key is now accepted, but this code change still needs Vercel deployment and event-detail route verification. No migration was applied. An existing key value was inadvertently exposed in tool output; revoke/rotate it before relying on the current setting.
 - Exact next recommended task: push this branch, verify the Vercel build and `/events/emocni-regulace-v-kazdodenni-praxi?preview=false`; then rotate the exposed Supabase key and update only the server-side Vercel Production value. Keep `cometx.ch` untouched.
 
+### Runtime follow-up
+
+- Branch push: `16e501c` and handoff commit `0b60182` are present on `origin/codex/integration-release-20261002`.
+- Public check: the event URL returned HTTP 200, but the response contains the app's initial “Načítáme akci…” state. Browser automation became unavailable, so hydrated event content and the latest Vercel deployment status were not verified.
+- Next: verify the route in a working browser after Vercel finishes the new branch build; do not report the issue resolved until the event details render. Rotate the exposed Supabase key after explicit approval.
+
 ## 2026-10-02: read-only Vercel demo QA audit
 
 - Task completed: `VERCEL-QA-03` — smoke-tested key public, cart/account, and staff routes on `https://cometx-prototype.vercel.app` without form submission, payment, or data mutation.
