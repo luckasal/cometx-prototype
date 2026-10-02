@@ -12,6 +12,7 @@ One active owner per task. Before editing, record a task ID, owner/thread, branc
 | EVENT-READ-01 | Verify and finish legacy event-capacity read compatibility | unassigned; current change in `cometx-codex` | in progress | `src/lib/events.functions.ts` is dirty; claim ownership before touching it. Do not deploy all of `codex-dev` without schema/release review. |
 | RELEASE-01 | Plan coordinated migrations `0007`–`0009` and checkout release | unassigned | blocked | Requires schema/security review and sandbox payment verification. |
 | PLATFORM-CLEANUP-01 | Remove inherited build, auth-preview, telemetry and environment naming | Codex / `codex/event-ops` | done | Removed vendor-specific source/configuration; CometX Supabase/Stripe/Resend integrations remain. Hosting environment variables must be renamed before deployment if they still use retired names. |
+| INTEGRATE-ALL-01 | Integrate event admin, event operations/auth, and analytics branches for a staging preview | Codex / `codex/integration-release-20261002` | in progress | Preserve source branches. Production deployment blocked by pending Supabase migrations and existing review findings; validate only for a safe preview and do not apply migrations. |
 
 ## Suggested role lanes
 
