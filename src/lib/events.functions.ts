@@ -114,7 +114,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
     if (event.publish_state !== "published" && !isAdminViewer) return null;
 
     const privateOrderDb = supabaseAdmin as unknown as SupabaseClient;
-    const [speakersRes, workshopsRes, partnersRes, ticketsRes, regsRes, attendeesRes, openOrdersRes] = await Promise.all([
+    const [speakersRes, workshopsRes, partnersRes, ticketsRes, regsRes, attendeesRes] = await Promise.all([
       supabaseAdmin
         .from("event_speakers")
         .select("sort_order,speakers(id,name,slug,job_title,company,photo_url,bio)")
@@ -141,11 +141,19 @@ export const getEventDetail = createServerFn({ method: "GET" })
         .eq("event_id", event.id)
         .in("status", ["pending", "confirmed", "checked_in"]) : Promise.resolve({ data: [], error: null }),
       canReadAllRegistrations ? privateOrderDb.from("ticket_attendees").select("ticket_type_id").eq("event_id", event.id).in("status", ["valid", "checked_in"]) : Promise.resolve({ data: [], error: null }),
-      canReadAllRegistrations ? privateOrderDb.from("ticket_order_items")
-        .select("ticket_type_id,quantity,ticket_orders!inner(status,expires_at)")
-        .eq("event_id", event.id).in("ticket_orders.status", ["pending", "processing"])
-        .gt("ticket_orders.expires_at", new Date().toISOString()) : Promise.resolve({ data: [], error: null }),
     ]);
+
+    // `ticket_order_items.event_id` is part of a newer migration and may not exist
+    // in the currently deployed Supabase schema. Ticket types already belong to
+    // this event, so filtering their IDs keeps this capacity read schema-compatible.
+    const eventTicketIds = (ticketsRes.data ?? []).map((ticket) => ticket.id);
+    const openOrdersRes = canReadAllRegistrations && eventTicketIds.length
+      ? await privateOrderDb.from("ticket_order_items")
+          .select("ticket_type_id,quantity,ticket_orders!inner(status,expires_at)")
+          .in("ticket_type_id", eventTicketIds)
+          .in("ticket_orders.status", ["pending", "processing"])
+          .gt("ticket_orders.expires_at", new Date().toISOString())
+      : { data: [], error: null };
 
     [speakersRes, workshopsRes, partnersRes, ticketsRes, regsRes, attendeesRes, openOrdersRes].forEach(assertDatabaseResult);
     const registrations = regsRes.data ?? [];
