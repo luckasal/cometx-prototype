@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-02: integrate event operations and analytics branches
+
+- Task completed: `INTEGRATE-ALL-01` — combined the committed event admin, event operations/auth, and analytics work on `codex/integration-release-20261002`; source branches were not modified.
+- Integration commits: `b13dd9d` (event workspace + event operations) and `faaf3ad` (analytics admin).
+- Files changed: event admin/order UI and server modules (`src/components/admin/EventForm.tsx`, `src/components/admin/EventOrders.tsx`, `src/routes/admin.events.$id.tsx`, `src/routes/admin.events.index.tsx`, `src/lib/admin.functions.ts`, `src/lib/event-orders*`); analytics helper/consent/admin report routes (`src/lib/analytics.ts`, `src/lib/admin-analytics.functions.ts`, `src/lib/ga-report.server.ts`, `src/components/site/AnalyticsConsent.tsx`, `src/routes/admin.analytics.tsx`, `src/routes/__root.tsx`), generated route tree, touched public/account/cart tracking routes and site components; `EVENT_ADMIN_GAPS.md`, `EVENT_SYSTEM_SPEC.md`, `ANALYTICS.md`, `.env.example`, `.ai/TASKS.md`, this handoff, and focused tests.
+- Migrations: none applied. Guest check-in migration `0010` is in source; hosted `0007`–`0010` remain a coordinated prerequisite.
+- Checks: `pnpm typecheck` passed; `pnpm build` passed (existing TanStack validator deprecation and >500 kB chunk warnings); focused attendee, event-order and analytics tests passed 16/16; CRLF-aware `git diff --check` passed.
+- Known issues/release blockers: current build preset is Cloudflare Workers, while the previously visited live site is on Vercel; no hosting migration was attempted. Vercel preview database variables are documented as incomplete. `.ai/REVIEW.md` has unresolved release blockers; sandbox checkout/webhook and hosted schema sequencing are unverified. No production deployment or database change was made.
+- Exact next task: review the integration diff and choose/confirm the intended staging host/runtime; then prepare an isolated staging Supabase environment and verify migrations and test-mode purchase/webhook before any deployment.
+
 ## 2026-10-01: platform tooling cleanup
 
 - Task completed: `PLATFORM-CLEANUP-01` — removed inherited platform-specific build/auth-preview/error-reporting wiring and standardized this checkout on pnpm.
