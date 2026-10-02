@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-02: Supabase event capacity read compatibility
+
+- Task: `VERCEL-RUNTIME-02` — remove the event-detail dependency on `ticket_order_items.event_id`, which is not present in the hosted schema. Pending order capacity is now read by ticket type IDs obtained from the selected event.
+- Branch / commit: `codex/integration-release-20261002` / `16e501c` (`Avoid missing event column in capacity read`).
+- Files changed: `src/lib/events.functions.ts`; `.ai/TASKS.md` records current deployment verification status.
+- Checks: `node --experimental-strip-types --test tests/event-orders.test.mjs` passed (8/8); `git -c core.whitespace=cr-at-eol diff --check` passed. `pnpm typecheck` did not produce a completion result in this environment and remains unverified.
+- Known issues: production server key is now accepted, but this code change still needs Vercel deployment and event-detail route verification. No migration was applied. An existing key value was inadvertently exposed in tool output; revoke/rotate it before relying on the current setting.
+- Exact next recommended task: push this branch, verify the Vercel build and `/events/emocni-regulace-v-kazdodenni-praxi?preview=false`; then rotate the exposed Supabase key and update only the server-side Vercel Production value. Keep `cometx.ch` untouched.
+
 ## 2026-10-02: read-only Vercel demo QA audit
 
 - Task completed: `VERCEL-QA-03` — smoke-tested key public, cart/account, and staff routes on `https://cometx-prototype.vercel.app` without form submission, payment, or data mutation.
