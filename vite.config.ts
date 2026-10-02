@@ -16,8 +16,9 @@ export default defineConfig(({ command }) => ({
       // Use src/server.ts as the SSR entry point.
       server: { entry: "server" },
     }),
-    // Preserve the prior build target while removing the platform config wrapper.
-    ...(command === "build" ? [nitro({ preset: "cloudflare-module" })] : []),
+    // Nitro detects Vercel in deployment builds; do not emit a Cloudflare Worker
+    // bundle for this repository's Vercel-hosted app.
+    ...(command === "build" ? [nitro()] : []),
     react(),
   ],
   resolve: {
