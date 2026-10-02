@@ -4,12 +4,12 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## 2026-10-02: resolve Vercel vulnerable dependency gate
 
-- Task: `VERCEL-PATCH-01` — update the vulnerable TanStack Start package rejected by Vercel's build scanner.
-- Branch / implementation commit: `codex/integration-release-20261002` / `2fc00c73b69ab3b29bf3c474bd6a4b5881a5faf` (`Patch vulnerable TanStack Start dependency`); pushed to `origin`.
-- Files changed: `package.json`, `pnpm-lock.yaml` (TanStack Start `1.168.32` → `1.168.60`; lock resolves `@tanstack/start-server-core@1.169.39`).
-- Checks: lockfile version inspection and CRLF-aware `git diff --check` passed. Existing integrated source passed `pnpm typecheck`, `pnpm build`, and 16 focused tests before this dependency-only update. Post-update local install/build was not completed because pnpm linking stalled in this nested workspace; no application source changed.
-- Known issues: Vercel's old deployment for `98b4c11` fails specifically on the vulnerable package. The Vercel dashboard did not yet show a deployment for pushed `2fc00c7`, so deployment success is not confirmed. Do not set `DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_XSS=1`. The separate Cloudflare-module/Vercel runtime and Preview Supabase configuration concerns remain unresolved.
-- Exact next task: verify Vercel starts a Preview build for `2fc00c7`; if it does not, inspect Vercel Git integration/branch deployment configuration. If it builds, fix only any newly surfaced build/runtime blocker and verify Preview before calling this complete.
+- Task: `VERCEL-PATCH-01` — resolve Vercel build scanner and package-install failures.
+- Branch / implementation commits: `codex/integration-release-20261002` / `2fc00c7` updates TanStack Start; follow-up `pnpm-workspace.yaml` narrowly approves the esbuild install script. Both source commits are pushed; this handoff update will be pushed separately.
+- Files changed: `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.ai/TASKS.md`, this handoff. TanStack Start `1.168.32` → `1.168.60`; lock resolves `@tanstack/start-server-core@1.169.39`; pnpm 11 `allowBuilds` permits only `esbuild`.
+- Checks: lockfile versions inspected; `pnpm config get allowBuilds` reports only `esbuild: true`; CRLF-aware `git diff --check` passed. Existing integrated source passed `pnpm typecheck`, `pnpm build`, and 16 focused tests before the dependency change. Local post-change install/build was not completed because pnpm linking stalled in this nested workspace.
+- Known issues: Vercel's old deployment for `98b4c11` was blocked by vulnerable TanStack Start. The `2fc00c7` deployment passed that gate but `pnpm install` failed on ignored esbuild scripts; a newer deployment for `4a9dfc4` showed `Building` at last observation. Do not set `DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_XSS=1`. Separate Cloudflare-module/Vercel runtime compatibility and Preview Supabase configuration remain unresolved.
+- Exact next task: inspect the `4a9dfc4` Vercel Preview result. If install/build succeeds, verify the preview URL. If it fails, address only the newly reported blocker; deployment is not complete until a successful preview is confirmed.
 
 ## 2026-10-02: integrate event operations and analytics branches
 
