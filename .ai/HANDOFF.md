@@ -2,6 +2,14 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-02: event-detail fix deployed and verified
+
+- Task: `VERCEL-RUNTIME-02`; promoted source commit `98f49c9` (includes application fix `16e501c`) to the Vercel demo Production environment.
+- Deployment: `6iZmgCsf8mzZZopQ3aee7HXKvpzz`, Ready; alias `cometx-prototype.vercel.app` assigned.
+- Verification: the canonical emotional-regulation event route rendered title, speaker, hero image, date/time, venue, description and CHF 265 ticket price in the browser. The former generic data-loading error is gone.
+- Files changed this cycle: this handoff only. No additional application or database changes. Checkout/payment was not exercised; ticket controls appeared disabled and require separate verification against sale/capacity state.
+- Next: inspect ticket availability/checkout against hosted schema; rotate the previously exposed server key. Do not treat the event-page check as verification of all checkout/admin flows.
+
 ## 2026-10-02: Supabase event capacity read compatibility
 
 - Task: `VERCEL-RUNTIME-02` — remove the event-detail dependency on `ticket_order_items.event_id`, which is not present in the hosted schema. Pending order capacity is now read by ticket type IDs obtained from the selected event.
