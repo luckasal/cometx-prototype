@@ -14,9 +14,15 @@ import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
+import { AnalyticsConsent } from "@/components/site/AnalyticsConsent";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import { initializeAnalytics, trackPageView } from "@/lib/analytics";
+import {
+  initializeAnalytics,
+  trackCtaClickFromElement,
+  trackOutboundClick,
+  trackPageView,
+} from "@/lib/analytics";
 import { brandAssets } from "@/lib/brand-assets";
 
 function NotFoundComponent() {
@@ -93,12 +99,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://api.fontshare.com" },
       { rel: "preconnect", href: "https://cdn.fontshare.com", crossOrigin: "anonymous" },
-      {
-        rel: "icon",
-        type: "image/svg+xml",
-        sizes: "any",
-        href: brandAssets.favicon,
-      },
+      { rel: "icon", type: "image/svg+xml", sizes: "any", href: brandAssets.favicon },
       {
         rel: "icon",
         type: "image/svg+xml",
@@ -106,10 +107,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         media: "(prefers-color-scheme: dark)",
         href: brandAssets.faviconDark,
       },
-      {
-        rel: "apple-touch-icon",
-        href: brandAssets.touchIcon,
-      },
+      { rel: "apple-touch-icon", href: brandAssets.touchIcon },
     ],
   }),
   shellComponent: RootShell,
@@ -137,8 +135,20 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isAdmin = pathname.startsWith("/admin");
 
-  useEffect(() => { initializeAnalytics(); }, []);
-  useEffect(() => { trackPageView(pathname); }, [pathname]);
+  useEffect(() => {
+    initializeAnalytics();
+  }, []);
+  useEffect(() => {
+    document.addEventListener("click", trackOutboundClick);
+    document.addEventListener("click", trackCtaClickFromElement);
+    return () => {
+      document.removeEventListener("click", trackOutboundClick);
+      document.removeEventListener("click", trackCtaClickFromElement);
+    };
+  }, []);
+  useEffect(() => {
+    trackPageView(pathname);
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -153,6 +163,7 @@ function RootComponent() {
             {!isAdmin && <SiteFooter />}
           </div>
           <Toaster position="top-center" />
+          <AnalyticsConsent />
         </AuthProvider>
       </LanguageProvider>
     </QueryClientProvider>

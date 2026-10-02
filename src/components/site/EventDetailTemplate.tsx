@@ -9,7 +9,7 @@ import {
   Ticket,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { EventDetail } from "@/lib/events.functions";
 import { splitEventContent } from "@/lib/event-content";
 import { formatMoney, formatMembershipBenefit } from "@/lib/pricing";
@@ -17,6 +17,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { BrandXElement } from "./BrandXElement";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "./Bits";
+import { ticketPricingType, trackEvent } from "@/lib/analytics";
 
 type Props = {
   data: EventDetail;
@@ -28,7 +29,26 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
   const { language } = useLanguage();
   const cs = language === "cs";
   const [quantities,setQuantities]=useState<Record<string,number>>({});
+  const memberPricesSent = useRef(new Set<string>());
   const { event, tickets, speakers, workshops, partners } = data;
+  useEffect(() => {
+    if (!data.isSignedIn) return;
+    for (const ticket of tickets) {
+      if (ticket.price.benefitType === "public" || memberPricesSent.current.has(ticket.id)) continue;
+      memberPricesSent.current.add(ticket.id);
+      trackEvent("member_price_view", {
+        event_id: event.id,
+        event_slug: event.slug,
+        event_type: event.eventType,
+        ticket_type: ticket.name,
+        ticket_type_id: ticket.id,
+        value: ticket.price.finalPrice,
+        currency: ticket.price.currency,
+        membership_tier: data.membershipName ?? undefined,
+        pricing_type: ticketPricingType(ticket.price),
+      });
+    }
+  }, [data.isSignedIn, data.membershipName, event.eventType, event.id, event.slug, tickets]);
   const locale = cs ? "cs-CZ" : "en-GB";
   // Events are scheduled in Switzerland; do not shift the advertised date in a visitor's timezone.
   const date = (value: string) =>
@@ -316,7 +336,19 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                           <p className="mt-1 text-lg font-bold text-accent">{cs ? "Členská cena" : "Member price"}: {formatMoney(ticket.price.finalPrice, ticket.price.currency)}</p>
                         </>}
                         {!data.isSignedIn && ticket.hasMemberPricing && (
-                          <button type="button" className="mt-2 text-sm underline underline-offset-2" onClick={onLogin}>
+                          <button type="button" className="mt-2 text-sm underline underline-offset-2" onClick={() => {
+                            trackEvent("login_for_member_price", {
+                              event_id: event.id,
+                              event_slug: event.slug,
+                              event_type: event.eventType,
+                              ticket_type: ticket.name,
+                              ticket_type_id: ticket.id,
+                              value: ticket.memberPrice ?? ticket.price.basePrice,
+                              currency: ticket.price.currency,
+                              pricing_type: "member",
+                            });
+                            onLogin();
+                          }}>
                             {cs ? "Přihlásit se pro členskou cenu" : "Log in for member pricing"}
                           </button>
                         )}
@@ -324,11 +356,26 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                           <span>{cs ? "Počet vstupenek" : "Quantity"}</span>
                           <select aria-label={cs ? `Počet vstupenek: ${ticket.name}` : `Ticket quantity: ${ticket.name}`} className="min-h-10 rounded-full bg-background px-4" value={quantity}
                             disabled={data.isPreview || !open || ticket.soldOut || !saleOpen || !ticket.price.eligible}
-                            onChange={e=>setQuantities(previous=>({...previous,[ticket.id]:Math.min(Number(e.target.value),Math.max(0,10-tickets.reduce((sum,other)=>sum+(other.id===ticket.id?0:previous[other.id]??0),0)))}))}>
+                            onChange={e => {
+                              const next = Math.min(Number(e.target.value), Math.max(0, 10 - otherQuantity));
+                              if (quantity === 0 && next > 0) trackEvent("ticket_select", {
+                                event_id: event.id,
+                                event_slug: event.slug,
+                                event_type: event.eventType,
+                                ticket_type: ticket.name,
+                                ticket_type_id: ticket.id,
+                                quantity: next,
+                                value: ticket.price.finalPrice * next,
+                                currency: ticket.price.currency,
+                                membership_tier: data.membershipName ?? undefined,
+                                  pricing_type: ticketPricingType(ticket.price),
+                              });
+                              setQuantities(previous => ({ ...previous, [ticket.id]: next }));
+                            }}>
                             {Array.from({length:basketMax + 1},(_,i)=>i).map(n=><option key={n} value={n}>{n}</option>)}
                           </select>
                         </label>
-                        <Button variant="signal" className="mt-4 w-full" disabled={quantity < 1 || data.isPreview || !open || ticket.soldOut || !saleOpen || !ticket.price.eligible}
+                        <Button variant="signal" data-analytics-cta="event_add_ticket" className="mt-4 w-full" disabled={quantity < 1 || data.isPreview || !open || ticket.soldOut || !saleOpen || !ticket.price.eligible}
                           onClick={() => onAddToCart(ticket.id, quantity)}>
                           {cs ? "Přidat do košíku" : "Add to cart"}
                           <ArrowRight className="size-4" />

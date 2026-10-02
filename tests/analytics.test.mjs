@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { purchaseMetadata, sanitizeAnalyticsLocation } from '../src/lib/analytics.ts';
+import { getAnalyticsConsent, purchaseMetadata, sanitizeAnalyticsLocation, ticketPricingType, trackConfirmedPurchase, trackEvent, trackPageView } from '../src/lib/analytics.ts';
 
 const issuedAttendee = (status = 'valid') => ({ status });
 
@@ -62,10 +62,64 @@ test('purchase metadata rejects unconfirmed, unpaid, mixed-currency, or unissued
   }
 });
 
+test('single-event purchase adds only non-identifying event and ticket metadata', () => {
+  const order = paidOrder({
+    ticket_order_items: [{
+      event_id: 'event-one',
+      ticket_type_id: 'ticket-one',
+      ticket_name: 'Standard',
+      events: [{ slug: 'sample-event' }],
+      quantity: 1,
+      ticket_attendees: [issuedAttendee()],
+    }],
+  });
+  assert.deepEqual(purchaseMetadata([order]), {
+    value: 50,
+    currency: 'CHF',
+    quantity: 1,
+    event_count: 1,
+    event_id: 'event-one',
+    event_slug: 'sample-event',
+    ticket_type_id: 'ticket-one',
+    ticket_type: 'Standard',
+  });
+});
+
+test('ticket pricing category is non-identifying and reflects included/member/public prices', () => {
+  assert.equal(ticketPricingType({ benefitType: 'public', includedInMembership: false }), 'public');
+  assert.equal(ticketPricingType({ benefitType: 'discount', includedInMembership: false }), 'member');
+  assert.equal(ticketPricingType({ benefitType: 'free', includedInMembership: false }), 'included');
+});
+
 test('analytics location excludes query parameters and fragments', () => {
   assert.equal(
     sanitizeAnalyticsLocation('https://cometx.example/account/events?email=buyer%40example.com&token=secret#purchase'),
     'https://cometx.example/account/events',
   );
   assert.equal(sanitizeAnalyticsLocation('https://cometx.example/'), 'https://cometx.example/');
+});
+
+test('analytics remains inert until a visitor grants consent', () => {
+  const originalWindow = globalThis.window;
+  const originalDocument = globalThis.document;
+  const stored = new Map();
+  globalThis.window = {
+    location: { href: 'https://cometx.example/events?token=private', pathname: '/events', origin: 'https://cometx.example' },
+    localStorage: {
+      getItem: (key) => stored.get(key) ?? null,
+      setItem: (key, value) => stored.set(key, value),
+    },
+  };
+  globalThis.document = { title: 'Events' };
+  try {
+    assert.equal(getAnalyticsConsent(), null);
+    trackEvent('event_view', { event_slug: 'example' });
+    trackPageView('/events');
+    trackConfirmedPurchase('private-order-id', [paidOrder()]);
+    assert.equal(stored.size, 0);
+    assert.equal(globalThis.window.dataLayer, undefined);
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.document = originalDocument;
+  }
 });

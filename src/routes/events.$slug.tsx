@@ -16,7 +16,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { addTicketToCart, readTicketCart } from "@/lib/ticket-cart";
-import { trackEvent } from "@/lib/analytics";
+import { ticketPricingType, trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/events/$slug")({
   validateSearch: (search: Record<string, unknown>): { preview?: boolean } => ({ preview: search["preview"] === true || search["preview"] === 1 || search["preview"] === "1" || search["preview"] === "true" }),
@@ -55,8 +55,8 @@ function EventDetailPage() {
   });
 
   useEffect(() => {
-    if (!preview && data?.event) trackEvent("event_view", { event_slug: data.event.slug, event_id: data.event.id });
-  }, [preview, data?.event?.id, data?.event?.slug]);
+    if (!preview && data?.event) trackEvent("event_view", { event_slug: data.event.slug, event_id: data.event.id, event_type: data.event.eventType });
+  }, [preview, data?.event?.id, data?.event?.slug, data?.event?.eventType]);
 
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return;
@@ -259,9 +259,11 @@ function EventDetailPage() {
     addTicketToCart(slug, ticketId, quantity);
     const added = (readTicketCart().find((line) => line.eventSlug === slug && line.ticketId === ticketId)?.quantity ?? 0) - previous;
     const ticket = tickets.find((item) => item.id === ticketId);
-    if (ticket && added > 0) trackEvent("ticket_add_to_cart", {
-      event_slug: event.slug, event_id: event.id, ticket_type: ticket.name, ticket_type_id: ticket.id,
+    if (ticket && added > 0) trackEvent("add_to_cart", {
+      event_slug: event.slug, event_id: event.id, event_type: event.eventType, ticket_type: ticket.name, ticket_type_id: ticket.id,
       quantity: added, value: ticket.price.finalPrice * added, currency: ticket.price.currency,
+      membership_tier: data.membershipName ?? undefined,
+      pricing_type: ticketPricingType(ticket.price),
     });
     void navigate({ to: "/cart" });
   }} onLogin={() => navigate({ to: "/login", search: { redirect: `/events/${slug}` } })} />;

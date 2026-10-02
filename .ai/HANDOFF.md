@@ -92,6 +92,76 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Verification: refreshed `/account`; it displayed the authenticated account overview and staff access card. A read-only Supabase Auth health request returned HTTP 200 with network access; the same request was blocked by the sandbox.
 - Known issue: the dev server must be started in an environment allowed to reach Supabase. Starting it in a network-restricted sandbox reproduces the false signed-out state. No service-role key was loaded or used for this verification.
 - Exact next task: continue event admin verification with the user on the already authenticated local account; coordinate pending migrations before testing check-in or deploying.
+## 2026-10-01: Wix analytics parity comparison
+
+- Task: `ANALYTICS-WIX-PARITY-04`; status: done.
+- Branch/worktree: `codex/analytics-admin` / `cometx-analytics-admin`.
+- Implementation commit: `f43d5fa` (`Add Wix parity analytics breakdowns`).
+- What changed: added consent-gated click events for explicitly tagged high-value CTAs without sending button text; extended the existing server-side GA4 report with daily sessions/page views, country, device, landing page, new/returning visitors, bounce rate, and average session duration; documented coverage and remaining Wix differences.
+- Checks: TypeScript, focused ESLint (Prettier style rule disabled due CRLF baseline in touched files), six analytics tests, and whitespace-aware diff check pass.
+- Boundaries: Wix configuration and data were not accessed or changed. Existing GA4 setup/property and GA4 Data API server integration unchanged.
+- Known limitations: Wix historical data is separate; CometX does not provide real-time individual visitor journey views, item-array based top-ticket/product-pair reports, recoverable/abandoned cart reporting, or every-element click reporting. Event CTA dimension reports require registering `cta_id` as a GA4 event-scoped custom dimension if using the parameter dimension rather than event-name breakdowns. Admin reports still need valid existing server-side Data API credentials/property access to return live data.
+- Next: review commit; verify expanded reports in signed-in admin after confirming existing GA4 Data API environment/access. No deployment performed.
+
+## 2026-10-01: GA4 event/ticket funnel
+
+- Task: `ANALYTICS-TICKET-FUNNEL-03`; status: done.
+- Branch: `codex/analytics-admin`.
+- Implementation commit: `f3b6c53` (`Track complete event ticket funnel in GA4`).
+- What changed: added consent-gated events-list and member-pricing signals, pricing categories, cart view/quantity/removal values, validated attendee submission, checkout error and cancellation signals, and server-confirmed failed-payment tracking. Purchase remains restricted to server-confirmed paid orders with issued tickets and is deduplicated in the browser. Added safe event/ticket metadata where it can be uniquely identified and documented all requested events plus the event and member-pricing funnels.
+- Files: `src/lib/analytics.ts`, `src/routes/events.index.tsx`, `src/routes/events.$slug.tsx`, `src/components/site/EventDetailTemplate.tsx`, `src/routes/cart.tsx`, `src/routes/account.events.tsx`, `src/routes/tickets.guest.tsx`, `ANALYTICS.md`, `tests/analytics.test.mjs`, `.ai/TASKS.md`.
+- Validation: TypeScript check, six focused analytics tests, focused ESLint, and `git diff --check` pass. No real checkout/payment was run.
+- Boundaries: existing Measurement ID and consent gate retained; no Wix, Google Cloud, GA4 property, or admin reporting changes. No attendee/buyer PII or checkout identifiers are sent.
+- Known limitation: purchase and failed-payment browser events are observed when a buyer's account/guest order view loads; GA4 may miss purchasers who never return to the app. Server order/payment records remain authoritative. Verify event arrival in GA4 DebugView after deployment and consent.
+- Next: review this commit; deployment owner should verify the existing `VITE_GA_MEASUREMENT_ID` environment value and confirm consent behavior in DebugView. No database migration or deployment performed.
+
+## 2026-10-01: visual-only admin analytics dashboard preview
+
+- Task: `ANALYTICS-ADMIN-UI-01` — prepared a dashboard shell with empty KPI cards, traffic/source/page panels, and ticket, membership, and engagement funnels. Empty values are explicit; no sample numbers or traffic are fabricated. No reporting/API credentials, Wix, or analytics backend changes.
+- Owner / branch / worktree: Codex / `codex/analytics-admin` / `cometx-analytics-admin`.
+- Implementation commit: `234fc5a`.
+- Files changed: `src/routes/admin.analytics.tsx`, `.ai/TASKS.md`.
+- Checks: TypeScript, focused ESLint, and production Vite build passed.
+- Visual QA: local preview redirected to the login page because this browser session was not authenticated. Admin guards were not bypassed. The dashboard UI should be reviewed after signing in to the local admin preview.
+- Exact next recommended task: sign in to the local preview and inspect the empty-state dashboard layout; enable no real report fetching until separately authorized/configured.
+
+## 2026-10-01: complete GA4 app tracking inventory
+
+- Task completed: `ANALYTICS-TRACKING-02` — added `partner_click` to the consent-aware GA4 helper and partner website links. It sends only a stable partner record ID and destination hostname. Updated `ANALYTICS.md` with all active event names, properties, firing locations, ticket/membership funnel definitions and DebugView steps.
+- Owner / branch / worktree: Codex / `codex/analytics-admin` / `cometx-analytics-admin`.
+- Implementation commits: `11ff628`, `702551c`.
+- Files changed: `src/lib/analytics.ts`, `src/components/site/AnalyticsConsent.tsx`, `src/routes/partners.tsx`, `ANALYTICS.md`, `.ai/TASKS.md`.
+- Checks: TypeScript, four focused analytics tests and targeted ESLint passed. No payment, Wix, GA4 property, Google Cloud, or admin reporting changes.
+- Known issues/setup: the new app uses only `VITE_GA_MEASUREMENT_ID`; no GTM container, service account, or Data API credentials are used for collection. Local ignored `.env.local` contains the user-provided ID; it is not committed. No GA4 DebugView session or payment was run. Paid membership checkout is not enabled; activation is only described as server-confirmed and is not inferred from interest.
+- Exact next recommended task: deploy the existing Measurement ID to the new app's intended environment and verify consent plus requested events in GA4 DebugView without changing Wix or GA4 property settings.
+
+## 2026-10-01: GA4 reports in staff admin
+
+- Task completed: `ANALYTICS-ADMIN-01` — added `/admin/analytics` with visitors, sessions, page views, acquisition channels, popular pages, and journey event counts; linked it from the staff dashboard and navigation.
+- Owner / branch / worktree: Codex / `codex/analytics-admin` / `cometx-analytics-admin`.
+- Implementation commit: `61866ba`.
+- Files changed: `src/lib/ga-report.server.ts`, `src/lib/admin-analytics.functions.ts`, `src/routes/admin.analytics.tsx`, `src/routes/admin.index.tsx`, `src/routes/admin.tsx`, `src/routeTree.gen.ts`, `.env.example`, `ANALYTICS.md`, `.ai/TASKS.md`.
+- Checks: production build, TypeScript check, focused ESLint, and `git diff --check` passed. No live GA4 property credentials were available for an API smoke test.
+- Known issues: server deployment must set `GA4_PROPERTY_ID`, `GA4_CLIENT_EMAIL`, `GA4_PRIVATE_KEY`, enable the GA4 Data API, and grant the service account property Viewer access. Existing browser purchase signal remains return-page dependent; event counts are not cohort conversion rates. No deployment or database change was made.
+- Exact next recommended task: configure the GA4 read-only credentials in staging and compare `/admin/analytics` with the GA4 property for the same 30-day period.
+
+## 2026-10-01: local admin preview authentication
+
+- Task completed: `ANALYTICS-ADMIN-02` — confirmed the signed-in browser attached a bearer token. The sandboxed local dev server's Supabase `getUser` call failed with a network `fetch failed`; restarted that server with network access and verified `/admin/analytics` renders the staff navigation and GA4 setup state for the signed-in administrator.
+- Files changed: `.ai/TASKS.md`, `.ai/HANDOFF.md` only. Temporary diagnostic logs were removed; authentication and analytics application code are unchanged.
+- Checks: browser state showed the working admin page; `git diff --check` passed. GA4 report data remains unverified because the local preview has no GA4 Data API credentials.
+- Known issue: local preview must retain network access to Supabase. Configure read-only GA4 credentials to populate metrics.
+- Exact next recommended task: configure staging GA4 report credentials and verify counts against GA4.
+
+## 2026-10-01: consent-gated public analytics and conversion signals
+
+- Task completed: `ANALYTICS-CONSENT-01` — analytics tags and events now require explicit visitor opt-in; public route tracking is SPA-aware and excludes admin paths. Added consent preferences, privacy-safe outbound/WhatsApp tracking, account signup, canonical ticket funnel events, and confirmed membership activation; corrected cart checkout metadata to use server-provided event and membership data.
+- Owner / branch / worktree: Codex / `codex/analytics-admin` / `cometx-analytics-admin`.
+- Implementation commit: `9dd0b84`.
+- Files changed: `src/lib/analytics.ts`, `src/components/site/AnalyticsConsent.tsx`, `src/components/site/EventDetailTemplate.tsx`, `src/components/site/SiteFooter.tsx`, `src/routes/__root.tsx`, `src/routes/account.membership.tsx`, `src/routes/admin.analytics.tsx`, `src/routes/cart.tsx`, `src/routes/events.$slug.tsx`, `src/routes/membership.tsx`, `src/routes/register.tsx`, `tests/analytics.test.mjs`, `ANALYTICS.md`, `.ai/TASKS.md`.
+- Checks: TypeScript, production Vite build, four focused analytics tests and targeted ESLint rules (excluding Prettier and a pre-existing cart hook error) passed. Default ESLint reports repository-wide Prettier/line-ending findings plus the existing `useBuyerNameForAttendee` hook-in-callback error in `cart.tsx`; no unrelated fix was made.
+- Known issues/setup: GA4 measurement and reporting IDs/credentials are not configured in this worktree. `/admin/analytics` remains in setup state until `VITE_GA_MEASUREMENT_ID` and server-only GA4 Data API credentials are configured. Validate consent copy/privacy notice with CometX. Membership checkout is not enabled, so checkout-start/paid activation counts depend on a future real paid membership flow. Purchase remains browser return-page reporting after server-confirmed payment and issued tickets.
+- Exact next recommended task: securely configure staging GA4 measurement/report credentials, review consent/privacy wording, then verify events in GA4 DebugView and `/admin/analytics`.
 
 ## 2026-10-01: multi-Codex-thread collaboration setup
 

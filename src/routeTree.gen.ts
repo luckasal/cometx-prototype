@@ -26,6 +26,7 @@ import { Route as AccountEventsRouteImport } from './routes/account.events'
 import { Route as AccountMembershipRouteImport } from './routes/account.membership'
 import { Route as AccountProfileRouteImport } from './routes/account.profile'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminContactsRouteImport } from './routes/admin.contacts'
 import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AdminMembersRouteImport } from './routes/admin.members'
@@ -134,6 +135,11 @@ const AccountProfileRoute = AccountProfileRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminContactsRoute = AdminContactsRouteImport.update({
@@ -273,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/account/events': typeof AccountEventsRoute
   '/account/membership': typeof AccountMembershipRoute
   '/account/profile': typeof AccountProfileRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/contacts': typeof AdminContactsRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/members': typeof AdminMembersRoute
@@ -314,6 +321,7 @@ export interface FileRoutesByTo {
   '/account/events': typeof AccountEventsRoute
   '/account/membership': typeof AccountMembershipRoute
   '/account/profile': typeof AccountProfileRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/contacts': typeof AdminContactsRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/members': typeof AdminMembersRoute
@@ -358,6 +366,7 @@ export interface FileRoutesById {
   '/account/events': typeof AccountEventsRoute
   '/account/membership': typeof AccountMembershipRoute
   '/account/profile': typeof AccountProfileRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/contacts': typeof AdminContactsRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/members': typeof AdminMembersRoute
@@ -403,6 +412,7 @@ export interface FileRouteTypes {
     | '/account/events'
     | '/account/membership'
     | '/account/profile'
+    | '/admin/analytics'
     | '/admin/contacts'
     | '/admin/content'
     | '/admin/members'
@@ -444,6 +454,7 @@ export interface FileRouteTypes {
     | '/account/events'
     | '/account/membership'
     | '/account/profile'
+    | '/admin/analytics'
     | '/admin/contacts'
     | '/admin/content'
     | '/admin/members'
@@ -487,6 +498,7 @@ export interface FileRouteTypes {
     | '/account/events'
     | '/account/membership'
     | '/account/profile'
+    | '/admin/analytics'
     | '/admin/contacts'
     | '/admin/content'
     | '/admin/members'
@@ -655,6 +667,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/analytics': {
+      id: '/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AdminAnalyticsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/contacts': {
@@ -846,6 +865,7 @@ const AccountRouteWithChildren =
   AccountRoute._addFileChildren(AccountRouteChildren)
 
 interface AdminRouteChildren {
+  AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminContactsRoute: typeof AdminContactsRoute
   AdminContentRoute: typeof AdminContentRoute
   AdminMembersRoute: typeof AdminMembersRoute
@@ -868,6 +888,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminContactsRoute: AdminContactsRoute,
   AdminContentRoute: AdminContentRoute,
   AdminMembersRoute: AdminMembersRoute,

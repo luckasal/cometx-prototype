@@ -7,7 +7,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { getMyPurchasedTickets } from "@/lib/ticket-orders.functions";
 import { formatMoney } from "@/lib/pricing";
 import { completePurchasedTicketCart } from "@/lib/ticket-cart";
-import { trackConfirmedPurchase } from "@/lib/analytics";
+import { trackConfirmedPaymentFailure, trackConfirmedPurchase } from "@/lib/analytics";
 import { isCheckoutPendingStatus, isIssuedTicketStatus, isOwnedOrderLine, isOwnedOrderStatus } from "@/lib/ticket-status";
 
 export const Route = createFileRoute("/account/events")({
@@ -36,6 +36,14 @@ function AccountEventsPage() {
     (order.ticket_order_items ?? []).filter((item) => isOwnedOrderLine(order.status, item.ticket_attendees)).map((item) => ({
       order, item, issuedTickets: item.ticket_attendees.filter((ticket) => isIssuedTicketStatus(ticket.status)),
     }))) ?? [];
+
+  useEffect(() => {
+    if (!data) return;
+    const recentFailures = data.filter((item) => item.status === "failed" &&
+      item.payments?.some((payment) => payment.status === "failed") &&
+      Date.now() - Date.parse(item.created_at) < 48 * 60 * 60 * 1000);
+    for (const failed of recentFailures) trackConfirmedPaymentFailure(failed.checkout_batch_id ?? failed.id, [failed]);
+  }, [data]);
 
   useEffect(() => {
     if (!purchase || (!completedOrderId && !completedBatchId) || !data) return;

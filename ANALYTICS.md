@@ -1,27 +1,63 @@
-# CometX analytics (GA4)
+# CometX app analytics (GA4)
 
-Set `VITE_GA_MEASUREMENT_ID=G-...` in the site's environment and rebuild/redeploy. The ID is a public browser identifier; do not put API secrets in `VITE_` variables. If `VITE_GTM_CONTAINER_ID` is set, the existing GTM path takes precedence instead; configure its GA4 tag to consume the same data-layer events and do not run a second GA4 tag.
+The new CometX app uses the existing GA4 Measurement ID through `VITE_GA_MEASUREMENT_ID`. This sends app activity to the configured GA4 web stream; it does not alter Wix settings or the GA4 property. No Google Cloud service account or Data API credentials are needed for collection. The Measurement ID is public and must not be confused with a secret.
 
-| Event | When sent | Properties (when available) |
+Analytics runs only after the visitor grants consent in the app's analytics prompt. Declined or undecided visitors do not load GA4 or send events. `/admin` routes are excluded. The shared implementation and safe-parameter allowlist are in `src/lib/analytics.ts`; private names, email addresses, attendee data, order IDs, and query strings are never sent.
+
+## Events and firing points
+
+| Event | Where / when it fires | Properties |
 | --- | --- | --- |
-| `page_view` | Initial public page and SPA pathname changes, excluding `/admin` | Sanitized `page_location`, `page_title`, sanitized previous `page_referrer` |
-| `event_view` | Published event detail is loaded | `event_slug`, `event_id` |
-| `membership_view` | Membership page opens | — |
-| `ticket_add_to_cart` | Ticket is added from event detail | `event_slug`, `event_id`, `ticket_type`, `ticket_type_id`, `quantity`, `value`, `currency` |
-| `cart_view` | Cart opens | `quantity`, `event_count` |
-| `checkout_start` | A paid checkout session is created | `quantity`, `event_count`, `value`, `currency` |
-| `purchase_success` | Payment-return page loads confirmed paid order(s) with issued tickets | `quantity`, `event_count`, `value`, `currency` |
-| `newsletter_signup` | Footer subscription succeeds | `placement` |
-| `login` | Password login succeeds | `method` |
-| `membership_cta_click` | Header/home join CTA or membership selection CTA is clicked | `placement` or `plan`, optional `destination` |
+| `page_view` | `src/routes/__root.tsx`; initial public route and each distinct SPA pathname | Sanitized `page_location`, `page_title`, sanitized `page_referrer` |
+| `event_view` | `src/routes/events.$slug.tsx`; published event details load (not preview) | `event_id`, `event_slug`, `event_type` |
+| `events_list_view` | `src/routes/events.index.tsx`; published events list is loaded | `event_count` |
+| `ticket_select` | `src/components/site/EventDetailTemplate.tsx`; ticket quantity changes from zero to positive | `event_id`, `event_slug`, `event_type`, `ticket_type`, `ticket_type_id`, `quantity`, `value`, `currency`, `pricing_type`, optional `membership_tier` |
+| `member_price_view` | `src/components/site/EventDetailTemplate.tsx`; each available member price is shown to an authenticated member, once per event/ticket on that page | event and ticket fields, `value`, `currency`, `pricing_type=member`, optional `membership_tier` |
+| `login_for_member_price` | `src/components/site/EventDetailTemplate.tsx`; guest chooses the member-price login action | event and ticket fields, displayed member `value`, `currency`, `pricing_type=member` |
+| `add_to_cart` | `src/routes/events.$slug.tsx`; ticket is added from event details | `event_id`, `event_slug`, `event_type`, `ticket_type`, `ticket_type_id`, added `quantity`, `value`, `currency`, `pricing_type`, optional `membership_tier` |
+| `remove_from_cart` | `src/routes/cart.tsx`; a cart line quantity is reduced to zero | event/ticket fields when unique, removed `quantity`, `value`, `currency`, `pricing_type`, updated `cart_value` |
+| `cart_quantity_change` | `src/routes/cart.tsx`; a nonzero cart line quantity changes | event/ticket fields when unique, resulting `quantity`, `value`, `currency`, `pricing_type`, updated `cart_value` |
+| `cart_view` | `src/routes/cart.tsx`; cart and its event details finish loading | aggregate `quantity`, `event_count`, `cart_value`, `currency`; event/ticket/pricing metadata when the cart has one line |
+| `begin_checkout` | `src/routes/cart.tsx`; server successfully creates a paid-ticket checkout session | aggregate `quantity`, `event_count`, `value`, `currency`, `cart_value`; event/ticket/pricing metadata when the cart has one line |
+| `attendee_details_complete` | `src/routes/cart.tsx`; validated attendee form is submitted to start checkout | cart aggregate fields; no attendee values |
+| `checkout_error` | `src/routes/cart.tsx`; checkout-session creation fails | cart aggregate fields and constant `error_type=checkout_start_failed`; raw errors are excluded |
+| `payment_cancelled` | `src/routes/cart.tsx`; Stripe returns the browser to the cart cancellation URL and cart data loads | cart aggregate fields; event/ticket metadata when unique |
+| `payment_failed` | `src/routes/account.events.tsx` or `src/routes/tickets.guest.tsx`; loaded server order contains a webhook-recorded failed payment | cart/order aggregate fields and unique event/ticket fields when available; deduplicated by internal checkout key, which is not sent |
+| `purchase` | `src/routes/account.events.tsx` or `src/routes/tickets.guest.tsx`; server-returned order is paid, confirmed, and all tickets are issued | `quantity`, `event_count`, `value`, `currency`; unique event/ticket fields when available |
+| `free_ticket_issued` | `src/routes/cart.tsx`; free-ticket issuance succeeds | `event_count` |
+| `membership_view` | `src/routes/membership.tsx`; membership page opens | None |
+| `membership_cta_click` | `src/components/site/SiteHeader.tsx`, `src/routes/index.tsx`, and `src/routes/membership.tsx`; membership CTA is clicked | `placement` or `plan`, optional `membership_tier`, `value`, `currency`, `destination` |
+| `membership_activated` | `src/routes/account.membership.tsx`; return route sees server-confirmed active membership | `membership_tier` |
+| `newsletter_signup` | `src/components/site/SiteFooter.tsx`; subscription succeeds | `placement` |
+| `login` | `src/routes/login.tsx`; password login succeeds | `method` |
+| `signup` | `src/routes/register.tsx`; new account signup succeeds | `method` |
+| `whatsapp_click` | `src/routes/__root.tsx` delegated external-link click handler; WhatsApp link is clicked | Destination hostname only |
+| `partner_click` | `src/routes/partners.tsx`; partner website link is clicked | `partner_id`, destination hostname only |
+| `outbound_link` | `src/routes/__root.tsx` delegated external-link click handler; non-CometX HTTP(S) link is clicked | Destination hostname only |
+| `cta_click_<cta_id>` | `src/routes/__root.tsx`; a link/button explicitly marked with `data-analytics-cta` is clicked | `cta_id`; event name contains the same fixed code identifier; no rendered text or destination URL |
 
-The shared helper in `src/lib/analytics.ts` allowlists event metadata. It does not transmit buyer/attendee names, email, order IDs or private ticket tokens. Page locations and referrers always omit query strings and fragments, including on private guest-ticket links. `purchase_success` is deduplicated locally per checkout batch/order and requires a paid payment, confirmed order and issued tickets; it is not fired for pending, free, failed or unissued orders. It is a browser event on the successful return page, so purchases where the buyer never returns to CometX are not counted by this client-side signal; Stripe/Supabase remain the authoritative revenue record.
+`purchase` is deduplicated by checkout batch/order in the browser and requires server-confirmed payment plus issued tickets; a return URL by itself is not proof of purchase. It is emitted on the successful return page, so a buyer who never returns to CometX may not be counted. Payment records remain authoritative. `payment_failed` likewise requires a failed status recorded by the server/webhook; browser-side validation alone never reports a payment failure. `payment_cancelled` records only the return from the explicit Stripe cancellation URL. These events are emitted only with analytics consent. The helper allowlists safe event properties; names, email addresses, attendee fields, order/batch keys, and raw error text are excluded. Signed-in status is not sent. A real paid membership checkout is not enabled yet; membership activation is not inferred from a CTA click, and no membership checkout-start event is fabricated.
 
-## Verify
+## Funnels
 
-1. Add the measurement ID to the staging environment and redeploy. Open the site through [Google Tag Assistant](https://tagassistant.google.com/) and inspect GA4 **Admin → DebugView**.
-2. Navigate between `/events`, one event, `/membership`, and `/cart`; check each expected event and its parameters. Test login and newsletter signup with non-production data.
-3. In Stripe test mode, finish a paid purchase and wait until tickets are issued. Only then should one `purchase_success` appear for that checkout. A free or cancelled checkout must not send it.
-4. In GA4 web-stream Enhanced Measurement, turn off **Page changes based on browser history events** because this app sends manual SPA `page_view` events. Otherwise navigation may be double-counted (and private guest URL query strings may be captured by the automatic collector). Do the same for any GTM history triggers.
+- Event funnel: `events_list_view` → `event_view` → `ticket_select` → `add_to_cart` → `begin_checkout` → `purchase`.
+- Member pricing funnel: `event_view` → `login_for_member_price` → `member_price_view` → `add_to_cart` → `purchase`. These events may be performed by different visitor categories; GA4 funnel exploration settings determine whether steps must occur in one session/user sequence.
+- Membership interest: `membership_view` → `membership_cta_click` → (paid membership checkout, not currently available) → server-confirmed membership activation. Do not interpret CTA counts as paid conversions.
+- Newsletter: successful `newsletter_signup` events.
 
-Before enabling analytics on a production domain, review consent and privacy requirements and connect the site's consent mechanism; this task adds tracking only, not a consent banner.
+These event counts describe actions, not user-level cohort conversion rates. Ticket metadata is supplied when it describes one event/ticket selection; aggregated multi-event carts report aggregate quantity, event count, value and currency rather than assigning a misleading single event/ticket.
+
+## Wix analytics coverage comparison
+
+Wix documents traffic/session trends, traffic source and category, new vs returning visitors, device and country, entry pages, page visits, button clicks, order conversion, contact-channel clicks, and (for Wix Stores) sales, order value, top items, and abandoned carts. CometX app tracking stays in the existing GA4 property/Measurement ID; nothing here changes Wix settings or joins Wix history into app reports.
+
+The authenticated `/admin/analytics` GA4 report now includes users, sessions, page views, bounce rate, average session duration, acquisition channels, popular pages, device, country, entry pages, daily traffic, and custom ticket/membership/action event counts. Traffic attribution is provided by GA4 session channel grouping and standard UTM/source processing. CTA clicks are recorded for explicitly tagged high-value links/buttons as `cta_click_<id>` so they remain visible in standard GA4 event reports; register the `cta_id` event parameter as an event-scoped custom dimension in GA4 only if you need it as a separate table dimension.
+
+Differences/limits: GA4 consent and ad-blocking mean visitor counts can differ from Wix; Wix historical reports remain in Wix and are not imported. CometX does not identify visitors or show real-time individual visitor journeys. Ticket conversion uses CometX's event-specific funnel rather than Wix Stores' product funnel. GA4 does not currently receive standard item arrays for ticket lines, so Wix-style top-selling-item/product-pair and abandoned-cart recovery reports are not available; use the event/ticket funnel and payment/order records as the source of truth. Button click coverage is intentionally limited to marked CTAs (plus dedicated ticket, membership, WhatsApp, partner, and outbound events), not every decorative/link element on the site. Sales-by-source/order-value views should be compared against confirmed CometX payment records, since purchase reporting depends on a consented buyer returning to the app.
+
+## Configuration and DebugView
+
+1. Set `VITE_GA_MEASUREMENT_ID=G-...` in the new app's local/deployment environment and restart/rebuild the app. No other GA credentials are required for browser collection.
+2. Open the new CometX app in [Google Tag Assistant](https://tagassistant.google.com/) and use the GA4 property's **Admin → DebugView**. Accept analytics consent in the app; then check `page_view`, route/event details, ticket actions, `partner_click`, and other conversions as you test them.
+3. Decline consent in a separate browser session and verify that no GA tag or events are sent. Use non-production data for signup, login, and newsletter checks. Do not perform a real payment just to test; a `purchase` should appear only after a confirmed paid order has issued tickets.
+4. Check DebugView for exactly one `page_view` per route and for the listed event parameters. The app disables GA's automatic initial page view and emits manual SPA page views. No Wix, GA4 property, or stream settings were changed as part of this app integration.

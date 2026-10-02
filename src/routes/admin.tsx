@@ -22,6 +22,7 @@ export const Route = createFileRoute("/admin")({
 
 const nav = [
   { to: "/admin", label: "Dashboard", exact: true },
+  { to: "/admin/analytics", label: "Website analytics", exact: false },
   { to: "/admin/events", label: "Events", exact: false },
   { to: "/admin/members", label: "Members", exact: false },
   { to: "/admin/contacts", label: "Contacts", exact: false },
@@ -56,7 +57,12 @@ function AdminLayout() {
       </div>
     );
 
-  if (error) return <div className="mx-auto max-w-lg p-10"><ErrorBlock error={error} /></div>;
+  if (error)
+    return (
+      <div className="mx-auto max-w-lg p-10">
+        <ErrorBlock error={error} />
+      </div>
+    );
 
   if (!data?.isAdmin)
     return (

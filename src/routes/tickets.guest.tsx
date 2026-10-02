@@ -11,7 +11,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { formatMoney } from "@/lib/pricing";
 import { claimGuestTicketBatch, claimGuestTicketOrder, getGuestTicketBatch, getGuestTicketOrder } from "@/lib/ticket-orders.functions";
 import { completePurchasedTicketCart } from "@/lib/ticket-cart";
-import { trackConfirmedPurchase } from "@/lib/analytics";
+import { trackConfirmedPaymentFailure, trackConfirmedPurchase } from "@/lib/analytics";
 
 export const Route = createFileRoute("/tickets/guest")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -57,6 +57,11 @@ function GuestTicketsPage() {
   const ticketOrders = batchData?.orders ?? (query.data?.order ? [query.data.order] : []);
   const orderData = ticketOrders[0];
   const paidAndIssued = paid && ticketOrders.length > 0 && ticketOrders.every((item) => item.status === "confirmed" || item.status === "free");
+
+  useEffect(() => {
+    const failed = ticketOrders.filter((item) => item.status === "failed" && item.payments?.some((payment) => payment.status === "failed"));
+    if (failed.length) trackConfirmedPaymentFailure(batch || order, failed);
+  }, [batchData, query.data?.order]);
 
   useEffect(() => {
     if (!paidAndIssued) return;

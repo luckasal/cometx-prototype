@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowRight, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,15 @@ import { getEventDetail } from "@/lib/events.functions";
 import { getAccountOverview } from "@/lib/membership.functions";
 import { formatMoney, formatMembershipBenefit } from "@/lib/pricing";
 import { attendeeMatchesBuyer, buyerNamedAttendeeCount, clearAttendeeName, copyBuyerNameToAttendee, readTicketCart, writeTicketCart, type TicketCartLine } from "@/lib/ticket-cart";
-import { trackEvent } from "@/lib/analytics";
+import { ticketPricingType, trackEvent } from "@/lib/analytics";
 import { startTicketCheckoutBatch } from "@/lib/ticket-orders.functions";
 
-export const Route = createFileRoute("/cart")({ component: CartPage });
+export const Route = createFileRoute("/cart")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    ...(search["cancelled"] === "1" || search["cancelled"] === "true" ? { cancelled: true as const } : {}),
+  }),
+  component: CartPage,
+});
 
 type CheckoutPolicies = { text: string; consents: { id: string; label: string; required: boolean }[] };
 
@@ -54,6 +59,8 @@ function CartPage() {
   const [buyerLastName, setBuyerLastName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const cartViewSent = useRef(false);
+  const cancelEventSent = useRef(false);
   const buyerName = [buyerFirstName.trim(), buyerLastName.trim()].join(" ");
   // TODO: Supply verified, localized event policy text and purchase-consent labels
   // from event data. Persist policy version + acknowledgements with the order and
@@ -75,14 +82,10 @@ function CartPage() {
     return event.endDate ? `${start} – ${new Date(event.endDate).toLocaleString(cs ? "cs-CZ" : "en-GB", options)}` : start;
   }
 
+  const { cancelled } = Route.useSearch();
   useEffect(() => {
-    const cart = readTicketCart();
-    setLines(cart);
+    setLines(readTicketCart());
     setReady(true);
-    trackEvent("cart_view", {
-      quantity: cart.reduce((sum, line) => sum + line.quantity, 0),
-      event_count: new Set(cart.map((line) => line.eventSlug)).size,
-    });
   }, []);
 
   const groups = [...new Set(lines.map((line) => line.eventSlug))];
@@ -94,6 +97,41 @@ function CartPage() {
       enabled: ready,
     })),
   });
+  const pricedCartLines = lines.map((line) => {
+    const detail = eventQueries[groups.indexOf(line.eventSlug)]?.data;
+    const ticket = detail?.tickets.find((item) => item.id === line.ticketId);
+    return { line, detail, ticket };
+  });
+  const pricedCurrencies = new Set(pricedCartLines.flatMap(({ ticket }) => ticket ? [ticket.price.currency] : []));
+  const cartValue = pricedCartLines.every(({ ticket }) => ticket) && pricedCurrencies.size === 1
+    ? pricedCartLines.reduce((sum, { line, ticket }) => sum + ticket!.price.finalPrice * line.quantity, 0)
+    : undefined;
+  const cartAnalytics = {
+    quantity: lines.reduce((sum, line) => sum + line.quantity, 0),
+    event_count: groups.length,
+    cart_value: cartValue,
+    currency: pricedCurrencies.size === 1 ? [...pricedCurrencies][0] : undefined,
+    ...(pricedCartLines.length === 1 && pricedCartLines[0]?.ticket && pricedCartLines[0]?.detail ? {
+      event_id: pricedCartLines[0].detail.event.id,
+      event_slug: pricedCartLines[0].detail.event.slug,
+      event_type: pricedCartLines[0].detail.event.eventType,
+      ticket_type: pricedCartLines[0].ticket.name,
+      ticket_type_id: pricedCartLines[0].ticket.id,
+      value: pricedCartLines[0].ticket.price.finalPrice * pricedCartLines[0].line.quantity,
+      membership_tier: pricedCartLines[0].detail.membershipName ?? undefined,
+      pricing_type: ticketPricingType(pricedCartLines[0].ticket.price),
+    } : {}),
+  };
+  useEffect(() => {
+    if (!ready || eventQueries.some((query) => query.isLoading) || cartViewSent.current) return;
+    cartViewSent.current = true;
+    trackEvent("cart_view", cartAnalytics);
+  }, [ready, eventQueries, cartAnalytics]);
+  useEffect(() => {
+    if (!cancelled || !ready || eventQueries.some((query) => query.isLoading) || cancelEventSent.current) return;
+    cancelEventSent.current = true;
+    trackEvent("payment_cancelled", cartAnalytics);
+  }, [cancelled, ready, eventQueries, cartAnalytics]);
   const accountQuery = useQuery({
     queryKey: ["account", "checkout-prefill", user?.id],
     queryFn: () => fetchAccount(),
@@ -143,11 +181,21 @@ function CartPage() {
           const ticket = query.data?.tickets.find((item) => item.id === line.ticketId);
           return ticket ? [{ line, ticket }] : [];
         }));
-        trackEvent("checkout_start", {
+        trackEvent("begin_checkout", {
           event_count: groups.length,
           quantity: lines.reduce((sum, line) => sum + line.quantity, 0),
           value: ticketRows.reduce((sum, { line, ticket }) => sum + ticket.price.finalPrice * line.quantity, 0),
           currency: ticketRows[0]?.ticket.price.currency,
+          cart_value: ticketRows.reduce((sum, { line, ticket }) => sum + ticket.price.finalPrice * line.quantity, 0),
+          ...ticketRows.length === 1 ? {
+            event_id: eventQueries.find((query) => query.data?.event.slug === ticketRows[0]?.line.eventSlug)?.data?.event.id,
+            event_slug: ticketRows[0]?.line.eventSlug,
+            event_type: eventQueries.find((query) => query.data?.event.slug === ticketRows[0]?.line.eventSlug)?.data?.event.eventType,
+            ticket_type: ticketRows[0]?.ticket.name,
+            ticket_type_id: ticketRows[0]?.ticket.id,
+            membership_tier: eventQueries.find((query) => query.data?.event.slug === ticketRows[0]?.line.eventSlug)?.data?.membershipName ?? undefined,
+            pricing_type: ticketPricingType(ticketRows[0]!.ticket.price),
+          } : {},
         });
       } else trackEvent("free_ticket_issued", { event_count: groups.length });
       if (result.url) { window.location.assign(result.url); return; }
@@ -156,7 +204,10 @@ function CartPage() {
       toast.success(cs ? "Vstupenka je potvrzena. Najdete ji v Můj CometX." : "Your ticket is confirmed. See it in My CometX.");
       window.location.assign(user ? `/account/events?purchase=success&batch=${encodeURIComponent(result.batchId)}` : "/events");
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => {
+      trackEvent("checkout_error", { ...cartAnalytics, error_type: "checkout_start_failed" });
+      toast.error(error.message);
+    },
   });
 
   function submitCheckout(event: FormEvent<HTMLFormElement>) {
@@ -170,6 +221,7 @@ function CartPage() {
       toast.error(cs ? "Vyplňte jméno a příjmení (celkem nejvýše 240 znaků)." : "Enter your first and last name (up to 240 characters combined).");
       return;
     }
+    trackEvent("attendee_details_complete", cartAnalytics);
     checkoutMutation.mutate();
   }
 
@@ -189,9 +241,31 @@ function CartPage() {
     const eventTotal = lines.filter((item) => item.eventSlug === line.eventSlug && item.ticketId !== line.ticketId)
       .reduce((sum, item) => sum + item.quantity, 0);
     const nextQuantity = Math.max(0, Math.min(quantity, 10 - eventTotal));
-    saveCart(nextQuantity === 0
+    const nextLines = nextQuantity === 0
       ? lines.filter((item) => !(item.eventSlug === line.eventSlug && item.ticketId === line.ticketId))
-      : lines.map((item) => item.eventSlug === line.eventSlug && item.ticketId === line.ticketId ? { ...item, quantity: nextQuantity, attendees: item.attendees?.slice(0, nextQuantity) ?? [] } : item));
+      : lines.map((item) => item.eventSlug === line.eventSlug && item.ticketId === line.ticketId ? { ...item, quantity: nextQuantity, attendees: item.attendees?.slice(0, nextQuantity) ?? [] } : item);
+    const current = pricedCartLines.find((item) => item.line.eventSlug === line.eventSlug && item.line.ticketId === line.ticketId);
+    if (current?.ticket && current.detail && nextQuantity !== line.quantity) {
+      const meta = {
+        event_id: current.detail.event.id,
+        event_slug: current.detail.event.slug,
+        event_type: current.detail.event.eventType,
+        ticket_type: current.ticket.name,
+        ticket_type_id: current.ticket.id,
+        quantity: nextQuantity === 0 ? line.quantity - nextQuantity : nextQuantity,
+        value: current.ticket.price.finalPrice * (nextQuantity === 0 ? line.quantity - nextQuantity : nextQuantity),
+        currency: current.ticket.price.currency,
+        membership_tier: current.detail.membershipName ?? undefined,
+        pricing_type: ticketPricingType(current.ticket.price),
+        cart_value: nextLines.reduce((sum, item) => {
+          const itemDetail = eventQueries[groups.indexOf(item.eventSlug)]?.data;
+          const itemTicket = itemDetail?.tickets.find((candidate) => candidate.id === item.ticketId);
+          return sum + (itemTicket?.price.finalPrice ?? 0) * item.quantity;
+        }, 0),
+      };
+      trackEvent(nextQuantity === 0 ? "remove_from_cart" : "cart_quantity_change", meta);
+    }
+    saveCart(nextLines);
   }
 
   function updateAttendee(line: TicketCartLine, index: number, field: "firstName" | "lastName", value: string) {
