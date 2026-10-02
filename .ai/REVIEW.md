@@ -23,3 +23,21 @@ Status: Code review completed; release is blocked on coordinated database/deploy
 ## NICE TO HAVE
 
 - Admin order/revenue listing is capped at the latest 500 orders; use database-side aggregation/pagination if volume grows.
+
+## 2026-10-02 Vercel demo browser QA
+
+Reviewed target: `https://cometx-prototype.vercel.app`, Production alias, deployment source branch `codex/integration-release-20261002`. Read-only UI checks; no transactional/admin mutations. Full route notes are in `VERCEL_QA_AUDIT.md`.
+
+### BLOCKER
+
+- Public event discovery and purchase cannot currently be completed on the demo: `/events` remained at “Loading events…” after 5 seconds; `/events/emocni-regulace-v-kazdodenni-praxi?preview=false` remained at “Loading event…” after 4 seconds. The user’s supplied event screenshot independently shows “Server-side data access is temporarily unavailable.” Cart also remained at “Loading tickets…”, displayed no totals, and its payment CTA was disabled despite a two-ticket header count. Reproduce and diagnose the server-function/Supabase response and client loading-state handling; make failure visible/retryable instead of infinite loading. Do not start live-payment testing until this is resolved.
+
+### IMPORTANT
+
+- Homepage community module (`/`), stories (`/community`), and partner data (`/partners`) remained in loading states after 4 seconds; static page copy/links rendered. Confirm their read functions and error handling.
+- `/account` and `/account/events` rendered the signed-in account shell but left ticket/event data loading. `/admin/payments` likewise remained loading. Admin event rows were available, but sales totals and per-event sold/revenue were unavailable (`—`). These prevent users/staff from trusting ticket/payment reporting.
+- Membership cards and prices loaded, but the page explicitly says online checkout will be available soon; end-to-end membership purchase is not implemented/verified on the deployed site.
+
+### NICE TO HAVE
+
+- `/admin/analytics` shows a preview state rather than verified live GA4 reporting. Confirm GA4 server/property configuration before relying on the dashboard.
