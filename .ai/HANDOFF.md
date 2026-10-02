@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-02: resolve Vercel vulnerable dependency gate
+
+- Task: `VERCEL-PATCH-01` — update the vulnerable TanStack Start package rejected by Vercel's build scanner.
+- Branch / implementation commit: `codex/integration-release-20261002` / `2fc00c73b69ab3b29bf3c474bd6a4b5881a5faf` (`Patch vulnerable TanStack Start dependency`); pushed to `origin`.
+- Files changed: `package.json`, `pnpm-lock.yaml` (TanStack Start `1.168.32` → `1.168.60`; lock resolves `@tanstack/start-server-core@1.169.39`).
+- Checks: lockfile version inspection and CRLF-aware `git diff --check` passed. Existing integrated source passed `pnpm typecheck`, `pnpm build`, and 16 focused tests before this dependency-only update. Post-update local install/build was not completed because pnpm linking stalled in this nested workspace; no application source changed.
+- Known issues: Vercel's old deployment for `98b4c11` fails specifically on the vulnerable package. The Vercel dashboard did not yet show a deployment for pushed `2fc00c7`, so deployment success is not confirmed. Do not set `DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_XSS=1`. The separate Cloudflare-module/Vercel runtime and Preview Supabase configuration concerns remain unresolved.
+- Exact next task: verify Vercel starts a Preview build for `2fc00c7`; if it does not, inspect Vercel Git integration/branch deployment configuration. If it builds, fix only any newly surfaced build/runtime blocker and verify Preview before calling this complete.
+
 ## 2026-10-02: integrate event operations and analytics branches
 
 - Task completed: `INTEGRATE-ALL-01` — combined the committed event admin, event operations/auth, and analytics work on `codex/integration-release-20261002`; source branches were not modified.
