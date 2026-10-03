@@ -54,7 +54,7 @@ Reviewed branch: `codex/integration-release-20261002`. Full findings and release
 
 - `adminSaveEvent` writes event, speakers, ticket types and workshops in separate requests. A later write or Stripe sync failure can leave partial configuration. A transactional database operation is recommended before relying on the editor for production operations.
 - Guest ticket email is disabled until Resend sender/domain verification. The secure return URL works in code, but a guest who loses it after payment needs a verified recovery path.
-- Event-specific terms/policies, refunds/cancellations, and per-event Emails/Promotion/Analytics controls are not implemented. The customer UI must not promise them.
+- Event-specific terms/policies, refunds/cancellations, and per-event Emails/Promotion/Analytics controls are not implemented. The customer UI must not promise them. The empty event-admin tabs were removed in `EVENT-ADMIN-TABS-01`; the capabilities remain unimplemented.
 - The event Guests tab was blank despite an existing attendee roster component; wired in the current branch. The roster/check-in still requires migration `0010` for audit columns.
 
 ### RESOLVED IN CURRENT BRANCH

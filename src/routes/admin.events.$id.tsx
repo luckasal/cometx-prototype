@@ -275,16 +275,11 @@ function EditEventPage() {
     <AdminPage title={e.title} description={`Event workspace · /events/${e.slug}`}>
       <Tabs value={tab} onValueChange={setTab} className="space-y-5">
         <TabsList aria-label="Event sections" className="h-auto w-full flex-wrap justify-start gap-1">
-          {[["overview", "Overview"], ["tickets", "Tickets"], ["settings", "Settings"], ["orders", "Orders"], ["guests", "Guests"], ["emails", "Emails"], ["promotion", "Promotion"], ["analytics", "Analytics"], ["content", "Edit content"]].map(([value, label]) => <TabsTrigger key={value} value={value!}>{label}</TabsTrigger>)}
+          {[["overview", "Overview"], ["tickets", "Tickets"], ["settings", "Settings"], ["orders", "Orders"], ["guests", "Guests"], ["content", "Edit content"]].map(([value, label]) => <TabsTrigger key={value} value={value!}>{label}</TabsTrigger>)}
         </TabsList>
         <TabsContent value="overview"><EventOverview event={{ ...initialEvent, updated_at: e.updated_at }} metrics={metrics} ticketCount={data.tickets.length} /></TabsContent>
         <TabsContent value="orders"><EventOrders eventId={e.id} /></TabsContent>
         <TabsContent value="guests"><EventAttendees eventId={e.id} eventTitle={e.title} /></TabsContent>
-        {[
-          ["emails", "Emails", "Per-event confirmation, reminder and update email controls are not configured here yet."],
-          ["promotion", "Promotion", "Promotion tools are not available here yet. The public or preview link is available in Overview."],
-          ["analytics", "Analytics", "Detailed event reports are not available here yet. Existing ticket and revenue totals are in Overview."],
-        ].map(([value, title, description]) => <TabsContent key={value} value={value!}><section className="rounded-2xl border border-border/60 bg-card p-6"><h2 className="font-display text-lg font-bold">{title}</h2><p className="mt-3 text-sm text-muted-foreground">{description}</p></section></TabsContent>)}
         {/* Keep one editor mounted across tabs so unsaved values and mutations survive navigation. */}
         <TabsContent forceMount value={editing ? tab : "content"} hidden={!editing}>
           <EventForm initialEvent={initialEvent} initialTickets={initialTickets} initialSpeakerIds={data.speakerIds} initialWorkshops={initialWorkshops} section={tab === "tickets" ? "tickets" : tab === "settings" ? "settings" : "content"} />
