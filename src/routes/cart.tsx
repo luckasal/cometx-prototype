@@ -15,6 +15,7 @@ import { formatMoney, formatMembershipBenefit } from "@/lib/pricing";
 import { attendeeMatchesBuyer, buyerNamedAttendeeCount, clearAttendeeName, copyBuyerNameToAttendee, readTicketCart, writeTicketCart, type TicketCartLine } from "@/lib/ticket-cart";
 import { ticketPricingType, trackEvent } from "@/lib/analytics";
 import { startTicketCheckoutBatch } from "@/lib/ticket-orders.functions";
+import { ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
 
 export const Route = createFileRoute("/cart")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -151,10 +152,9 @@ function CartPage() {
     const eventLines = lines.filter((line) => line.eventSlug === slug);
     const tickets = eventLines.map((line) => ({ ticket: detail?.tickets.find((item) => item.id === line.ticketId) }));
     const currencies = new Set(tickets.flatMap(({ ticket }) => ticket ? [ticket.price.currency] : []));
-    const purchasable = !!detail && detail.registrationOpen && currencies.size <= 1 && tickets.length > 0 && tickets.every(({ ticket }) =>
-      ticket && ticket.price.eligible && !ticket.soldOut &&
-      (!ticket.saleStart || Date.parse(ticket.saleStart) <= Date.now()) &&
-      (!ticket.saleEnd || Date.parse(ticket.saleEnd) > Date.now()),
+    const purchasable = !!detail && currencies.size <= 1 && tickets.length > 0 && tickets.every(({ ticket }) =>
+      ticket && ticketAvailability({ registrationOpen: detail.registrationOpen, soldOut: ticket.soldOut,
+        saleStart: ticket.saleStart, saleEnd: ticket.saleEnd, eligible: ticket.price.eligible }) === "available",
     );
     return { slug, purchasable, free: purchasable && tickets.every(({ ticket }) => ticket!.price.finalPrice === 0) };
   });
@@ -323,13 +323,15 @@ function CartPage() {
             if (!detail) return null;
             const ticketRows = eventLines.map((line) => {
               const ticket = detail.tickets.find((item) => item.id === line.ticketId);
-              if (!ticket) return { line, ticket: null, saleOpen: false };
-              const saleOpen = (!ticket.saleStart || Date.parse(ticket.saleStart) <= Date.now()) && (!ticket.saleEnd || Date.parse(ticket.saleEnd) > Date.now());
-              return { line, ticket, saleOpen };
+              if (!ticket) return { line, ticket: null, availability: null };
+              const availability = ticketAvailability({ registrationOpen: detail.registrationOpen,
+                soldOut: ticket.soldOut, saleStart: ticket.saleStart, saleEnd: ticket.saleEnd,
+                eligible: ticket.price.eligible });
+              return { line, ticket, availability };
             });
             const currencies = new Set(ticketRows.flatMap(({ ticket }) => ticket ? [ticket.price.currency] : []));
             const sameCurrency = currencies.size <= 1;
-            const purchasable = detail.registrationOpen && sameCurrency && ticketRows.every(({ ticket, saleOpen }) => ticket && ticket.price.eligible && !ticket.soldOut && saleOpen);
+            const purchasable = sameCurrency && ticketRows.every(({ ticket, availability }) => ticket && availability === "available");
             return <article key={slug} className="rounded-[1.5rem] bg-card/55 p-3 sm:p-4">
               <div className="mb-2 hidden grid-cols-[minmax(0,1fr)_6.25rem_7.5rem_6rem_1.5rem] items-center gap-3 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground xl:grid">
                 <span>{cs ? "Akce / vstupenka" : "Event / ticket"}</span>
@@ -339,7 +341,7 @@ function CartPage() {
                 <span className="sr-only">{cs ? "Odebrat" : "Remove"}</span>
               </div>
               <div className="divide-y divide-foreground/5">
-                {ticketRows.map(({ line, ticket, saleOpen }) => <div key={line.ticketId} className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 px-2 py-3 sm:px-3 xl:grid-cols-[minmax(0,1fr)_6.25rem_7.5rem_6rem_1.5rem] xl:gap-3 xl:py-2.5">
+                {ticketRows.map(({ line, ticket, availability }) => <div key={line.ticketId} className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 px-2 py-3 sm:px-3 xl:grid-cols-[minmax(0,1fr)_6.25rem_7.5rem_6rem_1.5rem] xl:gap-3 xl:py-2.5">
                   <div className="col-span-2 flex min-w-0 items-center gap-3 pr-9 xl:col-span-1 xl:pr-0">
                     {detail.event.heroImageUrl && <img src={detail.event.heroImageUrl} alt="" className="size-14 shrink-0 rounded-xl object-cover" />}
                     <div className="min-w-0">
@@ -347,7 +349,7 @@ function CartPage() {
                       <p className="mt-0.5 text-xs text-muted-foreground">{eventSchedule(detail.event)}</p>
                       {detail.event.venue && <p className="mt-0.5 text-xs text-muted-foreground">{detail.event.venue}</p>}
                       <p className="mt-0.5 truncate text-xs font-medium">{ticket?.name ?? (cs ? "Vstupenka již není dostupná" : "Ticket no longer available")}</p>
-                      {ticket && (!detail.registrationOpen || !saleOpen || ticket.soldOut || !ticket.price.eligible) && <p className="mt-1 text-xs text-destructive">{cs ? "Tento typ vstupenky už nelze koupit." : "This ticket type is no longer available."}</p>}
+                      {ticket && availability && availability !== "available" && <p className="mt-1 text-xs text-destructive">{ticketAvailabilityMessage(availability, ticket.saleStart, cs)}</p>}
                     </div>
                   </div>
                   <div className="text-sm tabular-nums xl:text-base">
@@ -361,7 +363,7 @@ function CartPage() {
                     <div className="inline-flex items-center gap-0.5 rounded-full bg-background/60 p-0.5">
                       <button type="button" aria-label={cs ? "Odebrat jednu vstupenku" : "Remove one ticket"} className="grid size-8 place-items-center rounded-full text-foreground/70 transition-colors hover:bg-accent/20 hover:text-foreground" onClick={() => changeQuantity(line, line.quantity - 1)}><Minus className="size-3" /></button>
                       <span className="min-w-7 text-center text-sm font-semibold tabular-nums">{line.quantity}</span>
-                      <button type="button" aria-label={cs ? "Přidat jednu vstupenku" : "Add one ticket"} className="grid size-8 place-items-center rounded-full text-foreground/70 transition-colors hover:bg-accent/20 hover:text-foreground" disabled={!ticket || ticket.soldOut || line.quantity + eventLines.filter((item) => item.eventSlug === line.eventSlug && item.ticketId !== line.ticketId).reduce((sum, item) => sum + item.quantity, 0) >= 10} onClick={() => changeQuantity(line, line.quantity + 1)}><Plus className="size-3" /></button>
+                      <button type="button" aria-label={cs ? "Přidat jednu vstupenku" : "Add one ticket"} className="grid size-8 place-items-center rounded-full text-foreground/70 transition-colors hover:bg-accent/20 hover:text-foreground" disabled={!ticket || availability !== "available" || line.quantity + eventLines.filter((item) => item.eventSlug === line.eventSlug && item.ticketId !== line.ticketId).reduce((sum, item) => sum + item.quantity, 0) >= 10} onClick={() => changeQuantity(line, line.quantity + 1)}><Plus className="size-3" /></button>
                     </div>
                   </div>
                   <div className="flex items-center justify-between xl:block xl:text-right">

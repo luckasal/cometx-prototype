@@ -147,6 +147,7 @@ export function hasCapacity(input: CapacityInput): boolean {
 
 export type RegistrationWindow = {
   status: string;
+  startDate?: string | null;
   registrationStart: string | null;
   registrationEnd: string | null;
 };
@@ -154,6 +155,7 @@ export type RegistrationWindow = {
 export function isRegistrationOpen(event: RegistrationWindow, now: Date = new Date()): boolean {
   if (event.status !== "registration_open") return false;
   if (!Number.isFinite(now.getTime())) return false;
+  if (event.startDate && (!Number.isFinite(Date.parse(event.startDate)) || new Date(event.startDate) <= now)) return false;
   if (event.registrationStart && !Number.isFinite(Date.parse(event.registrationStart))) return false;
   if (event.registrationEnd && !Number.isFinite(Date.parse(event.registrationEnd))) return false;
   if (event.registrationStart && new Date(event.registrationStart) > now) return false;

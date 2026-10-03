@@ -41,3 +41,24 @@ Reviewed target: `https://cometx-prototype.vercel.app`, Production alias, deploy
 ### NICE TO HAVE
 
 - `/admin/analytics` shows a preview state rather than verified live GA4 reporting. Confirm GA4 server/property configuration before relying on the dashboard.
+
+## 2026-10-03 event end-to-end audit
+
+Reviewed branch: `codex/integration-release-20261002`. Full findings and release matrix: `EVENT_END_TO_END_AUDIT.md`.
+
+### BLOCKER
+
+- The deployed database previously lacked `ticket_order_items.event_id` from migration `0008`, while the current batch checkout reads that field and calls RPCs from `0007`/`0008`. The demo's public event and cart reads work, but one-payment multi-event checkout and webhook fulfilment are not verified against the hosted schema. Review migrations `0007`–`0010` and the `0009` membership entitlement changes before coordinated application and test-mode payment verification. No hosted migration or payment was performed in this audit.
+
+### IMPORTANT
+
+- `adminSaveEvent` writes event, speakers, ticket types and workshops in separate requests. A later write or Stripe sync failure can leave partial configuration. A transactional database operation is recommended before relying on the editor for production operations.
+- Guest ticket email is disabled until Resend sender/domain verification. The secure return URL works in code, but a guest who loses it after payment needs a verified recovery path.
+- Event-specific terms/policies, refunds/cancellations, and per-event Emails/Promotion/Analytics controls are not implemented. The customer UI must not promise them.
+- The event Guests tab was blank despite an existing attendee roster component; wired in the current branch. The roster/check-in still requires migration `0010` for audit columns.
+
+### RESOLVED IN CURRENT BRANCH
+
+- Public ticket cards and cart did not explain why a type was disabled by sale dates; the shared availability helper now shows the sale state, and the admin editor previews it. The observed workshop's regular ticket opens 30 November 2026; its early-bird type is currently on sale.
+- A past event left at `registration_open` could look purchasable until the server rejected it; public availability now closes at event start.
+- Admin event saves could reach `toISOString()` with invalid or reversed dates; client and server now validate schedule ordering first.

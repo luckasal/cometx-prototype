@@ -279,6 +279,7 @@ function EditEventPage() {
         </TabsList>
         <TabsContent value="overview"><EventOverview event={{ ...initialEvent, updated_at: e.updated_at }} metrics={metrics} ticketCount={data.tickets.length} /></TabsContent>
         <TabsContent value="orders"><EventOrders eventId={e.id} /></TabsContent>
+        <TabsContent value="guests"><EventAttendees eventId={e.id} eventTitle={e.title} /></TabsContent>
         {[
           ["emails", "Emails", "Per-event confirmation, reminder and update email controls are not configured here yet."],
           ["promotion", "Promotion", "Promotion tools are not available here yet. The public or preview link is available in Overview."],

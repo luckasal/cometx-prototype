@@ -12,6 +12,9 @@ import {
 } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
+import { isRegistrationOpen } from "@/lib/pricing";
+import { ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
+import { eventScheduleIssue } from "@/lib/event-admin";
 
 export type EventFormValues = {
   id?: string;
@@ -219,6 +222,16 @@ export function EventForm({
   function saveAs(publishState: EventFormValues["publish_state"]) {
     if (!event.title.trim() || !event.slug.trim() || !event.start_date) {
       toast.error("Title, slug and start date are required.");
+      return;
+    }
+    const scheduleIssue = eventScheduleIssue({
+      start_date: event.start_date,
+      end_date: event.end_date || null,
+      registration_start: event.registration_start || null,
+      registration_end: event.registration_end || null,
+    });
+    if (scheduleIssue) {
+      toast.error(scheduleIssue);
       return;
     }
     mutation.mutate(publishState);
@@ -452,6 +465,22 @@ export function EventForm({
         {tickets.map((ticket, index) => (
           <div key={index} className="space-y-4 border-t border-border pt-5">
             <p className="text-xs text-muted-foreground">{ticket.id ? "Active ticket type" : "New ticket type · not saved"}</p>
+            <p className="text-sm font-medium text-accent" role="status">
+              {event.publish_state !== "published"
+                ? "Not visible for purchase until this event is published."
+                : ticketAvailabilityMessage(ticketAvailability({
+                    registrationOpen: isRegistrationOpen({
+                      status: event.event_status,
+                      startDate: event.start_date,
+                      registrationStart: event.registration_start || null,
+                      registrationEnd: event.registration_end || null,
+                    }),
+                    soldOut: false,
+                    saleStart: ticket.sale_start || null,
+                    saleEnd: ticket.sale_end || null,
+                    eligible: true,
+                  }), ticket.sale_start || null, false) ?? "On sale now (subject to capacity and buyer eligibility)."}
+            </p>
             <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr_auto]">
               <Field label="Name">
                 <input

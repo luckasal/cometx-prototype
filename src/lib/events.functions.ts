@@ -239,6 +239,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
       isPreview: isAdminViewer && (!!data.preview || event.publish_state !== "published"),
       registrationOpen: isRegistrationOpen({
         status: event.event_status,
+        startDate: event.start_date,
         registrationStart: event.registration_start,
         registrationEnd: event.registration_end,
       }),

@@ -18,6 +18,7 @@ import { BrandXElement } from "./BrandXElement";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "./Bits";
 import { ticketPricingType, trackEvent } from "@/lib/analytics";
+import { ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
 
 type Props = {
   data: EventDetail;
@@ -320,7 +321,15 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                 ) : (
                   <div className="mt-5 space-y-6">
                     {tickets.map((ticket) => {
-                      const saleOpen=(!ticket.saleStart || Date.parse(ticket.saleStart)<=Date.now()) && (!ticket.saleEnd || Date.parse(ticket.saleEnd)>Date.now());
+                      const availability = ticketAvailability({
+                        isPreview: data.isPreview,
+                        registrationOpen: open,
+                        soldOut: ticket.soldOut,
+                        saleStart: ticket.saleStart,
+                        saleEnd: ticket.saleEnd,
+                        eligible: ticket.price.eligible,
+                      });
+                      const availabilityMessage = ticketAvailabilityMessage(availability, ticket.saleStart, cs);
                       const maxQuantity=Math.max(0,Math.min(ticket.spotsLeft ?? 10,data.spotsLeft ?? 10,10));
                       const quantity=quantities[ticket.id] ?? 0;
                       const otherQuantity=tickets.reduce((sum,other)=>sum+(other.id===ticket.id?0:quantities[other.id]??0),0);
@@ -335,6 +344,7 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                           <p className="mt-1 text-sm text-accent">{formatMembershipBenefit(ticket.price, cs)}</p>
                           <p className="mt-1 text-lg font-bold text-accent">{cs ? "Členská cena" : "Member price"}: {formatMoney(ticket.price.finalPrice, ticket.price.currency)}</p>
                         </>}
+                        {availabilityMessage && <p className="mt-3 text-sm font-medium text-accent" role="status">{availabilityMessage}</p>}
                         {!data.isSignedIn && ticket.hasMemberPricing && (
                           <button type="button" className="mt-2 text-sm underline underline-offset-2" onClick={() => {
                             trackEvent("login_for_member_price", {
@@ -355,7 +365,7 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                         <label className="mt-4 flex items-center justify-between gap-3 text-sm">
                           <span>{cs ? "Počet vstupenek" : "Quantity"}</span>
                           <select aria-label={cs ? `Počet vstupenek: ${ticket.name}` : `Ticket quantity: ${ticket.name}`} className="min-h-10 rounded-full bg-background px-4" value={quantity}
-                            disabled={data.isPreview || !open || ticket.soldOut || !saleOpen || !ticket.price.eligible}
+                            disabled={availability !== "available"}
                             onChange={e => {
                               const next = Math.min(Number(e.target.value), Math.max(0, 10 - otherQuantity));
                               if (quantity === 0 && next > 0) trackEvent("ticket_select", {
@@ -375,7 +385,7 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                             {Array.from({length:basketMax + 1},(_,i)=>i).map(n=><option key={n} value={n}>{n}</option>)}
                           </select>
                         </label>
-                        <Button variant="signal" data-analytics-cta="event_add_ticket" className="mt-4 w-full" disabled={quantity < 1 || data.isPreview || !open || ticket.soldOut || !saleOpen || !ticket.price.eligible}
+                        <Button variant="signal" data-analytics-cta="event_add_ticket" className="mt-4 w-full" disabled={quantity < 1 || availability !== "available"}
                           onClick={() => onAddToCart(ticket.id, quantity)}>
                           {cs ? "Přidat do košíku" : "Add to cart"}
                           <ArrowRight className="size-4" />
