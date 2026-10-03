@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-03: event lifecycle audit and focused fixes
+
+- Task completed: `EVENT-E2E-01` — audited public event discovery/detail, cart/attendees, checkout/payment/confirmation, and event administration; documented the remaining release gaps in `EVENT_END_TO_END_AUDIT.md`.
+- Branch / implementation commit: `codex/integration-release-20261002` / `4cbab08` (`Audit event lifecycle and clarify ticket availability`).
+- Files changed: `EVENT_END_TO_END_AUDIT.md`, `.ai/REVIEW.md`, `.ai/TASKS.md`; `src/lib/ticket-availability.ts`, `src/lib/event-admin.ts`, `src/lib/pricing.ts`, `src/lib/events.functions.ts`, `src/lib/admin.functions.ts`; `src/components/site/EventDetailTemplate.tsx`, `src/components/admin/EventForm.tsx`, `src/routes/cart.tsx`, `src/routes/admin.events.$id.tsx`; `tests/ticket-availability.test.mjs`, `tests/event-admin-schedule.test.mjs`; this handoff.
+- Checks: 14 focused tests passed, including PGlite migration, checkout replay/capacity, ticket availability and admin date validation; TypeScript syntax diagnostics passed for changed source; CRLF-aware `git diff --check` passed. Full typecheck/build could not complete because this checkout lacks a complete offline dependency installation.
+- Known issues: no hosted migrations, payment, email or deployment was performed. Hosted schema previously lacked `ticket_order_items.event_id`; migrations `0007`–`0010` and Stripe test-mode checkout/webhook need coordinated staging verification. Migration `0009` changes membership benefits, so do not apply blindly. Admin saves are not atomic; guest mail is disabled pending verified sending domain; coupon/gift/refund and some event-admin tabs remain incomplete. The previously exposed Supabase server key still requires rotation.
+- Exact next recommended task: snapshot and review the connected Supabase schema/data, test migrations `0007`–`0010` in isolation (especially membership changes in `0009`), then run paid, free, mixed-event, member, capacity-race, replay and guest-access test-mode E2E before promoting the code to the Vercel demo. Keep `cometx.ch` untouched.
+
 ## 2026-10-02: event-detail fix deployed and verified
 
 - Task: `VERCEL-RUNTIME-02`; promoted source commit `98f49c9` (includes application fix `16e501c`) to the Vercel demo Production environment.
