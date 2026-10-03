@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-03: remove nonfunctional event-admin tabs
+
+- Task completed: `EVENT-ADMIN-TABS-01` — removed empty Emails, Promotion and Analytics tabs from the per-event workspace; retained Overview, Tickets, Settings, Orders, Guests and Edit content.
+- Branch / implementation commit: `codex/integration-release-20261002` / `75ffd60` (`Remove empty event admin tabs`).
+- Files changed: `src/routes/admin.events.$id.tsx`, `EVENT_END_TO_END_AUDIT.md`, `.ai/REVIEW.md`, `.ai/TASKS.md`, this handoff.
+- Checks: TSX transpilation and expected tab inventory passed; CRLF-aware `git diff --check` passed. No runtime deployment or database action.
+- Known issues: per-event email/promotion/analytics capabilities remain unimplemented. Checkout is still blocked on coordinated hosted migration and test-mode payment verification; full typecheck/build requires a complete dependency installation.
+- Exact next recommended task: review hosted Supabase schema and migration `0009` membership changes against a snapshot, test `0007`–`0010` on isolated staging, then run the Stripe test-mode checkout/webhook matrix documented in `EVENT_END_TO_END_AUDIT.md` before demo deployment.
+
 ## 2026-10-03: event lifecycle audit and focused fixes
 
 - Task completed: `EVENT-E2E-01` — audited public event discovery/detail, cart/attendees, checkout/payment/confirmation, and event administration; documented the remaining release gaps in `EVENT_END_TO_END_AUDIT.md`.
