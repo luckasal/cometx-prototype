@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: keep server-function failures out of customer-visible HTML
+
+- Task completed: implementation for `SERVER-HTML-ALERT-01`; unexpected server-function errors are logged server-side and returned through TanStack Start as a short generic error, while router failures retain the branded HTML fallback.
+- Files changed: `src/start.ts`, `src/lib/request-error.ts`, `tests/request-error.test.mjs`, `.ai/TASKS.md`.
+- Commit hash: `12274a6` (implementation); handoff/status commit follows.
+- Tests/checks run: 2 focused request-error tests pass; production build passes with host filesystem access; `git diff --check` passes. Typecheck reports the known unrelated `src/routes/__root.tsx:122` `ErrorComponentProps.error` unknown-vs-Error mismatch.
+- Known issues: deployment and the membership UI error toast have not yet been verified on the hosted site; no checkout or payment was initiated.
+- Exact next recommended task: push the implementation and handoff commits, then verify the Production deployment and confirm a server-function failure no longer renders raw HTML in the membership UI.
+
 ## 2026-10-05: recover stale Vite route chunks on the live site
 
 - Task completed: `ASSET-RECOVERY-01`; Vite preload failures now trigger one cache-busting document reload, the error page's retry refreshes HTML, and SSR HTML responses require revalidation.
