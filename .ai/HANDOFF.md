@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: local event preview and publication payment sync
+
+- Task completed: `EVENT-PUBLISH-PAYMENTS-01` — publishing/unpublishing from the event list now invokes test-mode ticket product sync and warns staff when sync cannot finish.
+- Branch / implementation commit: `codex/integration-release-20261002` / `883486f` (`Sync ticket products on event publication`).
+- Files changed: `.ai/TASKS.md`, `EVENT_END_TO_END_AUDIT.md`, `src/lib/admin.functions.ts`, `src/lib/stripe.server.ts`, `src/routes/admin.events.index.tsx`; this handoff in a separate commit.
+- Checks: local published workshop visibly rendered at `http://127.0.0.1:3002/events/jak-resit-konflikty-s-toxickymi-osobnostmi?preview=false`; 19 focused event/cart/order/database tests passed; CRLF-aware diff check passed. Full typecheck fails at existing `src/routes/__root.tsx:116` error-component type mismatch.
+- Known issues: CometX Stripe sandbox webhook destination is enabled for Checkout events, but its product catalogue is empty. Vercel test-key/signing-secret values are not verified; hosted migrations `0007`–`0010` and actual paid/free checkout/webhook fulfillment have not been verified. No hosted migration, Stripe product, payment or deployment was performed. Local preview runs without verified server-only checkout keys. The previously exposed Supabase server key still requires rotation.
+- Exact next recommended task: fix the root typecheck error; review hosted schema and `0009` membership changes against a snapshot, apply `0007`–`0010` to isolated staging, verify test-mode Vercel secrets, then perform and inspect one paid sandbox checkout through webhook and ticket issuance before promoting this branch.
+
 ## 2026-10-03: remove nonfunctional event-admin tabs
 
 - Task completed: `EVENT-ADMIN-TABS-01` — removed empty Emails, Promotion and Analytics tabs from the per-event workspace; retained Overview, Tickets, Settings, Orders, Guests and Edit content.
