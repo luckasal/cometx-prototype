@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: CometX release and Stripe sandbox preflight
+
+- Task completed: `RELEASE-01` preflight only; deployment and catalogue sync are blocked pending hosted database access and schema coordination.
+- Files changed: `.ai/TASKS.md`, `.ai/HANDOFF.md` (release-status documentation only; no application/configuration changes).
+- Commit: `1f8d415` (release status); handoff entry follows in the next documentation commit.
+- Checks: `pnpm build` passed with network-enabled execution. Full `pnpm test`: 54/55 passed; `event-template.test.mjs` fails under this Windows Node 22 harness because Node cannot resolve the `react` bare import from its inline `data:` module. `pnpm typecheck` retains the known `src/routes/__root.tsx:116` error-component typing error. `git diff --check` passed. No hosted database, deployment, or Stripe state changed.
+- Known issues: Vercel Production currently deploys this branch automatically, which is 17 commits ahead of its remote/deployed revision. Supabase dashboard has no migration ledger; project handoff says migrations `0007`–`0010` are pending, so hosted schema must be preflighted before release. No authenticated Supabase migration runner or Vercel deploy control is available in this task. The current rotated `STRIPE_SECRET_KEY` value in Vercel could not be verified (values are masked). Stripe test catalogue remains empty until a coordinated deploy and admin sync. Wix was not accessed or changed.
+- Exact next recommended task: connect the Supabase integration, inspect the actual `CometX Prototype` schema and safely reconcile migrations `0005`–`0010`; verify the rotated test key is set as server-only `STRIPE_SECRET_KEY` for the intended Vercel environments and the webhook signing secret is present; only then release the coordinated branch, watch the Vercel build, use `/admin/events` → “Refresh ticket setup,” verify Supabase mappings and Stripe test Products/Prices, and complete a sandbox payment plus webhook replay/idempotency check.
+
 ## 2026-10-05: Stripe test-catalogue backfill action
 
 - Task completed: `STRIPE-CATALOG-BACKFILL-01` — added an admin-only bulk sync for existing ticket data. It idempotently creates/reuses Stripe test Products and paid Prices, writes mappings to Supabase, backfills active ticket types for upcoming published events (including future sale phases), and deactivates stale mapped products. Free tickets skip Price creation; event/ticket content is never edited.
