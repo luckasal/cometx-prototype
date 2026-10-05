@@ -4,12 +4,12 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 ## 2026-10-05: keep server-function failures out of customer-visible HTML
 
-- Task completed: implementation for `SERVER-HTML-ALERT-01`; unexpected server-function errors are logged server-side and returned through TanStack Start as a short generic error, while router failures retain the branded HTML fallback.
-- Files changed: `src/start.ts`, `src/lib/request-error.ts`, `tests/request-error.test.mjs`, `.ai/TASKS.md`.
-- Commit hash: `12274a6` (implementation); handoff/status commit follows.
-- Tests/checks run: 2 focused request-error tests pass; production build passes with host filesystem access; `git diff --check` passes. Typecheck reports the known unrelated `src/routes/__root.tsx:122` `ErrorComponentProps.error` unknown-vs-Error mismatch.
-- Known issues: deployment and the membership UI error toast have not yet been verified on the hosted site; no checkout or payment was initiated.
-- Exact next recommended task: push the implementation and handoff commits, then verify the Production deployment and confirm a server-function failure no longer renders raw HTML in the membership UI.
+- Task completed: `SERVER-HTML-ALERT-01`; unexpected failures on server-function requests no longer become the branded router HTML document, at either the request-middleware or outer server boundary. Ordinary server-function errors remain TanStack-serialized; catastrophic fallback errors return short plain text. Router document failures still use the branded HTML fallback.
+- Files changed: `src/start.ts`, `src/server.ts`, `src/lib/request-error.ts`, `tests/request-error.test.mjs`, `.ai/TASKS.md`.
+- Commit hash: `12274a6` and `02553b7` (implementation); this handoff/status commit follows.
+- Tests/checks run: 3 focused request-error tests pass; production Vite/Nitro build passes with host filesystem access; `git diff --check` passes. Typecheck reports only the known unrelated `src/routes/__root.tsx:122` `ErrorComponentProps.error` unknown-vs-Error mismatch. Read-only hosted membership-plan and expected unauthenticated account-overview server-function requests returned JSON, not HTML; `/membership` returned HTTP 200.
+- Known issues: the signed-in membership button and hosted Stripe Checkout were not exercised; no checkout session or payment was started. The browser screenshot's user session was unavailable to the server-side HTTP check.
+- Exact next recommended task: hard-refresh `/membership` and retry the desired membership button while signed in; if it still fails, capture the short error message and inspect the matching Vercel function log. Do not submit or complete a test payment without the user's explicit request.
 
 ## 2026-10-05: recover stale Vite route chunks on the live site
 
