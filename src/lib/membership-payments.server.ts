@@ -3,7 +3,24 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { isStripeConfigured, stripeRequest } from "./stripe.server";
 
 const providerProduct = z.object({ id: z.string(), livemode: z.literal(false) });
-const providerPrice = z.object({ id: z.string(), livemode: z.literal(false), currency: z.string(), unit_amount: z.number().int(), type: z.literal("one_time") });
+const providerPrice = z.object({ id: z.string(), active: z.boolean(), livemode: z.literal(false), currency: z.string(), unit_amount: z.number().int(), type: z.literal("one_time") });
+
+/** Customer checkout only verifies the catalog entry; product/price creation is admin setup work. */
+export async function getMembershipCheckoutPrice(input: {
+  stripePriceId: string | null;
+  amount: number;
+  currency: string;
+}): Promise<string> {
+  if (!input.stripePriceId) {
+    throw new Error("This membership is not ready for online payment. Please try again later.");
+  }
+  const amountMinor = Math.round(input.amount * 100);
+  const current = providerPrice.safeParse(await stripeRequest(`/prices/${input.stripePriceId}`));
+  if (!current.success || !current.data.active || current.data.currency.toUpperCase() !== input.currency.toUpperCase() || current.data.unit_amount !== amountMinor) {
+    throw new Error("Online payment for this membership is temporarily unavailable. Please try again later.");
+  }
+  return current.data.id;
+}
 
 /** Supabase sets the annual amount; Stripe Prices are immutable test-mode snapshots. */
 export async function ensureMembershipPrice(planId: string): Promise<string> {
@@ -31,12 +48,6 @@ export async function ensureMembershipPrice(planId: string): Promise<string> {
     productId = providerProduct.parse(await stripeRequest("/products", {
       name, description: plan.description ?? undefined, type: "service", active: plan.active, metadata,
     }, `membership_product_${plan.id}`)).id;
-  }
-  if (plan.stripe_price_id) {
-    const current = providerPrice.safeParse(await stripeRequest(`/prices/${plan.stripe_price_id}`));
-    if (current.success && current.data.currency.toUpperCase() === plan.currency.toUpperCase() && current.data.unit_amount === amountMinor) {
-      return current.data.id;
-    }
   }
   const prices = await stripeRequest<{ data: unknown[] }>(`/prices?product=${encodeURIComponent(productId!)}&active=true&limit=100`);
   const match = prices.data.map((p) => providerPrice.safeParse(p)).find((p) => p.success && p.data.currency.toUpperCase() === plan.currency.toUpperCase() && p.data.unit_amount === amountMinor);

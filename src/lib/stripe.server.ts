@@ -26,8 +26,8 @@ export function isStripeConfigured(): boolean {
 
 export class StripeRequestError extends Error {
   status: number;
-  constructor(status: number) {
-    super(`Payment service request failed (${status}).`);
+  constructor(status: number, message = `Payment service request failed (${status}).`) {
+    super(message);
     this.status = status;
   }
 }
@@ -59,16 +59,25 @@ export async function stripeRequest<T>(
   body?: Record<string, unknown>,
   idempotencyKey?: string,
 ): Promise<T> {
-  const response = await fetch(`${STRIPE_API}${path}`, {
-    method: body ? "POST" : "GET",
-    headers: {
-      Authorization: `Bearer ${getStripeSecretKey()}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Stripe-Version": "2026-08-26.dahlia",
-      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-    },
-    body: body ? encodeForm(body).join("&") : null,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${STRIPE_API}${path}`, {
+      method: body ? "POST" : "GET",
+      headers: {
+        Authorization: `Bearer ${getStripeSecretKey()}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Stripe-Version": "2026-08-26.dahlia",
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      },
+      body: body ? encodeForm(body).join("&") : null,
+      signal: AbortSignal.timeout(12_000),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new StripeRequestError(504, "Online payment is taking too long to respond. Please try again.");
+    }
+    throw new StripeRequestError(503, "Online payment is temporarily unavailable. Please try again.");
+  }
 
   const json = (await response.json()) as { error?: { message?: string } };
   if (!response.ok) {
