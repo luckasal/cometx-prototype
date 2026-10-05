@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Clock3, Ticket } from "lucide-react";
@@ -101,9 +102,9 @@ function GuestTicketsPage() {
               {(batchData?.status ?? orderData.status) === "failed" || (batchData?.status ?? orderData.status) === "expired" ? <p className="mt-5 rounded-2xl bg-destructive/10 p-4 text-sm">{cs ? "Platba nebyla dokončena, žádné vstupenky nebyly vydány. Zkuste nákup znovu." : "Payment was not completed, so no tickets were issued. Please try again."}</p> : null}
               {(batchData?.status ?? orderData.status) === "manual_review" && <p className="mt-5 rounded-2xl bg-accent/20 p-4 text-sm">{cs ? "Platba dorazila, ale objednávka vyžaduje ruční kontrolu týmem CometX. Kontaktujte nás prosím." : "Your payment arrived, but this order needs a manual review by CometX. Please contact us."}</p>}
               {paidAndIssued ? <div className="mt-7 space-y-3">
-                {ticketOrders.flatMap((current) => current.ticket_order_items?.flatMap((item) => (item.ticket_attendees ?? []).map((ticket) => ({ ticket, ticketName: item.ticket_name, eventName: item.events?.[0]?.title }))) ?? []).map(({ ticket, ticketName, eventName }) => <div key={ticket.id} className="flex items-center justify-between gap-3 rounded-2xl bg-accent/10 p-4">
-                  <span className="flex items-center gap-3"><Ticket className="size-5 text-accent" /><span><strong>{ticket.attendee_name}</strong><span className="block text-sm text-muted-foreground">{ticketName} · {eventName}</span></span></span>
-                  <code className="rounded-lg bg-background px-2 py-1 text-xs">{ticket.ticket_code}</code>
+                {ticketOrders.flatMap((current) => current.ticket_order_items?.flatMap((item) => (item.ticket_attendees ?? []).map((ticket) => ({ ticket, ticketName: item.ticket_name, eventName: item.events?.[0]?.title }))) ?? []).map(({ ticket, ticketName, eventName }) => <div key={ticket.id} className="flex flex-wrap items-center gap-4 rounded-2xl bg-accent/10 p-4">
+                  <div className="shrink-0 rounded-xl bg-white p-2"><QRCodeSVG value={ticket.ticket_code} size={128} level="M" title={`${cs ? "QR kód vstupenky" : "Ticket QR code"} · ${ticket.attendee_name}`} /></div>
+                  <span className="flex min-w-0 flex-1 items-center gap-3"><Ticket className="size-5 shrink-0 text-accent" /><span><strong>{ticket.attendee_name}</strong><span className="block text-sm text-muted-foreground">{ticketName} · {eventName}</span><code className="mt-2 block break-all rounded-lg bg-background px-2 py-1 text-xs">{ticket.ticket_code}</code></span></span>
                 </div>)}
                 <p className="flex items-center gap-2 text-sm text-muted-foreground"><CheckCircle2 className="size-4 text-accent" />{cs ? "Ukažte kód při příchodu." : "Show your ticket code at the entrance."}</p>
               </div> : null}

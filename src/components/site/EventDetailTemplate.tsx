@@ -18,7 +18,7 @@ import { BrandXElement } from "./BrandXElement";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "./Bits";
 import { ticketPricingType, trackEvent } from "@/lib/analytics";
-import { orderTicketsByAvailability, ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
+import { isCustomerTicketVisible, orderTicketsByAvailability, ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
 
 type Props = {
   data: EventDetail;
@@ -169,6 +169,7 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
     eligible: ticket.price.eligible,
   });
   const displayTickets = orderTicketsByAvailability(tickets, availabilityFor);
+  const customerTickets = displayTickets.filter((ticket) => data.isPreview || isCustomerTicketVisible(ticket.name, availabilityFor(ticket), ticket.saleEnd));
   const activeEarlyBird = tickets.find((ticket) =>
     /early[\s-]?bird|předprodej|včasn/i.test(ticket.name) &&
     ticket.saleEnd && availabilityFor(ticket) === "available");
@@ -326,16 +327,17 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                 className="mt-9 scroll-mt-28 rounded-3xl bg-background/40 p-5 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-4 focus:ring-offset-card"
               >
                 <h3 className="text-lg font-bold">{cs ? "Vstupenky" : "Tickets"}</h3>
-                {tickets.length === 0 ? (
+                {customerTickets.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
-                    {cs ? "Vstupenky zatím nejsou k dispozici." : "No tickets are available yet."}
+                    {cs ? "Vstupenky momentálně nejsou k dispozici." : "Tickets are not currently available."}
                   </p>
                 ) : (
                   <div className="mt-5 space-y-6">
-                    {displayTickets.map((ticket) => {
+                    {customerTickets.map((ticket) => {
                       const availability = availabilityFor(ticket);
-                      const availabilityMessage = ticketAvailabilityMessage(availability, ticket.saleStart, cs);
                       const isEarlyBird = /early[\s-]?bird|předprodej|včasn/i.test(ticket.name);
+                      const endedEarlyBird = isEarlyBird && ticket.saleEnd && Date.parse(ticket.saleEnd) <= Date.now() && availability !== "event_closed";
+                      const availabilityMessage = ticketAvailabilityMessage(endedEarlyBird ? "sale_ended" : availability, ticket.saleStart, cs);
                       const earlyBirdBeforeRegular = activeEarlyBird && activeEarlyBird.id !== ticket.id &&
                         ticket.saleStart && Date.parse(ticket.saleStart) >= Date.parse(activeEarlyBird.saleEnd!);
                       const priceEndsBeforeEvent = ticket.saleEnd &&

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { EmptyBlock, ErrorBlock, LoadingBlock, Section, SectionHeading, StatusPill } from "@/components/site/Bits";
@@ -77,7 +78,7 @@ function AccountEventsPage() {
       </div>
       <details className="mt-5 rounded-2xl bg-background/60 p-4">
         <summary className="cursor-pointer font-semibold">{cs ? "Zobrazit vstupenky" : "View ticket"}</summary>
-        <div className="mt-3 space-y-2">{issuedTickets.map((ticket) => <div key={ticket.id} className="flex flex-wrap justify-between gap-2 text-sm"><span>{ticket.attendee_name}</span><code>{ticket.ticket_code}</code><span className="text-muted-foreground">{ticket.status}</span></div>)}</div>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">{issuedTickets.map((ticket) => <div key={ticket.id} className="flex items-center gap-4 rounded-2xl bg-card p-4 text-sm"><div className="shrink-0 rounded-xl bg-white p-2"><QRCodeSVG value={ticket.ticket_code} size={112} level="M" title={`${cs ? "QR kód vstupenky" : "Ticket QR code"} · ${ticket.attendee_name}`} /></div><div className="min-w-0"><strong>{ticket.attendee_name}</strong><code className="mt-2 block break-all text-xs">{ticket.ticket_code}</code><span className="mt-2 block text-muted-foreground">{ticket.status}</span></div></div>)}</div>
       </details>
     </article>)}</div>}
   </Section>;

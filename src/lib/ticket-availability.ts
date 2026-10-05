@@ -60,3 +60,11 @@ export function orderTicketsByAvailability<T>(tickets: T[], getState: (ticket: T
     .sort((a, b) => rank[getState(a.ticket)] - rank[getState(b.ticket)] || a.index - b.index)
     .map(({ ticket }) => ticket);
 }
+
+/** Public pages hide unopened/closed price phases, while retaining an ended Early Bird as history. */
+export function isCustomerTicketVisible(name: string, state: TicketAvailability, saleEnd: string | null = null): boolean {
+  if (state === "available" || state === "membership_required" || state === "preview") return true;
+  const isEarlyBird = /early[\s-]?bird|předprodej|včasn/i.test(name);
+  if (state === "sale_ended" && isEarlyBird) return true;
+  return isEarlyBird && state === "sold_out" && !!saleEnd && Date.parse(saleEnd) <= Date.now();
+}

@@ -282,7 +282,7 @@ function EditEventPage() {
         <TabsContent value="guests"><EventAttendees eventId={e.id} eventTitle={e.title} /></TabsContent>
         {/* Keep one editor mounted across tabs so unsaved values and mutations survive navigation. */}
         <TabsContent forceMount value={editing ? tab : "content"} hidden={!editing}>
-          <EventForm initialEvent={initialEvent} initialTickets={initialTickets} initialSpeakerIds={data.speakerIds} initialWorkshops={initialWorkshops} section={tab === "tickets" ? "tickets" : tab === "settings" ? "settings" : "content"} />
+          <EventForm initialEvent={initialEvent} initialTickets={initialTickets} initialSpeakerIds={data.speakerIds} initialWorkshops={initialWorkshops} initialTicketStats={metrics?.ticketStats ?? null} section={tab === "tickets" ? "tickets" : tab === "settings" ? "settings" : "content"} />
         </TabsContent>
       </Tabs>
     </AdminPage>

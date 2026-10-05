@@ -12,7 +12,7 @@ import {
 } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
-import { isRegistrationOpen } from "@/lib/pricing";
+import { formatMoney, isRegistrationOpen } from "@/lib/pricing";
 import { ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
 import { eventScheduleIssue } from "@/lib/event-admin";
 
@@ -111,12 +111,14 @@ export function EventForm({
   initialTickets,
   initialSpeakerIds,
   initialWorkshops,
+  initialTicketStats = {},
   section,
 }: {
   initialEvent: EventFormValues;
   initialTickets: TicketDraft[];
   initialSpeakerIds: string[];
   initialWorkshops: WorkshopDraft[];
+  initialTicketStats?: Record<string, { ticketsSold: number; revenueByCurrencyMinor: Record<string, number> }> | null;
   section?: "tickets" | "settings" | "content";
 }) {
   const navigate = useNavigate();
@@ -461,10 +463,17 @@ export function EventForm({
             No ticket types yet. Without one, nobody can register.
           </p>
         )}
-        <p className="text-sm text-muted-foreground">Saved ticket types shown here are active. Removing a saved type archives it when you save. Archived types cannot yet be restored here. Sold, remaining and revenue per ticket are not available in this editor.</p>
+        <p className="text-sm text-muted-foreground">Saved ticket types shown here are active. Removing a saved type archives it when you save. Archived types cannot yet be restored here.</p>
         {tickets.map((ticket, index) => (
           <div key={index} className="space-y-4 border-t border-border pt-5">
             <p className="text-xs text-muted-foreground">{ticket.id ? "Active ticket type" : "New ticket type · not saved"}</p>
+            {ticket.id && <p className="text-sm text-muted-foreground" role="status">
+              {initialTicketStats === null
+                ? "Ticket sales statistics are unavailable."
+                : initialTicketStats?.[ticket.id]
+                ? `${initialTicketStats[ticket.id]!.ticketsSold} sold${ticket.capacity ? ` / ${ticket.capacity} capacity` : ""} · Revenue ${Object.entries(initialTicketStats[ticket.id]!.revenueByCurrencyMinor).map(([currency, amount]) => formatMoney(amount / 100, currency)).join(" · ") || formatMoney(0, ticket.currency)}`
+                : "0 sold · Revenue —"}
+            </p>}
             <p className="text-sm font-medium text-accent" role="status">
               {event.publish_state !== "published"
                 ? "Not visible for purchase until this event is published."

@@ -17,11 +17,13 @@ export type AdminEventOrderSummary = {
 export type AdminEventMetrics = {
   ticketsSold: number;
   revenueByCurrencyMinor: Record<string, number>;
+  ticketStats: Record<string, { ticketsSold: number; revenueByCurrencyMinor: Record<string, number> }>;
   recentOrders: AdminEventOrderSummary[];
 };
 
 type MetricLine = {
   event_id?: string;
+  ticket_type_id: string;
   quantity: number;
   amount_minor: number;
   currency: string;
@@ -52,7 +54,7 @@ function addAmount(target: Record<string, number>, currency: string, amountMinor
 async function loadOrders(eventIds: string[], withLineEvent: boolean) {
   const orders: MetricOrder[] = [];
   for (let from = 0; ; from += PAGE_SIZE) {
-    const itemFields = withLineEvent ? "event_id,quantity,amount_minor,currency" : "quantity,amount_minor,currency";
+    const itemFields = withLineEvent ? "event_id,ticket_type_id,quantity,amount_minor,currency" : "ticket_type_id,quantity,amount_minor,currency";
     let query = db.from("ticket_orders")
       .select(`id,event_id,buyer_name,amount_minor,currency,status,created_at,ticket_order_items!inner(${itemFields})`);
     query = withLineEvent ? query.in("ticket_order_items.event_id", eventIds) : query.in("event_id", eventIds);
@@ -72,6 +74,7 @@ export async function getAdminEventMetrics(eventIds: string[]): Promise<Record<s
   const metrics: Record<string, AdminEventMetrics> = Object.fromEntries(eventIds.map((id) => [id, {
     ticketsSold: 0,
     revenueByCurrencyMinor: {},
+    ticketStats: {},
     recentOrders: [],
   }]));
   if (!eventIds.length) return metrics;
@@ -101,8 +104,14 @@ export async function getAdminEventMetrics(eventIds: string[]): Promise<Record<s
       for (const line of group) {
         ticketCount += Number(line.quantity);
         addAmount(amounts, line.currency || order.currency, Number(line.amount_minor));
+        const ticketStats = metric.ticketStats[line.ticket_type_id] ??= {
+          ticketsSold: 0,
+          revenueByCurrencyMinor: {},
+        };
+        if (SOLD_ORDER_STATUSES.has(order.status)) ticketStats.ticketsSold += Number(line.quantity);
         if (order.status === "confirmed") {
           addAmount(metric.revenueByCurrencyMinor, line.currency || order.currency, Number(line.amount_minor));
+          addAmount(ticketStats.revenueByCurrencyMinor, line.currency || order.currency, Number(line.amount_minor));
         }
       }
       if (SOLD_ORDER_STATUSES.has(order.status)) metric.ticketsSold += ticketCount;
@@ -120,7 +129,7 @@ export async function getAdminEventMetrics(eventIds: string[]): Promise<Record<s
   let from = 0;
   while (true) {
     const result = await db.from("registrations")
-      .select("event_id,status,price_paid,currency")
+      .select("event_id,ticket_type_id,status,price_paid,currency")
       .in("event_id", eventIds).in("status", ["confirmed", "checked_in"])
       .range(from, from + PAGE_SIZE - 1);
     if (result.error) {
@@ -133,6 +142,14 @@ export async function getAdminEventMetrics(eventIds: string[]): Promise<Record<s
       if (!metric) continue;
       metric.ticketsSold += 1;
       addAmount(metric.revenueByCurrencyMinor, registration.currency, Math.round(Number(registration.price_paid ?? 0) * 100));
+      if (registration.ticket_type_id) {
+        const ticketStats = metric.ticketStats[registration.ticket_type_id] ??= {
+          ticketsSold: 0,
+          revenueByCurrencyMinor: {},
+        };
+        ticketStats.ticketsSold += 1;
+        addAmount(ticketStats.revenueByCurrencyMinor, registration.currency, Math.round(Number(registration.price_paid ?? 0) * 100));
+      }
     }
     if (registrations.length < PAGE_SIZE) break;
     from += PAGE_SIZE;
