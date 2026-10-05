@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: checkout readiness and visible ticket QR codes
+
+- Task completed: `CHECKOUT-READINESS-QR-01` — the payment CTA is gray/disabled until valid buyer details, every attendee name, available ticket lines and required terms are complete. Issued QR codes are expanded by default in My Tickets and are visible on guest ticket access and the admin attendee roster.
+- Branch / implementation commit: `codex/integration-release-20261002` / `9497235` (`Gate checkout and surface ticket QR codes`).
+- Files changed: `src/routes/cart.tsx`, `src/routes/account.events.tsx`, `src/routes/admin.events.$id.tsx`, `.ai/TASKS.md`; this handoff in a separate commit.
+- Checks: CRLF-aware `git diff --check` passed. `pnpm typecheck` reports only the existing `src/routes/__root.tsx:116` error-component type mismatch. Targeted ESLint could not run because the `eslint` executable is unavailable in this checkout. No automated tests were added or run.
+- Known issues: issued QR appears only after a ticket has been confirmed and issued. Checkout/payment flow and ticket issuance logic were not changed. Wix was not accessed or changed.
+- Exact next recommended task: open `/cart` locally, confirm the button stays gray until all required fields are complete, then verify the QR from an existing issued ticket in `/account/events` and the admin Guests tab.
+
 ## 2026-10-05: Wix ticket visibility, QR and per-ticket statistics parity
 
 - Task completed: `EVENT-WIX-PARITY-01` — public event pages retain an ended Early Bird ticket as history while hiding future or otherwise unavailable ticket phases; account and secure guest ticket views display QR codes encoding each issued ticket's unique code; the admin ticket editor shows sold count, capacity and confirmed revenue per ticket type.
