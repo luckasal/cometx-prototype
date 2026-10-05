@@ -150,7 +150,7 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
     const { getReadClient, assertDatabaseResult } = await import("./database.server");
     const { getCurrentMembership } = await import("./membership.server");
     const { isStripeConfigured, stripeRequest } = await import("./stripe.server");
-    const { ensureMembershipPrice } = await import("./membership-payments.server");
+    const { getMembershipCheckoutPrice } = await import("./membership-payments.server");
     const { configuredAppUrl } = await import("./deployment");
     const { checkoutOrigin } = await import("./checkout");
     const user = await requireUser();
@@ -161,14 +161,18 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
       throw new Error("Online payment is temporarily unavailable. Please try again later.");
     }
     const { data: plan, error } = await getReadClient().from("membership_plans")
-      .select("id,name,annual_price,currency,active")
+      .select("id,name,annual_price,currency,active,stripe_price_id")
       .eq("slug", data.planSlug).eq("active", true).maybeSingle();
     assertDatabaseResult({ error });
     if (!plan || !Number.isFinite(Number(plan.annual_price)) || Number(plan.annual_price) <= 0 || plan.currency.toUpperCase() !== "CHF") {
       throw new Error("This membership plan is not available for online payment.");
     }
     const origin = checkoutOrigin(configuredAppUrl(process.env));
-    const priceId = await ensureMembershipPrice(plan.id);
+    const priceId = await getMembershipCheckoutPrice({
+      stripePriceId: plan.stripe_price_id,
+      amount: Number(plan.annual_price),
+      currency: plan.currency,
+    });
     const metadata = {
       kind: "membership", membership_plan_id: plan.id, user_id: user.userId,
       expected_amount: String(Math.round(Number(plan.annual_price) * 100)),
