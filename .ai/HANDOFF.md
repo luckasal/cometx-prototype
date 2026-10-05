@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: homepage divider staging verification
+
+- Task completed: `HOME-DIVIDER-01` deployed to `cometx-prototype.vercel.app`; Vercel Production deployment `HSZvoTfyeDetaFPW59yEo5LQ6JGF` is Ready.
+- Files changed: `.ai/TASKS.md`, `.ai/HANDOFF.md` (deployment record); application change is `ad6aacf`.
+- Commit hash: application `ad6aacf`, first handoff `c666e9c`; this verification commit follows.
+- Tests/checks run: production build passed; hosted homepage loaded; `.brand-divider` count is zero in the rendered page.
+- Known issues: none for this visual change; unrelated membership checkout end-to-end test remains pending.
+- Exact next recommended task: test a signed-in Stripe sandbox membership purchase and verify webhook activation.
+
 ## 2026-10-05: homepage hero divider removed
 
 - Task completed: `HOME-DIVIDER-01`. Removed the functionless lime trapezoid below the hero; retained hero content, CTAs, image, and in-hero brand art.
