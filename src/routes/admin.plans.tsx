@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { adminListPlans, adminSavePlan } from "@/lib/admin.functions";
+import { adminListPlans, adminSavePlan, adminSyncMembershipCatalog } from "@/lib/admin.functions";
 import { AdminPage, Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 import { ErrorBlock, LoadingBlock } from "@/components/site/Bits";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ function AdminPlansPage() {
 
   const fetchPlans = useServerFn(adminListPlans);
   const savePlan = useServerFn(adminSavePlan);
+  const syncCatalog = useServerFn(adminSyncMembershipCatalog);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin", "plans"],
@@ -58,11 +59,20 @@ function AdminPlansPage() {
           sort_order: Number(form.sort_order || 0),
         } as never,
       }),
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast.success("Plan saved");
+      if (!result.paymentSyncReady) toast.warning("Membership product setup could not be refreshed. Try again from this page.");
       setForm(empty);
       queryClient.invalidateQueries({ queryKey: ["admin", "plans"] });
       queryClient.invalidateQueries({ queryKey: ["plans"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+  const refreshCatalog = useMutation({
+    mutationFn: () => syncCatalog({ data: {} }),
+    onSuccess: (result) => {
+      if (result.failed) toast.warning(`Membership products refreshed for ${result.synced} of ${result.processed} plans.`);
+      else toast.success(`Membership products refreshed for ${result.synced} plans.`);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -75,6 +85,7 @@ function AdminPlansPage() {
     <AdminPage
       title="Membership plans"
       description="Prices and names are data. Entitlements attached to each plan drive all pricing logic."
+      action={<Button type="button" variant="outline" disabled={refreshCatalog.isPending} onClick={() => refreshCatalog.mutate()}>{refreshCatalog.isPending ? "Refreshing…" : "Refresh membership products"}</Button>}
     >
       {isLoading && <LoadingBlock label="Loading plans" />}
       {error && <ErrorBlock error={error} />}

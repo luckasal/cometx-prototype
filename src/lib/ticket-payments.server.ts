@@ -37,7 +37,7 @@ export async function ensureTicketPrice(ticketId: string, amountMinor: number, c
   return price.id;
 }
 
-export async function syncEventPayments(eventId: string, options: { backfillUpcomingPublishedTickets?: boolean } = {}) {
+export async function syncEventPayments(eventId: string, options: { backfillUpcomingPublishedTickets?: boolean; backfillAllTicketTypes?: boolean } = {}) {
   if (!isStripeConfigured()) return false;
   const { data: event, error } = await supabaseAdmin.from("events")
     .select("title,publish_state,event_status,start_date,registration_start,registration_end")
@@ -58,7 +58,9 @@ export async function syncEventPayments(eventId: string, options: { backfillUpco
     const ticketSalesOpen = (!ticket.sale_start || Date.parse(ticket.sale_start) <= now)
       && (!ticket.sale_end || Date.parse(ticket.sale_end) > now);
     const active = ticket.active && eventSalesOpen && ticketSalesOpen;
-    const shouldBackfill = ticket.active && canBackfillPublishedTickets;
+    // A staff catalogue refresh includes archived and past ticket types as inactive
+    // Stripe products, so the sandbox mirrors Supabase without making them sellable.
+    const shouldBackfill = options.backfillAllTicketTypes === true || (ticket.active && canBackfillPublishedTickets);
     const old=await db.from("ticket_payment_products").select("product_id").eq("ticket_id",ticket.id).maybeSingle();
     check(old.error);
     let productId=old.data?.product_id;

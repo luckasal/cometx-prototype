@@ -160,7 +160,7 @@ export const adminSyncPublishedTicketCatalog = createServerFn({ method: "POST" }
     for (let offset = 0; offset < allEvents.length; offset += 3) {
       await Promise.all(allEvents.slice(offset, offset + 3).map(async (event) => {
         try {
-          await syncEventPayments(event.id, { backfillUpcomingPublishedTickets: true });
+          await syncEventPayments(event.id, { backfillAllTicketTypes: true });
           synced += 1;
         } catch (syncError) {
           failed += 1;
@@ -417,6 +417,27 @@ export const adminListPlans = createServerFn({ method: "GET" }).handler(async ()
   return data ?? [];
 });
 
+export const adminSyncMembershipCatalog = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({}).parse(d))
+  .handler(async () => {
+    const db = await admin();
+    const { data: plans, error } = await db.from("membership_plans").select("id");
+    if (error) throw new Error("Membership plans could not be loaded.");
+    const { syncMembershipProduct } = await import("./membership-payments.server");
+    let synced = 0;
+    let failed = 0;
+    for (const plan of plans ?? []) {
+      try {
+        if (await syncMembershipProduct(plan.id)) synced += 1;
+        else failed += 1;
+      } catch (syncError) {
+        failed += 1;
+        console.error("[membership-catalogue] sync failed", { planId: plan.id, syncError });
+      }
+    }
+    return { processed: plans?.length ?? 0, synced, failed };
+  });
+
 export const adminSavePlan = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
@@ -439,11 +460,19 @@ export const adminSavePlan = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const db = await admin();
     const { id, ...fields } = data;
-    const { error } = id
-      ? await db.from("membership_plans").update(fields).eq("id", id)
-      : await db.from("membership_plans").insert(fields);
+    const result = id
+      ? await db.from("membership_plans").update(fields).eq("id", id).select("id").single()
+      : await db.from("membership_plans").insert(fields).select("id").single();
+    const { error } = result;
     if (error) throw new Error(error.message);
-    return { ok: true };
+    let paymentSyncReady = false;
+    try {
+      const { syncMembershipProduct } = await import("./membership-payments.server");
+      paymentSyncReady = await syncMembershipProduct(result.data.id);
+    } catch (syncError) {
+      console.error("[membership-catalogue] plan saved but product sync failed", { planId: result.data.id, syncError });
+    }
+    return { ok: true, paymentSyncReady };
   });
 
 /* -------------------------- registrations & members --------------------------- */

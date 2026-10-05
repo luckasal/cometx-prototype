@@ -471,8 +471,8 @@ export function EventForm({
               {initialTicketStats === null
                 ? "Ticket sales statistics are unavailable."
                 : initialTicketStats?.[ticket.id]
-                ? `${initialTicketStats[ticket.id]!.ticketsSold} sold${ticket.capacity ? ` / ${ticket.capacity} capacity` : ""} · Revenue ${Object.entries(initialTicketStats[ticket.id]!.revenueByCurrencyMinor).map(([currency, amount]) => formatMoney(amount / 100, currency)).join(" · ") || formatMoney(0, ticket.currency)}`
-                : "0 sold · Revenue —"}
+                ? `${initialTicketStats[ticket.id]!.ticketsSold} confirmed${ticket.capacity ? ` / ${ticket.capacity} capacity` : ""} · Recorded revenue ${Object.entries(initialTicketStats[ticket.id]!.revenueByCurrencyMinor).map(([currency, amount]) => formatMoney(amount / 100, currency)).join(" · ") || formatMoney(0, ticket.currency)}`
+                : "0 confirmed · Recorded revenue —"}
             </p>}
             <p className="text-sm font-medium text-accent" role="status">
               {event.publish_state !== "published"

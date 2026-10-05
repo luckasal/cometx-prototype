@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
-import { getMembershipPlans, selectPrototypeMembership } from "@/lib/membership.functions";
+import { getMembershipPlans, startMembershipCheckout } from "@/lib/membership.functions";
 import { formatMoney } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { ErrorBlock, LoadingBlock, PageHero, Section } from "@/components/site/Bits";
@@ -56,7 +56,7 @@ function MembershipPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const fetchPlans = useServerFn(getMembershipPlans);
-  const startCheckout = useServerFn(selectPrototypeMembership);
+  const startCheckout = useServerFn(startMembershipCheckout);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["plans"],
@@ -102,7 +102,7 @@ function MembershipPage() {
                   {formatMoney(plan.annualPrice, plan.currency)}
                   <span className="text-sm font-normal text-muted-foreground"> {cs ? "/ rok" : "/ year"}</span>
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">{cs ? "Online platba bude brzy dostupná." : "Online checkout will be available soon."}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{cs ? "Jednorázová platba na jeden rok. Bez automatického obnovení." : "One payment for one year. No automatic renewal."}</p>
 
                 <ul className="mt-6 flex-1 space-y-3 border-t border-border pt-6">
                   {plan.benefits.map((benefit) => (
@@ -122,7 +122,7 @@ function MembershipPage() {
                       disabled={checkoutMutation.isPending}
                       onClick={() => { trackEvent("membership_cta_click", { plan: plan.slug, membership_tier: plan.slug, value: plan.annualPrice, currency: plan.currency }); checkoutMutation.mutate(plan.slug); }}
                     >
-                      {checkoutMutation.isPending ? (cs ? "Ukládáme členství…" : "Saving membership...") : (cs ? `Zvolit ${plan.name}` : `Join ${plan.name}`)}
+                      {checkoutMutation.isPending ? (cs ? "Připravujeme platbu…" : "Preparing payment...") : (cs ? `Zvolit ${plan.name}` : `Join ${plan.name}`)}
                     </Button>
                   ) : (
                     <Button
@@ -162,7 +162,7 @@ function MembershipPage() {
         </div>
 
         <p className="mt-8 max-w-2xl text-sm text-muted-foreground">
-          {cs ? "Členství a online platbu dokončíte, jakmile bude checkout aktivní. Už jste členem?" : "Membership checkout will be available once payments are enabled. Already a member?"}{" "}
+          {cs ? "Už jste členem?" : "Already a member?"}{" "}
           <Link to="/account/membership" className="underline underline-offset-4">
             {cs ? "Zobrazit členství" : "See your membership"}
           </Link>

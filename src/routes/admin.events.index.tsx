@@ -109,7 +109,7 @@ function AdminEventsPage() {
       {data && data.length === 0 && <EmptyBlock title="No events yet" hint="Add an event to start publishing your programme." />}
       {data && data.length > 0 && filtered.length === 0 && <EmptyBlock title="No matching events" hint="Change the search or filters and try again." />}
       {filtered.length > 0 && (
-        <AdminTable head={["Event", "Lifecycle", "Start", "Location", "Tickets sold", "Revenue", "Last modified", "Actions"]}>
+        <AdminTable head={["Event", "Lifecycle", "Start", "Location", "Confirmed tickets", "Recorded revenue", "Last modified", "Actions"]}>
           {filtered.map((event) => {
             const lifecycle = getEventLifecycleStatus(event);
             const eventPath = `/events/${encodeURIComponent(event.slug)}`;

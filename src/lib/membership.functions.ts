@@ -142,17 +142,50 @@ export const updateMyProfile = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Temporary guarded path for controlled preview environments only. */
-export const selectPrototypeMembership = createServerFn({ method: "POST" })
+/** A membership is granted only by the signed Stripe webhook after payment. */
+export const startMembershipCheckout = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ planSlug: z.string().min(1).max(80) }).parse(data))
   .handler(async ({ data }) => {
     const { requireUser } = await import("./auth.server");
-    await requireUser();
-    if (process.env["ALLOW_UNPAID_PROTOTYPE_MEMBERSHIP"] !== "true") {
-      throw new Error("Online membership checkout is not available yet.");
+    const { getReadClient, assertDatabaseResult } = await import("./database.server");
+    const { getCurrentMembership } = await import("./membership.server");
+    const { isStripeConfigured, stripeRequest } = await import("./stripe.server");
+    const { ensureMembershipPrice } = await import("./membership-payments.server");
+    const { configuredAppUrl } = await import("./deployment");
+    const { checkoutOrigin } = await import("./checkout");
+    const user = await requireUser();
+    if (await getCurrentMembership(user.userId)) {
+      throw new Error("You already have an active membership. Please contact CometX to change your plan.");
     }
-    const { getReadClient } = await import("./database.server");
-    const { error } = await getReadClient().rpc("select_prototype_membership", { p_plan_slug: data.planSlug });
-    if (error) throw new Error(error.code === "P0001" ? error.message : "Could not save your membership.");
-    return { url: "/account/membership" };
+    if (!isStripeConfigured() || !process.env["STRIPE_WEBHOOK_SECRET"]) {
+      throw new Error("Online payment is temporarily unavailable. Please try again later.");
+    }
+    const { data: plan, error } = await getReadClient().from("membership_plans")
+      .select("id,name,annual_price,currency,active")
+      .eq("slug", data.planSlug).eq("active", true).maybeSingle();
+    assertDatabaseResult({ error });
+    if (!plan || !Number.isFinite(Number(plan.annual_price)) || Number(plan.annual_price) <= 0 || plan.currency.toUpperCase() !== "CHF") {
+      throw new Error("This membership plan is not available for online payment.");
+    }
+    const origin = checkoutOrigin(configuredAppUrl(process.env));
+    const priceId = await ensureMembershipPrice(plan.id);
+    const metadata = {
+      kind: "membership", membership_plan_id: plan.id, user_id: user.userId,
+      expected_amount: String(Math.round(Number(plan.annual_price) * 100)),
+      expected_currency: plan.currency.toLowerCase(),
+    };
+    const session = await stripeRequest<{ id: string; url: string; livemode: boolean }>("/checkout/sessions", {
+      mode: "payment",
+      line_items: [{ price: priceId, quantity: 1 }],
+      customer_email: user.email ?? undefined,
+      customer_creation: "always",
+      success_url: `${origin}/account/membership?checkout=success`,
+      cancel_url: `${origin}/account/membership?checkout=cancelled`,
+      metadata,
+      payment_intent_data: { metadata },
+    });
+    if (session.livemode !== false || !session.id.startsWith("cs_test_") || new URL(session.url).hostname !== "checkout.stripe.com") {
+      throw new Error("Payment checkout could not be prepared safely.");
+    }
+    return { url: session.url };
   });
