@@ -248,38 +248,87 @@ export type Database = {
         Row: {
           active: boolean
           annual_price: number
+          billing_interval: string | null
           created_at: string
           currency: string
           description: string | null
           id: string
           name: string
+          setup_fee: number
           slug: string
           sort_order: number
           stripe_price_id: string | null
+          stripe_recurring_price_id: string | null
+          stripe_setup_price_id: string | null
         }
         Insert: {
           active?: boolean
           annual_price?: number
+          billing_interval?: string | null
           created_at?: string
           currency?: string
           description?: string | null
           id?: string
           name: string
+          setup_fee?: number
           slug: string
           sort_order?: number
           stripe_price_id?: string | null
+          stripe_recurring_price_id?: string | null
+          stripe_setup_price_id?: string | null
         }
         Update: {
           active?: boolean
           annual_price?: number
+          billing_interval?: string | null
           created_at?: string
           currency?: string
           description?: string | null
           id?: string
           name?: string
+          setup_fee?: number
           slug?: string
           sort_order?: number
           stripe_price_id?: string | null
+          stripe_recurring_price_id?: string | null
+          stripe_setup_price_id?: string | null
+        }
+        Relationships: []
+      }
+      membership_applications: {
+        Row: {
+          id: string
+          user_id: string
+          membership_plan_id: string
+          email: string
+          nationality: string
+          motivation: string
+          missing_from_subscription: string
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_subscription_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          membership_plan_id: string
+          email: string
+          nationality: string
+          motivation: string
+          missing_from_subscription: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_subscription_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -719,6 +768,8 @@ export type Database = {
       apply_ticket_checkout_event: { Args: { p_type: string; p_session: Json }; Returns: undefined }
       begin_ticket_order: { Args: { p_user_id: string | null; p_guest_name: string | null; p_guest_email: string | null; p_lines: Json; p_payments_ready: boolean; p_guest_token_hash?: string | null; p_guest_token_ciphertext?: string | null }; Returns: Json }
       apply_ticket_order_event: { Args: { p_type: string; p_session: Json }; Returns: undefined }
+      fulfill_cometx_membership_application: { Args: { p_session: Json }; Returns: undefined }
+      sync_cometx_membership_subscription: { Args: { p_subscription: Json }; Returns: undefined }
       save_ticket_checkout_session: { Args: { p_order_id: string; p_session_id: string }; Returns: undefined }
       fail_unstarted_ticket_order: { Args: { p_order_id: string }; Returns: undefined }
       claim_guest_ticket_order: { Args: { p_order_id: string; p_token_hash: string; p_user_id: string }; Returns: boolean }

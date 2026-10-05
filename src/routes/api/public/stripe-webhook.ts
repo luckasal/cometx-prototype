@@ -26,9 +26,23 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
       } catch {
         return new Response("Invalid webhook", { status: 400 });
       }
-      if (["checkout.session.completed", "checkout.session.async_payment_succeeded","checkout.session.expired","checkout.session.async_payment_failed"].includes(event.type)) {
+      if (["checkout.session.completed", "checkout.session.async_payment_succeeded","checkout.session.expired","checkout.session.async_payment_failed", "customer.subscription.updated", "customer.subscription.deleted"].includes(event.type)) {
         try {
-          if (event.data.object.metadata?.["kind"] === "ticket_checkout_batch") {
+          if (["checkout.session.completed", "checkout.session.async_payment_succeeded"].includes(event.type)
+            && event.data.object.metadata?.["kind"] === "membership_application") {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const { error } = await supabaseAdmin.rpc("fulfill_cometx_membership_application", {
+              p_session: JSON.parse(JSON.stringify(event.data.object)),
+            });
+            if (error) throw error;
+          } else if (["customer.subscription.updated", "customer.subscription.deleted"].includes(event.type)
+            && event.data.object.metadata?.["kind"] === "cometx_membership") {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const { error } = await supabaseAdmin.rpc("sync_cometx_membership_subscription", {
+              p_subscription: JSON.parse(JSON.stringify(event.data.object)),
+            });
+            if (error) throw error;
+          } else if (event.data.object.metadata?.["kind"] === "ticket_checkout_batch") {
             const { applyTicketCheckoutBatchPaymentEvent } = await import("@/lib/ticket-orders.server");
             await applyTicketCheckoutBatchPaymentEvent(event.type, event.data.object);
           } else if (event.data.object.metadata?.["kind"] === "ticket_order") {

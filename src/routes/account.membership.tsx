@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
-import { getAccountOverview } from "@/lib/membership.functions";
+import { getAccountOverview, startMembershipBillingPortal } from "@/lib/membership.functions";
 import { Button } from "@/components/ui/button";
 import {
   EmptyBlock,
@@ -31,6 +31,12 @@ function benefitLabel(b: { key: string; name: string; value: number | null }) {
 function AccountMembershipPage() {
   const { checkout } = Route.useSearch();
   const fetchOverview = useServerFn(getAccountOverview);
+  const createBillingPortal = useServerFn(startMembershipBillingPortal);
+  const portalMutation = useMutation({
+    mutationFn: () => createBillingPortal(),
+    onSuccess: ({ url }) => { window.location.href = url; },
+    onError: (error: Error) => toast.error(error.message),
+  });
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["account"],
     queryFn: () => fetchOverview(),
@@ -93,9 +99,15 @@ function AccountMembershipPage() {
                   })}
                 </p>
               )}
-              <Button asChild variant="outlineInk" className="w-full">
-                <Link to="/membership">Change plan</Link>
-              </Button>
+              {data.membership.canManageBilling ? (
+                <Button variant="outlineInk" className="w-full" disabled={portalMutation.isPending} onClick={() => portalMutation.mutate()}>
+                  {portalMutation.isPending ? "Opening billing…" : "Manage or cancel membership"}
+                </Button>
+              ) : (
+                <Button asChild variant="outlineInk" className="w-full">
+                  <Link to="/membership">See membership plans</Link>
+                </Button>
+              )}
             </div>
           </div>
 

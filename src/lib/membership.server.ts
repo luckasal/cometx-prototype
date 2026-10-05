@@ -7,6 +7,7 @@ export type CurrentMembership = {
   status: string;
   startsAt: string;
   endsAt: string | null;
+  hasStripeSubscription: boolean;
   plan: {
     id: string;
     name: string;
@@ -25,7 +26,7 @@ export async function getCurrentMembership(
   const { data, error } = await getReadClient()
     .from("memberships")
     .select(
-      "id,status,starts_at,ends_at,membership_plans(id,name,slug,description,annual_price,currency)",
+      "id,status,starts_at,ends_at,stripe_subscription_id,membership_plans(id,name,slug,description,annual_price,currency)",
     )
     .eq("user_id", userId)
     .eq("status", "active")
@@ -46,6 +47,7 @@ export async function getCurrentMembership(
     status: data.status,
     startsAt: data.starts_at,
     endsAt: data.ends_at,
+    hasStripeSubscription: !!data.stripe_subscription_id,
     plan: {
       id: plan.id,
       name: plan.name,

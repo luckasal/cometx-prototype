@@ -8,6 +8,8 @@ export type PlanSummary = {
   description: string | null;
   annualPrice: number;
   currency: string;
+  billingInterval: string | null;
+  setupFee: number;
   benefits: { key: string; name: string; description: string | null; value: number | null }[];
 };
 
@@ -18,7 +20,7 @@ export const getMembershipPlans = createServerFn({ method: "GET" }).handler(
     const { data } = await supabaseAdmin
       .from("membership_plans")
       .select(
-        "id,name,slug,description,annual_price,currency,sort_order,plan_entitlements(value,entitlements(key,name,description))",
+        "id,name,slug,description,annual_price,currency,billing_interval,setup_fee,sort_order,plan_entitlements(value,entitlements(key,name,description))",
       )
       .eq("active", true)
       .order("sort_order");
@@ -30,6 +32,8 @@ export const getMembershipPlans = createServerFn({ method: "GET" }).handler(
       description: plan.description,
       annualPrice: Number(plan.annual_price),
       currency: plan.currency,
+      billingInterval: plan.billing_interval,
+      setupFee: Number(plan.setup_fee),
       benefits: (plan.plan_entitlements ?? [])
         .filter((pe) => pe.entitlements)
         .map((pe) => ({
@@ -59,6 +63,7 @@ export type AccountOverview = {
     planSlug: string;
     status: string;
     endsAt: string | null;
+    canManageBilling: boolean;
     benefits: { key: string; name: string; value: number | null }[];
   } | null;
 };
@@ -112,6 +117,7 @@ export const getAccountOverview = createServerFn({ method: "GET" }).handler(
             planSlug: membership.plan.slug,
             status: membership.status,
             endsAt: membership.endsAt,
+            canManageBilling: membership.hasStripeSubscription,
             benefits,
           }
         : null,
@@ -144,13 +150,19 @@ export const updateMyProfile = createServerFn({ method: "POST" })
 
 /** A membership is granted only by the signed Stripe webhook after payment. */
 export const startMembershipCheckout = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => z.object({ planSlug: z.string().min(1).max(80) }).parse(data))
+  .inputValidator((data: unknown) => z.object({
+    planSlug: z.string().min(1).max(80),
+    email: z.string().email().max(320).optional(),
+    nationality: z.enum(["slovak", "czech", "other"]).optional(),
+    motivation: z.string().trim().min(1).max(3000).optional(),
+    missingFromSubscription: z.string().trim().min(1).max(3000).optional(),
+  }).parse(data))
   .handler(async ({ data }) => {
     const { requireUser } = await import("./auth.server");
     const { getReadClient, assertDatabaseResult } = await import("./database.server");
     const { getCurrentMembership } = await import("./membership.server");
     const { isStripeConfigured, stripeRequest } = await import("./stripe.server");
-    const { getMembershipCheckoutPrice } = await import("./membership-payments.server");
+    const { getMembershipCheckoutPrices } = await import("./membership-payments.server");
     const { configuredAppUrl } = await import("./deployment");
     const { checkoutOrigin } = await import("./checkout");
     const user = await requireUser();
@@ -161,35 +173,107 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
       throw new Error("Online payment is temporarily unavailable. Please try again later.");
     }
     const { data: plan, error } = await getReadClient().from("membership_plans")
-      .select("id,name,annual_price,currency,active,stripe_price_id")
+      .select("id,name,annual_price,currency,active,stripe_price_id,billing_interval,setup_fee,stripe_recurring_price_id,stripe_setup_price_id")
       .eq("slug", data.planSlug).eq("active", true).maybeSingle();
     assertDatabaseResult({ error });
     if (!plan || !Number.isFinite(Number(plan.annual_price)) || Number(plan.annual_price) <= 0 || plan.currency.toUpperCase() !== "CHF") {
       throw new Error("This membership plan is not available for online payment.");
     }
     const origin = checkoutOrigin(configuredAppUrl(process.env));
-    const priceId = await getMembershipCheckoutPrice({
+    if (plan.billing_interval && (plan.billing_interval !== "year" || !data.email || !data.nationality || !data.motivation || !data.missingFromSubscription)) {
+      throw new Error("Complete all required membership details before continuing.");
+    }
+    const lines = await getMembershipCheckoutPrices({
       stripePriceId: plan.stripe_price_id,
+      recurringPriceId: plan.stripe_recurring_price_id,
+      setupPriceId: plan.stripe_setup_price_id,
       amount: Number(plan.annual_price),
+      setupFee: Number(plan.setup_fee),
       currency: plan.currency,
+      interval: plan.billing_interval,
     });
+    const amountMinor = Math.round((Number(plan.annual_price) + Number(plan.billing_interval ? plan.setup_fee : 0)) * 100);
+    let applicationId: string | null = null;
+    if (plan.billing_interval) {
+      const { data: application, error: applicationError } = await getReadClient()
+        .from("membership_applications")
+        .insert({
+          user_id: user.userId,
+          membership_plan_id: plan.id,
+          email: data.email!,
+          nationality: data.nationality!,
+          motivation: data.motivation!,
+          missing_from_subscription: data.missingFromSubscription!,
+        })
+        .select("id")
+        .single();
+      assertDatabaseResult({ error: applicationError });
+      if (!application) throw new Error("Membership application could not be saved.");
+      applicationId = application.id;
+    }
     const metadata = {
-      kind: "membership", membership_plan_id: plan.id, user_id: user.userId,
-      expected_amount: String(Math.round(Number(plan.annual_price) * 100)),
+      kind: applicationId ? "membership_application" : "membership",
+      ...(applicationId ? { membership_application_id: applicationId } : {}),
+      membership_plan_id: plan.id,
+      user_id: user.userId,
+      expected_amount: String(amountMinor),
       expected_currency: plan.currency.toLowerCase(),
     };
-    const session = await stripeRequest<{ id: string; url: string; livemode: boolean }>("/checkout/sessions", {
-      mode: "payment",
-      line_items: [{ price: priceId, quantity: 1 }],
-      customer_email: user.email ?? undefined,
-      customer_creation: "always",
+    const mode = plan.billing_interval ? "subscription" : "payment";
+    const session = await stripeRequest<{ id: string; url: string; livemode: boolean; mode: string }>("/checkout/sessions", {
+      mode,
+      line_items: lines,
+      customer_email: data.email ?? user.email ?? undefined,
+      ...(!plan.billing_interval ? { customer_creation: "always", payment_intent_data: { metadata } } : {
+        subscription_data: { metadata: {
+          kind: "cometx_membership",
+          membership_application_id: applicationId!,
+          membership_plan_id: plan.id,
+          user_id: user.userId,
+        } },
+      }),
       success_url: `${origin}/account/membership?checkout=success`,
       cancel_url: `${origin}/account/membership?checkout=cancelled`,
       metadata,
-      payment_intent_data: { metadata },
-    });
-    if (session.livemode !== false || !session.id.startsWith("cs_test_") || new URL(session.url).hostname !== "checkout.stripe.com") {
+    }, applicationId ? `membership_checkout_${applicationId}` : undefined);
+    if (session.livemode !== false || session.mode !== mode || !session.id.startsWith("cs_test_") || new URL(session.url).hostname !== "checkout.stripe.com") {
       throw new Error("Payment checkout could not be prepared safely.");
+    }
+    if (applicationId) {
+      const { error: saveError } = await getReadClient().from("membership_applications")
+        .update({ stripe_checkout_session_id: session.id })
+        .eq("id", applicationId)
+        .eq("user_id", user.userId);
+      assertDatabaseResult({ error: saveError });
     }
     return { url: session.url };
   });
+
+export const startMembershipBillingPortal = createServerFn({ method: "POST" }).handler(async () => {
+  const { requireUser } = await import("./auth.server");
+  const { getReadClient, assertDatabaseResult } = await import("./database.server");
+  const { stripeRequest } = await import("./stripe.server");
+  const { configuredAppUrl } = await import("./deployment");
+  const { checkoutOrigin } = await import("./checkout");
+  const user = await requireUser();
+  const { data: membership, error } = await getReadClient()
+    .from("memberships")
+    .select("stripe_customer_id,stripe_subscription_id")
+    .eq("user_id", user.userId)
+    .eq("status", "active")
+    .not("stripe_subscription_id", "is", null)
+    .order("starts_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  assertDatabaseResult({ error });
+  if (!membership?.stripe_customer_id) throw new Error("Billing management is not available for this membership.");
+  const origin = checkoutOrigin(configuredAppUrl(process.env));
+  const portal = await stripeRequest<{ url: string }>("/billing_portal/sessions", {
+    customer: membership.stripe_customer_id,
+    return_url: `${origin}/account/membership`,
+  });
+  if (new URL(portal.url).hostname !== "billing.stripe.com") {
+    throw new Error("Billing management could not be prepared safely.");
+  }
+  return { url: portal.url };
+});
