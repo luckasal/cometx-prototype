@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: hosted release and Stripe test catalogue verified
+
+- Task completed: `RELEASE-01` deployment/schema/catalogue phase; `STRIPE-CATALOG-BACKFILL-01` is done. Supabase migrations `0007`–`0010` applied in order to `CometX Prototype` and verified. Pushed application commit `ff87adf`; Vercel Production deployment `GJ4dhKUTRvUBVQvtL1Mtx2VbDc4m` is Ready at `cometx-prototype.vercel.app`. Triggered “Refresh ticket setup” from the hosted staff event list. Stripe test API confirms six CometX Products and six CHF Prices, including an inactive expired early-bird product.
+- Files changed: `.ai/TASKS.md`, `.ai/HANDOFF.md` (this handoff only). Hosted Supabase schema and Stripe test catalogue also changed; Wix was not accessed or modified.
+- Commit hash: application deployment `ff87adf`; this documentation handoff commit follows this entry.
+- Tests/checks run: hosted event detail, cart, and staff event list loaded; verified Stripe test Products/Prices with `livemode=false`; 17 focused checkout/deployment/database tests passed; `git diff --check` passed.
+- Known issues: no sandbox card payment, webhook delivery, ticket issuance, or confirmation email was exercised against the hosted deployment. Vercel masks secret values, so the exact rotated key bytes were not independently compared; catalogue creation establishes that the configured test key works. Guest confirmation email/domain verification remains pending. Do not claim payment end-to-end is proven.
+- Exact next recommended task: perform one supervised Stripe test-card checkout on the hosted app; verify the order becomes paid, one ticket per attendee is issued, guest/member ticket access works, cart lines clear, and webhook replay does not duplicate tickets. Investigate any failure with Vercel function logs and Stripe test webhook deliveries, without changing Wix or enabling Stripe live mode.
+
 ## 2026-10-05: CometX release and Stripe sandbox preflight
 
 - Task completed: `RELEASE-01` preflight only; deployment and catalogue sync are blocked pending hosted database access and schema coordination.
