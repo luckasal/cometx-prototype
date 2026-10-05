@@ -24,6 +24,7 @@ import {
   trackPageView,
 } from "@/lib/analytics";
 import { brandAssets } from "@/lib/brand-assets";
+import { assetRecoveryUrl, isAssetLoadError } from "@/lib/asset-recovery";
 
 function NotFoundComponent() {
   return (
@@ -50,6 +51,7 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const assetLoadError = isAssetLoadError(error);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -61,12 +63,16 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
-              router.invalidate();
-              reset();
+              if (assetLoadError) {
+                window.location.replace(assetRecoveryUrl(window.location.href));
+              } else {
+                router.invalidate();
+                reset();
+              }
             }}
             className="inline-flex items-center justify-center bg-ink px-5 py-2.5 text-sm font-medium text-ink-foreground"
           >
-            Try again
+            {assetLoadError ? "Refresh page" : "Try again"}
           </button>
           <a
             href="/"
