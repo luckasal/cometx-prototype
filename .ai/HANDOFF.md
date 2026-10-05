@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: subdued disabled checkout CTA
+
+- Task completed: `CHECKOUT-CTA-TINT-01` — disabled “Continue to payment” now uses subdued Connection Lime/olive with dark text, matching the reference; existing validation gating remains intact.
+- Files changed: `src/routes/cart.tsx`, `.ai/TASKS.md`.
+- Commit: `da467a2` (`Use subdued lime for disabled checkout CTA`).
+- Checks: `git -c core.whitespace=cr-at-eol diff --check` passed. No application logic or payment configuration changed.
+- Known issues: Stripe test-mode integration and automatic product/price sync are implemented in code, but hosted credentials/schema and an end-to-end sandbox purchase/webhook have not been verified. See `STRIPE_INTEGRATION_PLAN.md` and the `EVENT-PUBLISH-PAYMENTS-01` handoff.
+- Exact next recommended task: verify Stripe server-only test credentials and hosted migrations `0007`–`0010` in isolated staging, then complete a sandbox payment/webhook/ticket issuance test before promoting.
+
 ## 2026-10-05: checkout readiness and visible ticket QR codes
 
 - Task completed: `CHECKOUT-READINESS-QR-01` — the payment CTA is gray/disabled until valid buyer details, every attendee name, available ticket lines and required terms are complete. Issued QR codes are expanded by default in My Tickets and are visible on guest ticket access and the admin attendee roster.
