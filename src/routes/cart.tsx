@@ -449,7 +449,7 @@ function CartPage() {
               </div>
             </div>;
           })()}
-          <Button type="submit" variant="signal" className="mt-3 min-h-12 w-full rounded-full disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:hover:brightness-100" disabled={!checkoutAllowed}>
+          <Button type="submit" variant="signal" className="mt-3 min-h-12 w-full rounded-full disabled:cursor-not-allowed disabled:bg-accent/50 disabled:text-accent-foreground disabled:opacity-100 disabled:hover:brightness-100" disabled={!checkoutAllowed}>
             {checkoutMutation.isPending ? (cs ? "Připravujeme…" : "Preparing…") : (cs ? "Pokračovat k platbě" : "Continue to payment")}<ArrowRight className="size-4" />
           </Button>
           {!currencyCompatible && <p className="text-sm text-destructive">{cs ? "V jedné objednávce lze kombinovat pouze vstupenky se stejnou měnou." : "Tickets in one purchase must use the same currency."}</p>}
