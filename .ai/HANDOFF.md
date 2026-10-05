@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: membership checkout no longer waits indefinitely
+
+- Task completed: `MEMBERSHIP-CHECKOUT-02`; customer checkout verifies and uses the saved active Stripe test Price instead of creating/updating catalog records during the click. Stripe API requests now abort after 12 seconds and surface a customer-readable error.
+- Files changed: `src/lib/membership.functions.ts`, `src/lib/membership-payments.server.ts`, `src/lib/stripe.server.ts`, `tests/stripe-request.test.mjs`; task/status record updated in `.ai/TASKS.md`.
+- Commit hash: `7822fd3`.
+- Tests/checks run: 4 focused tests passed; production build passed outside the sandbox; `git -c core.whitespace=cr-at-eol diff --check` passed. Typecheck still reports only the pre-existing `src/routes/__root.tsx:116` error. Full suite has an unrelated `event-template.test.mjs` Node module-resolution failure.
+- Known issues: no signed-in hosted membership click, Stripe test payment, or webhook activation was run; browser CDP inspection timed out. Commit is local and one commit ahead of `origin`.
+- Exact next recommended task: review and deploy commit `7822fd3` to the CometX staging URL, then test the membership CTA with a signed-in test account and verify Stripe Checkout opens; if it still fails, inspect that deployment's Vercel function logs before attempting payment.
+
 ## 2026-10-05: homepage divider staging verification
 
 - Task completed: `HOME-DIVIDER-01` deployed to `cometx-prototype.vercel.app`; Vercel Production deployment `HSZvoTfyeDetaFPW59yEo5LQ6JGF` is Ready.
