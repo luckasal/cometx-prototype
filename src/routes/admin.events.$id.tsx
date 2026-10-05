@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
@@ -183,7 +184,7 @@ function EventAttendees({ eventId, eventTitle }: { eventId: string; eventTitle: 
     {error && <ErrorBlock error={error} />}
     {data && attendees.length === 0 && <EmptyBlock title="No issued tickets for this event yet" />}
     {data && attendees.length > 0 && filtered.length === 0 && <EmptyBlock title="No matching attendees" />}
-    {filtered.length > 0 && <AdminTable head={["Attendee", "Ticket", "Buyer", "Ticket code", "Status", "Check-in"]}>
+    {filtered.length > 0 && <AdminTable head={["Attendee", "Ticket", "Buyer", "Ticket code", "QR code", "Status", "Check-in"]}>
       {filtered.map((attendee) => {
         const order = relationOne(attendee.ticket_orders);
         const ticket = relationOne(attendee.ticket_order_items);
@@ -192,6 +193,7 @@ function EventAttendees({ eventId, eventTitle }: { eventId: string; eventTitle: 
           <td>{ticket?.ticket_name ?? "Ticket"}</td>
           <td><strong>{order?.buyer_name ?? "—"}</strong><span className="block text-xs text-muted-foreground">{order?.buyer_email} · {order?.buyer_kind === "member" ? "Account holder" : "Guest"}</span></td>
           <td><code className="text-xs">{attendee.ticket_code}</code></td>
+          <td>{attendee.status === "valid" || attendee.status === "checked_in" ? <div className="inline-block rounded-lg bg-white p-1"><QRCodeSVG value={attendee.ticket_code} size={80} level="M" title={`Ticket QR code · ${attendee.attendee_name}`} /></div> : "—"}</td>
           <td><StatusPill tone={attendee.status === "valid" || attendee.status === "checked_in" ? "success" : "muted"}>{attendee.status.replaceAll("_", " ")}</StatusPill></td>
           <td>{canCheckInEventTicket(attendee.status, order?.status ?? "") ? <Button size="sm" variant="ink" disabled={checkInMutation.isPending} onClick={() => checkInMutation.mutate(attendee.id)}>Check in</Button> : attendee.checked_in_at ? <span className="text-xs text-muted-foreground">{new Date(attendee.checked_in_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span> : "—"}</td>
         </tr>;

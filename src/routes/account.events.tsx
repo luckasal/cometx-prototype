@@ -76,10 +76,11 @@ function AccountEventsPage() {
         <p>{cs ? "Cena vstupenek" : "Ticket total"}: <strong>{Number(item.unit_amount_minor) === 0 ? (cs ? "Zdarma" : "Free") : formatMoney(Number(item.unit_amount_minor) * issuedTickets.length / 100, item.currency)}</strong></p>
         <Link className="rounded-full bg-accent px-5 py-2 font-semibold text-accent-foreground" to="/events/$slug" params={{ slug: item.events?.[0]?.slug ?? "" }}>{cs ? "Koupit další" : "Buy more"}</Link>
       </div>
-      <details className="mt-5 rounded-2xl bg-background/60 p-4">
-        <summary className="cursor-pointer font-semibold">{cs ? "Zobrazit vstupenky" : "View ticket"}</summary>
+      <div className="mt-5 rounded-2xl bg-background/60 p-4">
+        <h3 className="font-semibold">{cs ? "Vstupenky a QR kódy" : "Tickets and QR codes"}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">{cs ? "Ukažte QR kód při vstupu na akci." : "Show the QR code at the event entrance."}</p>
         <div className="mt-3 grid gap-4 sm:grid-cols-2">{issuedTickets.map((ticket) => <div key={ticket.id} className="flex items-center gap-4 rounded-2xl bg-card p-4 text-sm"><div className="shrink-0 rounded-xl bg-white p-2"><QRCodeSVG value={ticket.ticket_code} size={112} level="M" title={`${cs ? "QR kód vstupenky" : "Ticket QR code"} · ${ticket.attendee_name}`} /></div><div className="min-w-0"><strong>{ticket.attendee_name}</strong><code className="mt-2 block break-all text-xs">{ticket.ticket_code}</code><span className="mt-2 block text-muted-foreground">{ticket.status}</span></div></div>)}</div>
-      </details>
+      </div>
     </article>)}</div>}
   </Section>;
 }

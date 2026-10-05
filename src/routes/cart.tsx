@@ -30,6 +30,10 @@ function requiredPoliciesAccepted(policies: CheckoutPolicies | null, accepted: R
   return !policies || policies.consents.every((consent) => !consent.required || accepted[consent.id] === true);
 }
 
+function isValidBuyerEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 function EventPolicies({ policies, cs, accepted, onAccept }: {
   policies: CheckoutPolicies | null;
   cs: boolean;
@@ -228,10 +232,12 @@ function CartPage() {
   const totalTickets = selectedLines.reduce((sum, line) => sum + line.quantity, 0);
   const buyer = { firstName: buyerFirstName, lastName: buyerLastName };
   const buyerNameConflicts = new Set(groups.filter((slug) => buyerNamedAttendeeCount(lines, slug, buyer) > 1));
+  const buyerEmailForCheckout = buyerEmail.trim() || user?.email?.trim() || "";
+  const buyerContactComplete = !!buyerFirstName.trim() && !!buyerLastName.trim() && buyerName.length <= 240 && isValidBuyerEmail(buyerEmailForCheckout);
   const attendeeComplete = selectedLines.every((line) => Array.from({ length: line.quantity }, (_, index) => line.attendees?.[index]).every((person) =>
     (person?.firstName.trim() || (totalTickets === 1 && buyerFirstName.trim())) && (person?.lastName.trim() || (totalTickets === 1 && buyerLastName.trim()))));
   const checkoutAllowed = termsAccepted && attendeeComplete && buyerNameConflicts.size === 0 && consentComplete && currencyCompatible && groupReadiness.length > 0 && groupReadiness.every((group) => group.purchasable) && !checkoutMutation.isPending &&
-    (user ? !accountQuery.isLoading : !!buyerFirstName.trim() && !!buyerLastName.trim() && !!buyerEmail.trim());
+    buyerContactComplete && (user ? !accountQuery.isLoading : true);
   function saveCart(next: TicketCartLine[]) {
     writeTicketCart(next);
     setLines(readTicketCart());
@@ -312,6 +318,8 @@ function CartPage() {
                 <label className="block text-sm font-medium sm:col-span-2">Email <span className="text-accent">*</span><Input className="mt-2 min-h-12 rounded-2xl border-0 bg-background/70 px-4" type="email" autoComplete="email" required maxLength={320} value={buyerEmail} onChange={(event) => setBuyerEmail(event.target.value)} /></label>
               </div>
             </>}
+            {user && !accountQuery.isLoading && (!buyerFirstName.trim() || !buyerLastName.trim()) && <p role="status" className="mt-3 text-sm text-muted-foreground">{cs ? "Doplňte své jméno v profilu, než budete pokračovat." : "Add your name to your profile before continuing."} <Link to="/account/profile" className="text-accent underline underline-offset-4">{cs ? "Upravit profil" : "Edit profile"}</Link></p>}
+            {buyerEmailForCheckout && !isValidBuyerEmail(buyerEmailForCheckout) && <p role="alert" className="mt-3 text-sm text-destructive">{cs ? "Zadejte platnou e-mailovou adresu." : "Enter a valid email address."}</p>}
           </section>
           <h2 className="px-1 font-display text-xl font-bold"><span className="text-accent">2.</span> {cs ? "Vstupenky a účastníci" : "Tickets and attendees"}</h2>
           {eventQueries.map((query, index) => {
@@ -441,7 +449,7 @@ function CartPage() {
               </div>
             </div>;
           })()}
-          <Button type="submit" variant="signal" className="mt-3 min-h-12 w-full rounded-full disabled:opacity-100" disabled={!checkoutAllowed}>
+          <Button type="submit" variant="signal" className="mt-3 min-h-12 w-full rounded-full disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:hover:brightness-100" disabled={!checkoutAllowed}>
             {checkoutMutation.isPending ? (cs ? "Připravujeme…" : "Preparing…") : (cs ? "Pokračovat k platbě" : "Continue to payment")}<ArrowRight className="size-4" />
           </Button>
           {!currencyCompatible && <p className="text-sm text-destructive">{cs ? "V jedné objednávce lze kombinovat pouze vstupenky se stejnou měnou." : "Tickets in one purchase must use the same currency."}</p>}
