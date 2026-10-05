@@ -61,3 +61,9 @@ Differences/limits: GA4 consent and ad-blocking mean visitor counts can differ f
 2. Open the new CometX app in [Google Tag Assistant](https://tagassistant.google.com/) and use the GA4 property's **Admin → DebugView**. Accept analytics consent in the app; then check `page_view`, route/event details, ticket actions, `partner_click`, and other conversions as you test them.
 3. Decline consent in a separate browser session and verify that no GA tag or events are sent. Use non-production data for signup, login, and newsletter checks. Do not perform a real payment just to test; a `purchase` should appear only after a confirmed paid order has issued tickets.
 4. Check DebugView for exactly one `page_view` per route and for the listed event parameters. The app disables GA's automatic initial page view and emits manual SPA page views. No Wix, GA4 property, or stream settings were changed as part of this app integration.
+
+## Vercel project traffic
+
+Vercel Web Analytics is separate from GA4 and reports traffic in the Vercel project dashboard (`cometx-prototype` → Analytics). The app includes `@vercel/analytics/react` at the root so Vercel can collect page views for full loads and client-side route changes. The `beforeSend` filter excludes `/admin` and private guest-ticket links. No GA4 property or credential is needed for these Vercel traffic reports.
+
+Web Analytics is enabled on the Vercel project. Data collection begins only after a deployment containing this client reaches the site and visitors load it; in the Vercel Analytics page choose **Production** to inspect the working website rather than previews. Vercel's standard panels show visitors/page views, top pages, referrers, countries, devices and browsers. Custom event reporting has plan limitations; this integration is for page traffic, not a replacement for the separate consented GA4 conversion dashboard.

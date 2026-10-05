@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Analytics } from "@vercel/analytics/react";
 import {
   Outlet,
   Link,
@@ -166,6 +167,15 @@ function RootComponent() {
           <AnalyticsConsent />
         </AuthProvider>
       </LanguageProvider>
+      <Analytics
+        beforeSend={(event) => {
+          const pathname = new URL(event.url, window.location.origin).pathname;
+          if (pathname.startsWith("/admin") || pathname.startsWith("/tickets/guest/")) {
+            return null;
+          }
+          return event;
+        }}
+      />
     </QueryClientProvider>
   );
 }
