@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: homepage hero divider removed
+
+- Task completed: `HOME-DIVIDER-01`. Removed the functionless lime trapezoid below the hero; retained hero content, CTAs, image, and in-hero brand art.
+- Files changed: `src/routes/index.tsx`, `src/styles.css`, `.ai/TASKS.md`.
+- Commit hash: `ad6aacf`; this handoff commit follows.
+- Tests/checks run: production build passed; CRLF-aware `git diff --check` passed.
+- Known issues: no functional flows were changed. Hosted visual verification requires promoting this branch build to the staging domain.
+- Exact next recommended task: publish this commit to the Vercel staging domain and verify the homepage hero at desktop and mobile widths.
+
 ## 2026-10-05: membership fix promoted to staging domain
 
 - Task completed: promoted commit `f0bd96e` from integration branch to Vercel Production deployment `HstThQcfK5vni4B6a4jqDFCqAvag` (Ready), aliased to `cometx-prototype.vercel.app`.
