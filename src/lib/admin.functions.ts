@@ -131,7 +131,14 @@ export const adminSetEventPublishState = createServerFn({ method: "POST" })
     const { data: event, error } = await db.from("events").update({ publish_state: data.publishState }).eq("id", data.id).select("id").maybeSingle();
     if (error) throw new Error(error.message);
     if (!event) throw new Error("This event could not be updated.");
-    return { ok: true };
+    let paymentSyncReady = false;
+    try {
+      const { syncEventPayments } = await import("./ticket-payments.server");
+      paymentSyncReady = await syncEventPayments(event.id);
+    } catch (syncError) {
+      console.error("[event-publish] ticket payment sync failed", { eventId: event.id, syncError });
+    }
+    return { ok: true, paymentSyncReady };
   });
 
 export const adminSaveEvent = createServerFn({ method: "POST" })

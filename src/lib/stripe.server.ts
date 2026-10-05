@@ -25,7 +25,11 @@ export function isStripeConfigured(): boolean {
 }
 
 export class StripeRequestError extends Error {
-  constructor(public status: number) { super(`Payment service request failed (${status}).`); }
+  status: number;
+  constructor(status: number) {
+    super(`Payment service request failed (${status}).`);
+    this.status = status;
+  }
 }
 
 function encodeForm(obj: Record<string, unknown>, prefix = ""): string[] {

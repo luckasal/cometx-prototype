@@ -46,8 +46,9 @@ function AdminEventsPage() {
   });
   const publish = useMutation({
     mutationFn: ({ id, publishState }: { id: string; publishState: "published" | "unpublished" }) => setPublishState({ data: { id, publishState } }),
-    onSuccess: (_result, variables) => {
+    onSuccess: (result, variables) => {
       toast.success(variables.publishState === "published" ? "Event published" : "Event unpublished");
+      if (!result.paymentSyncReady) toast.warning("Ticket payment setup could not be updated. Event availability is saved; retry from the event editor or contact support.");
       void refresh();
       void queryClient.invalidateQueries({ queryKey: ["events"] });
       void queryClient.invalidateQueries({ queryKey: ["home"] });
