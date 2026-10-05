@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: Stripe test-catalogue backfill action
+
+- Task completed: `STRIPE-CATALOG-BACKFILL-01` — added an admin-only bulk sync for existing ticket data. It idempotently creates/reuses Stripe test Products and paid Prices, writes mappings to Supabase, backfills active ticket types for upcoming published events (including future sale phases), and deactivates stale mapped products. Free tickets skip Price creation; event/ticket content is never edited.
+- Files changed: `src/lib/admin.functions.ts`, `src/lib/ticket-payments.server.ts`, `src/routes/admin.events.index.tsx`, `.ai/TASKS.md`.
+- Commit: `5676289` (`Add admin ticket catalogue backfill`).
+- Checks: 24 focused tests passed; targeted ESLint passed with Prettier rule disabled for this checkout's CRLF mismatch; CRLF-aware `git diff --check` passed. TypeScript reports only the pre-existing `src/routes/__root.tsx:116` error-component mismatch.
+- Known issues: No Stripe products/prices were created in the hosted account during this task. The new action is not deployed, and the integration branch is 15 commits ahead while release migrations `0007`–`0010` remain pending. Stripe stays test-mode-only; Wix was not accessed or changed.
+- Exact next recommended task: coordinate the isolated staging release and required migrations, then open `/admin/events`, choose “Refresh ticket setup,” and confirm Products/Prices are mapped in Supabase and visible in Stripe test mode.
+
 ## 2026-10-05: subdued disabled checkout CTA
 
 - Task completed: `CHECKOUT-CTA-TINT-01` — disabled “Continue to payment” now uses subdued Connection Lime/olive with dark text, matching the reference; existing validation gating remains intact.
