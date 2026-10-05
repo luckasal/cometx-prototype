@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: Wix ticket visibility, QR and per-ticket statistics parity
+
+- Task completed: `EVENT-WIX-PARITY-01` — public event pages retain an ended Early Bird ticket as history while hiding future or otherwise unavailable ticket phases; account and secure guest ticket views display QR codes encoding each issued ticket's unique code; the admin ticket editor shows sold count, capacity and confirmed revenue per ticket type.
+- Branch / implementation commit: `codex/integration-release-20261002` / `b3d2bfa` (`Add QR tickets and ticket type reporting`).
+- Files changed: `package.json`, `pnpm-lock.yaml`, `src/lib/ticket-availability.ts`, `src/components/site/EventDetailTemplate.tsx`, `src/routes/account.events.tsx`, `src/routes/tickets.guest.tsx`, `src/lib/event-admin-metrics.server.ts`, `src/components/admin/EventForm.tsx`, `src/routes/admin.events.$id.tsx`, `.ai/TASKS.md`; this handoff in a separate commit.
+- Checks: CRLF-aware `git diff --check` passed. `pnpm typecheck` fails only at the pre-existing `src/routes/__root.tsx:116` error-component type mismatch; it reports no diagnostics in changed files. No automated tests were added or run.
+- Known issues: QR encodes the existing ticket code; staff still use the existing roster/check-in interface to validate and check in tickets. Ticket stats use confirmed/free order lines plus confirmed legacy registrations and depend on the matching hosted schema being present. Wix remains untouched. Stripe checkout charges the configured ticket amount; processing fees are deducted from CometX settlement, with no separate customer fee line.
+- Exact next recommended task: verify account QR display, guest QR display and per-ticket admin statistics in the isolated staging environment with an issued sandbox ticket; then resolve the existing root-route typecheck error.
+
 ## 2026-10-05: event detail ticket-choice hierarchy
 
 - Task completed: `EVENT-TICKET-UX-02` — removed redundant desktop “Buy tickets” jump CTAs, kept the mobile shortcut, sorted currently purchasable ticket types first, and displayed the early-bird end/regular opening time from stored sale windows.
