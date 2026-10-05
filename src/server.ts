@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { isServerFunctionRequest } from "./lib/request-error";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -20,7 +21,14 @@ async function getServerEntry(): Promise<ServerEntry> {
 
 // h3 swallows in-handler throws into a normal 500 Response with body
 // {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
-async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
+async function normalizeCatastrophicSsrResponse(
+  request: Request,
+  response: Response,
+): Promise<Response> {
+  // The HTML fallback belongs only to document navigations. Keep TanStack's
+  // server-function response protocol intact instead of turning its error
+  // payload into an HTML string for client-side mutations/queries.
+  if (isServerFunctionRequest(request)) return response;
   if (response.status < 500) return response;
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) return response;
@@ -60,13 +68,21 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return preventStaleHtml(await normalizeCatastrophicSsrResponse(response));
+      return preventStaleHtml(await normalizeCatastrophicSsrResponse(request, response));
     } catch (error) {
       console.error(error);
-      return preventStaleHtml(new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      }));
+      if (isServerFunctionRequest(request)) {
+        return new Response("We couldn't complete that request. Please try again.", {
+          status: 500,
+          headers: { "content-type": "text/plain; charset=utf-8" },
+        });
+      }
+      return preventStaleHtml(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
     }
   },
 };

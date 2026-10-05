@@ -13,3 +13,8 @@ export function unexpectedRequestErrorResponse(
     headers: { "content-type": "text/html; charset=utf-8" },
   });
 }
+
+export function isServerFunctionRequest(request: Request): boolean {
+  const pathname = new URL(request.url).pathname;
+  return pathname.startsWith("/_serverFn/") || request.headers.get("x-tsr-serverFn") === "true";
+}
