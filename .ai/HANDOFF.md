@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: event detail ticket-choice hierarchy
+
+- Task completed: `EVENT-TICKET-UX-02` — removed redundant desktop “Buy tickets” jump CTAs, kept the mobile shortcut, sorted currently purchasable ticket types first, and displayed the early-bird end/regular opening time from stored sale windows.
+- Branch / implementation commit: `codex/integration-release-20261002` / `434ccff` (`Prioritize available tickets on event detail`).
+- Files changed: `src/components/site/EventDetailTemplate.tsx`, `src/lib/ticket-availability.ts`, `tests/ticket-availability.test.mjs`, `.ai/TASKS.md`; this handoff in a separate commit.
+- Checks: four focused ticket-availability tests pass; CRLF-aware diff check passes. The local desktop workshop visibly shows Early Bird CHF 322 first, ending 30 November 2026 at 15:55 Swiss time, followed by the regular CHF 554 option. Full typecheck still fails at the pre-existing root error-component signature in `src/routes/__root.tsx:116`.
+- Known issues: the stored regular-ticket `sale_end` is after this event's date; customer UI suppresses that misleading per-ticket end and still shows the earlier event sales deadline. The underlying admin data should be corrected separately. No Stripe, database, cart, or deployment changes.
+- Exact next recommended task: review this event page on mobile, then correct the regular ticket's source sale-end date in event admin if CometX confirms the intended cutoff. Resolve the root typecheck error before deployment.
+
 ## 2026-10-05: local event preview and publication payment sync
 
 - Task completed: `EVENT-PUBLISH-PAYMENTS-01` — publishing/unpublishing from the event list now invokes test-mode ticket product sync and warns staff when sync cannot finish.
