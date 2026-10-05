@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: membership test checkout and catalogue
+
+- Task completed: `MEMBERSHIP-CHECKOUT-01` implementation; `PAYMENT-CATALOG-02` implementation. Signed-in members without an active plan now start one-time annual Stripe test Checkout from server-authoritative Supabase pricing. An existing signed paid-session webhook grants the one-year membership. Admin catalogue sync creates/reuses test Products and one-time Prices, and ticket sync includes archived types. Admin labels distinguish confirmed tickets from recorded revenue. TWINT was enabled in the Stripe sandbox separately; Wix was not changed.
+- Files changed: `.ai/TASKS.md`, `src/lib/membership.functions.ts`, `src/lib/membership-payments.server.ts`, `src/routes/membership.tsx`, `src/lib/admin.functions.ts`, `src/routes/admin.plans.tsx`, `src/lib/ticket-payments.server.ts`, `src/components/admin/EventForm.tsx`, `src/routes/admin.events.$id.tsx`, `src/routes/admin.events.index.tsx`.
+- Commit hash: `b15dfd2`.
+- Tests/checks run: 14 focused business/payment tests passed; production build passed outside Windows sandbox (sandbox build alone fails on file-tracer `EPERM readlink C:\\Users\\user`); CRLF-aware diff check passed. Typecheck reports only the existing `src/routes/__root.tsx:116` error-component mismatch.
+- Known issues: no hosted membership test payment or webhook delivery has been completed; no automatic renewal or active-plan change is offered. Stripe/TWINT eligibility depends on the sandbox payment settings and customer details. No membership confirmation email is configured.
+- Exact next recommended task: deploy this commit to the Vercel staging domain, sign in with a test account without active membership, complete a Stripe sandbox purchase, verify the webhook creates one active year-long membership and its account display, then replay the webhook and confirm no duplicate activation.
+
 ## 2026-10-05: hosted release and Stripe test catalogue verified
 
 - Task completed: `RELEASE-01` deployment/schema/catalogue phase; `STRIPE-CATALOG-BACKFILL-01` is done. Supabase migrations `0007`–`0010` applied in order to `CometX Prototype` and verified. Pushed application commit `ff87adf`; Vercel Production deployment `GJ4dhKUTRvUBVQvtL1Mtx2VbDc4m` is Ready at `cometx-prototype.vercel.app`. Triggered “Refresh ticket setup” from the hosted staff event list. Stripe test API confirms six CometX Products and six CHF Prices, including an inactive expired early-bird product.
