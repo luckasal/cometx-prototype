@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: membership fix promoted to staging domain
+
+- Task completed: promoted commit `f0bd96e` from integration branch to Vercel Production deployment `HstThQcfK5vni4B6a4jqDFCqAvag` (Ready), aliased to `cometx-prototype.vercel.app`.
+- Files changed: `.ai/HANDOFF.md` only in this record; deployed application files are listed in the preceding entry.
+- Commit hash: application `b15dfd2`, handoff `f0bd96e`; this deployment-status commit follows this entry.
+- Tests/checks run: public `/membership` loads all three plan prices CHF 90/250/599, displays one-time one-year payment wording, and no longer displays “online checkout not available”; Vercel reports deployment Ready.
+- Known issues: a signed-in Stripe test purchase and resulting webhook/membership activation were not performed; no personal email/payment data was submitted by the agent. Local typecheck retains unrelated `src/routes/__root.tsx:116` error.
+- Exact next recommended task: use a designated test account to choose a membership on the deployed page, pay with a Stripe test method, then verify webhook receipt, exactly one active membership, and the account view.
+
 ## 2026-10-05: membership test checkout and catalogue
 
 - Task completed: `MEMBERSHIP-CHECKOUT-01` implementation; `PAYMENT-CATALOG-02` implementation. Signed-in members without an active plan now start one-time annual Stripe test Checkout from server-authoritative Supabase pricing. An existing signed paid-session webhook grants the one-year membership. Admin catalogue sync creates/reuses test Products and one-time Prices, and ticket sync includes archived types. Admin labels distinguish confirmed tickets from recorded revenue. TWINT was enabled in the Stripe sandbox separately; Wix was not changed.
