@@ -141,6 +141,40 @@ export const adminSetEventPublishState = createServerFn({ method: "POST" })
     return { ok: true, paymentSyncReady };
   });
 
+export const adminSyncPublishedTicketCatalog = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({}).parse(d))
+  .handler(async () => {
+    // Require staff authorization before using the server-only database and payment credentials.
+    await admin();
+    const { isStripeConfigured } = await import("./stripe.server");
+    if (!isStripeConfigured()) throw new Error("Ticket setup cannot be refreshed right now. Please contact CometX support.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: events, error } = await supabaseAdmin.from("events").select("id");
+    if (error) throw new Error("Published ticket setup could not be loaded. Please try again.");
+
+    let synced = 0;
+    let failed = 0;
+    const { syncEventPayments } = await import("./ticket-payments.server");
+    const allEvents = events ?? [];
+    for (let offset = 0; offset < allEvents.length; offset += 3) {
+      await Promise.all(allEvents.slice(offset, offset + 3).map(async (event) => {
+        try {
+          await syncEventPayments(event.id, { backfillUpcomingPublishedTickets: true });
+          synced += 1;
+        } catch (syncError) {
+          failed += 1;
+          console.error("[admin-event-ticket-sync] sync failed", {
+            eventId: event.id,
+            message: syncError instanceof Error ? syncError.message : "Unexpected error",
+          });
+        }
+      }));
+    }
+
+    return { processed: allEvents.length, synced, failed };
+  });
+
 export const adminSaveEvent = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z

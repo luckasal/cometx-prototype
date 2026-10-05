@@ -37,7 +37,7 @@ export async function ensureTicketPrice(ticketId: string, amountMinor: number, c
   return price.id;
 }
 
-export async function syncEventPayments(eventId: string) {
+export async function syncEventPayments(eventId: string, options: { backfillUpcomingPublishedTickets?: boolean } = {}) {
   if (!isStripeConfigured()) return false;
   const { data: event, error } = await supabaseAdmin.from("events")
     .select("title,publish_state,event_status,start_date,registration_start,registration_end")
@@ -49,27 +49,32 @@ export async function syncEventPayments(eventId: string) {
     && Date.parse(event.start_date) > now
     && (!event.registration_start || Date.parse(event.registration_start) <= now)
     && (!event.registration_end || Date.parse(event.registration_end) > now);
+  const canBackfillPublishedTickets = options.backfillUpcomingPublishedTickets === true
+    && event.publish_state === "published"
+    && Date.parse(event.start_date) > now;
   const tickets = await supabaseAdmin.from("ticket_types").select("*").eq("event_id",eventId);
   check(tickets.error);
   for (const ticket of tickets.data ?? []) {
     const ticketSalesOpen = (!ticket.sale_start || Date.parse(ticket.sale_start) <= now)
       && (!ticket.sale_end || Date.parse(ticket.sale_end) > now);
     const active = ticket.active && eventSalesOpen && ticketSalesOpen;
+    const shouldBackfill = ticket.active && canBackfillPublishedTickets;
     const old=await db.from("ticket_payment_products").select("product_id").eq("ticket_id",ticket.id).maybeSingle();
     check(old.error);
     let productId=old.data?.product_id;
     if (!productId) {
-      if (!active) continue;
+      if (!active && !shouldBackfill) continue;
       const query=encodeURIComponent(`metadata['ticket_id']:'${ticket.id}'`);
       const found=await stripeRequest<{data:unknown[]}>(`/products/search?query=${query}&limit=1`);
       const p=found.data[0] ? providerSchema.parse(found.data[0]) : providerSchema.parse(await stripeRequest("/products", { name:`${event.title} — ${ticket.name}`,
-        metadata:{event_id:eventId,ticket_id:ticket.id},active:true }, `product_${ticket.id}`));
+        metadata:{event_id:eventId,ticket_id:ticket.id},active }, `product_${ticket.id}`));
       productId=p.id;
       const saved=await db.from("ticket_payment_products").upsert({ticket_id:ticket.id,product_id:productId},{onConflict:"ticket_id"}); check(saved.error);
     }
     await stripeRequest(`/products/${productId}`, { name:`${event.title} — ${ticket.name}`,active });
-    if (active) for (const amount of new Set([ticket.base_price,ticket.member_price])) {
-      if (amount !== null && Number(amount)>=0) await ensureTicketPrice(ticket.id,Math.round(Number(amount)*100),ticket.currency);
+    if (active || shouldBackfill) for (const amount of new Set([ticket.base_price,ticket.member_price])) {
+      // Free tickets do not need a Stripe Price; zero-value checkouts bypass Stripe.
+      if (amount !== null && Number(amount)>0) await ensureTicketPrice(ticket.id,Math.round(Number(amount)*100),ticket.currency);
     }
   }
   return true;

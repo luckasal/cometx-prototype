@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { adminDeleteEvent, adminListEvents, adminSetEventPublishState } from "@/lib/admin.functions";
+import { adminDeleteEvent, adminListEvents, adminSetEventPublishState, adminSyncPublishedTicketCatalog } from "@/lib/admin.functions";
 import { formatEventLifecycleStatus, getEventLifecycleStatus } from "@/lib/event-admin";
 import { formatMoney } from "@/lib/pricing";
 import { AdminPage, AdminTable } from "@/components/admin/AdminBits";
@@ -36,6 +36,7 @@ function AdminEventsPage() {
   const fetchEvents = useServerFn(adminListEvents);
   const deleteEvent = useServerFn(adminDeleteEvent);
   const setPublishState = useServerFn(adminSetEventPublishState);
+  const syncTicketCatalog = useServerFn(adminSyncPublishedTicketCatalog);
   const { data, isLoading, error } = useQuery({ queryKey: ["admin", "events"], queryFn: () => fetchEvents() });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin", "events"] });
@@ -55,6 +56,17 @@ function AdminEventsPage() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
+  const syncTickets = useMutation({
+    mutationFn: () => syncTicketCatalog({ data: {} }),
+    onSuccess: (result) => {
+      if (result.failed > 0) {
+        toast.warning(`Ticket setup refreshed for ${result.synced} of ${result.processed} events. Some events need another attempt.`);
+      } else {
+        toast.success(`Ticket setup refreshed for ${result.synced} events. No event content was changed.`);
+      }
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
 
   const filtered = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
@@ -71,7 +83,7 @@ function AdminEventsPage() {
     <AdminPage
       title="Events"
       description="Find events, check their sales, and manage publication status."
-      action={<Button asChild variant="ink"><Link to="/admin/events/new">Add event</Link></Button>}
+      action={<div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={syncTickets.isPending} onClick={() => syncTickets.mutate()}>{syncTickets.isPending ? "Refreshing…" : "Refresh ticket setup"}</Button><Button asChild variant="ink"><Link to="/admin/events/new">Add event</Link></Button></div>}
     >
       <div className="mb-5 grid gap-3 rounded-2xl border border-border/60 bg-card p-4 sm:grid-cols-[minmax(16rem,1fr)_12rem_12rem]">
         <label className="text-sm font-medium">Search events
