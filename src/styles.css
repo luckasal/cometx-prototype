@@ -181,22 +181,6 @@
   padding: var(--brand-symbol-clear-space);
 }
 
-.brand-divider {
-  position: relative;
-  height: 2.25rem;
-  overflow: hidden;
-  background: var(--brand-connection-lime);
-}
-
-.brand-divider-art {
-  position: absolute;
-  width: max(100%, 48rem);
-  height: auto;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -25%);
-}
-
 @media (min-width: 80rem) {
   .brand-logo:not(.brand-logo-footer) { width: 9rem; }
 }

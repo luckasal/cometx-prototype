@@ -92,8 +92,6 @@ function Home() {
           </dl>
         </div>
       </section>
-      <div className="brand-divider" aria-hidden="true"><BrandXElement variant="fullDark" className="brand-divider-art" /></div>
-
       {isLoading && (
         <Section>
           <LoadingBlock label={cs ? "Načítáme komunitu" : "Loading the community"} />
