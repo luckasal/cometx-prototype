@@ -44,3 +44,19 @@ export function ticketAvailabilityMessage(
     case "membership_required": return czech ? "Tato vstupenka vyžaduje příslušné členství." : "This ticket requires an eligible membership.";
   }
 }
+
+/** Keep the option a visitor can purchase now above future or unavailable tiers. */
+export function orderTicketsByAvailability<T>(tickets: T[], getState: (ticket: T) => TicketAvailability): T[] {
+  const rank: Record<TicketAvailability, number> = {
+    available: 0,
+    sale_not_started: 1,
+    membership_required: 2,
+    sold_out: 3,
+    sale_ended: 4,
+    event_closed: 5,
+    preview: 5,
+  };
+  return tickets.map((ticket, index) => ({ ticket, index }))
+    .sort((a, b) => rank[getState(a.ticket)] - rank[getState(b.ticket)] || a.index - b.index)
+    .map(({ ticket }) => ticket);
+}

@@ -18,7 +18,7 @@ import { BrandXElement } from "./BrandXElement";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "./Bits";
 import { ticketPricingType, trackEvent } from "@/lib/analytics";
-import { ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
+import { orderTicketsByAvailability, ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
 
 type Props = {
   data: EventDetail;
@@ -160,6 +160,18 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
           firstEligible.price.currency,
         )
       : null;
+  const availabilityFor = (ticket: (typeof tickets)[number]) => ticketAvailability({
+    isPreview: data.isPreview,
+    registrationOpen: open,
+    soldOut: ticket.soldOut,
+    saleStart: ticket.saleStart,
+    saleEnd: ticket.saleEnd,
+    eligible: ticket.price.eligible,
+  });
+  const displayTickets = orderTicketsByAvailability(tickets, availabilityFor);
+  const activeEarlyBird = tickets.find((ticket) =>
+    /early[\s-]?bird|předprodej|včasn/i.test(ticket.name) &&
+    ticket.saleEnd && availabilityFor(ticket) === "available");
 
   return (
     <article className="pb-28 lg:pb-12 [&_button]:rounded-full [&_a.inline-flex]:rounded-full">
@@ -225,11 +237,11 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                   {event.shortDescription}
                 </p>
               )}
-              <Button asChild variant="signal" size="lg" className="mt-9 rounded-full px-8">
+              <Button asChild variant="signal" size="lg" className="mt-9 rounded-full px-8 lg:hidden">
                 {ticketAction(<ArrowDown className="size-4" />)}
               </Button>
               {heroImage && (
-                <figure className="mt-12 overflow-hidden rounded-[2rem] bg-paper">
+                <figure className="mt-12 overflow-hidden rounded-[2rem] bg-paper lg:mt-10">
                   <img
                     src={heroImage}
                     alt={event.heroImageUrl ? event.title : portrait!.name}
@@ -320,16 +332,15 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                   </p>
                 ) : (
                   <div className="mt-5 space-y-6">
-                    {tickets.map((ticket) => {
-                      const availability = ticketAvailability({
-                        isPreview: data.isPreview,
-                        registrationOpen: open,
-                        soldOut: ticket.soldOut,
-                        saleStart: ticket.saleStart,
-                        saleEnd: ticket.saleEnd,
-                        eligible: ticket.price.eligible,
-                      });
+                    {displayTickets.map((ticket) => {
+                      const availability = availabilityFor(ticket);
                       const availabilityMessage = ticketAvailabilityMessage(availability, ticket.saleStart, cs);
+                      const isEarlyBird = /early[\s-]?bird|předprodej|včasn/i.test(ticket.name);
+                      const earlyBirdBeforeRegular = activeEarlyBird && activeEarlyBird.id !== ticket.id &&
+                        ticket.saleStart && Date.parse(ticket.saleStart) >= Date.parse(activeEarlyBird.saleEnd!);
+                      const priceEndsBeforeEvent = ticket.saleEnd &&
+                        Date.parse(ticket.saleEnd) <= Date.parse(event.registrationEnd ?? event.startDate) &&
+                        Date.parse(ticket.saleEnd) <= Date.parse(event.startDate);
                       const maxQuantity=Math.max(0,Math.min(ticket.spotsLeft ?? 10,data.spotsLeft ?? 10,10));
                       const quantity=quantities[ticket.id] ?? 0;
                       const otherQuantity=tickets.reduce((sum,other)=>sum+(other.id===ticket.id?0:quantities[other.id]??0),0);
@@ -338,13 +349,24 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                       <div key={ticket.id} className="rounded-2xl bg-card/60 py-4">
                         <h4 className="font-bold">{ticket.name}</h4>
                         <p className="mt-2 text-sm text-muted-foreground">
-                          {cs ? "Běžná cena" : "Regular price"}: {formatMoney(ticket.price.basePrice, ticket.price.currency)}
+                          {isEarlyBird ? (cs ? "Cena v předprodeji" : "Early-bird price") : (cs ? "Běžná cena" : "Regular price")}: {formatMoney(ticket.price.basePrice, ticket.price.currency)}
                         </p>
                         {ticket.price.benefitType !== "public" && <>
                           <p className="mt-1 text-sm text-accent">{formatMembershipBenefit(ticket.price, cs)}</p>
                           <p className="mt-1 text-lg font-bold text-accent">{cs ? "Členská cena" : "Member price"}: {formatMoney(ticket.price.finalPrice, ticket.price.currency)}</p>
                         </>}
-                        {availabilityMessage && <p className="mt-3 text-sm font-medium text-accent" role="status">{availabilityMessage}</p>}
+                        {availabilityMessage && !(earlyBirdBeforeRegular && availability === "sale_not_started") &&
+                          <p className="mt-3 text-sm font-medium text-accent" role="status">{availabilityMessage}</p>}
+                        {priceEndsBeforeEvent && Date.parse(ticket.saleEnd!) > Date.now() && (
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            {isEarlyBird ? (cs ? "Předprodej končí" : "Early bird ends") : (cs ? "Tato cena platí do" : "This price is available until")} {date(ticket.saleEnd!)} · {time(ticket.saleEnd!)} {cs ? "(čas ve Švýcarsku)" : "(Swiss time)"}
+                          </p>
+                        )}
+                        {earlyBirdBeforeRegular && (
+                          <p className="mt-2 text-sm text-accent">
+                            {cs ? "Běžný prodej začne po skončení předprodeje" : "Regular tickets open when early bird ends"} {date(activeEarlyBird.saleEnd!)} · {time(activeEarlyBird.saleEnd!)} {cs ? "(čas ve Švýcarsku)" : "(Swiss time)"}
+                          </p>
+                        )}
                         {!data.isSignedIn && ticket.hasMemberPricing && (
                           <button type="button" className="mt-2 text-sm underline underline-offset-2" onClick={() => {
                             trackEvent("login_for_member_price", {
@@ -532,22 +554,6 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                   ))}
                 </ul>
               </ContentSection>
-            )}
-            {open && tickets.length > 0 && (
-              <div className="rounded-[2rem] bg-accent p-8 text-accent-foreground sm:p-12">
-                <p className="text-2xl font-bold sm:text-3xl">{event.title}</p>
-                <p className="mt-4 text-sm text-accent-foreground/75">
-                  {date(event.startDate)}
-                  {event.venue ? ` · ${event.venue}` : ""}
-                </p>
-                <Button
-                  asChild
-                  variant="signal"
-                  className="mt-7 rounded-full bg-ink px-7 text-ink-foreground hover:bg-ink/90"
-                >
-                  {ticketAction(<ArrowRight className="size-4" />)}
-                </Button>
-              </div>
             )}
           </div>
         </div>
