@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-05: recover stale Vite route chunks on the live site
+
+- Task completed: `ASSET-RECOVERY-01`; Vite preload failures now trigger one cache-busting document reload, the error page's retry refreshes HTML, and SSR HTML responses require revalidation.
+- Files changed: `src/router.tsx`, `src/server.ts`, `src/routes/__root.tsx`, `src/lib/asset-recovery.ts`, `tests/asset-recovery.test.mjs`, `.ai/TASKS.md`.
+- Commit hash: `58883d5`; pushed to `codex/integration-release-20261002`.
+- Tests/checks run: 3 focused asset/Stripe tests pass; production build passes outside sandbox; HTTP verification: homepage 200, membership 200, all 18 current script assets 200, current route chunk 200, HTML cache is `public, must-revalidate, max-age=0`. The screenshot's stale route chunk returns 404 as expected; recovery handler is present in current client assets.
+- Known issues: local Vite preview script targets missing `dist/server/server.js`, so preview command itself cannot be used; the in-app browser CDP timed out, so no visual browser screenshot was captured. Typecheck retains the existing unrelated root error component type mismatch.
+- Exact next recommended task: if a visitor is still on the stale error screen, refresh once; then continue signed-in membership checkout verification separately.
+
 ## 2026-10-05: membership checkout no longer waits indefinitely
 
 - Task completed: `MEMBERSHIP-CHECKOUT-02`; customer checkout verifies and uses the saved active Stripe test Price instead of creating/updating catalog records during the click. Stripe API requests now abort after 12 seconds and surface a customer-readable error.
