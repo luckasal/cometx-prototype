@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-06: membership application write permission fixed
+
+- Task completed: traced the generic CometXXL checkout error to the application insert/update using a user-scoped Supabase client despite the table granting writes only to `service_role`. After `requireUser`, those two writes now use the existing server-only admin client and remain bound to that user's ID.
+- Files changed: `src/lib/membership.functions.ts`, `.ai/TASKS.md`, `.ai/HANDOFF.md`. No schema or Stripe configuration change.
+- Commit hash: implementation `c74bff5`; this handoff/status entry is committed separately.
+- Tests/checks run: read-only hosted SQL confirmed the table grants; edited TypeScript transpiles; Vercel Preview and Production builds are Ready. Production deployment `FXByi5PD3AbJGBT6GL8PKFmUoE5n` is assigned to `cometx-prototype.vercel.app`, and the public membership page renders all three plans. Local full typecheck reports existing dependency/type errors, and local Vite build hits Windows `EPERM` while tracing dependencies.
+- Known issues: no membership application or Stripe Checkout session was created during this fix; payment, webhook activation, and Billing Portal behavior remain unverified. Wix was not changed.
+- Exact next recommended task: complete a CometXXL Stripe sandbox Checkout with a designated test account, then verify one application, payment, active membership, webhook replay, and Billing Portal cancellation.
+
 ## 2026-10-06: CometXXL checkout price setup repaired
 
 - Task completed: fixed the production “membership is not ready for online payment” blocker. The CometXXL annual recurring and CHF 1.99 setup-fee price IDs were missing; ran the existing admin catalogue sync in Production, which is guarded to Stripe test keys, and verified saved test-price mappings for all three membership tiers in Supabase.
