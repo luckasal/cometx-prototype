@@ -134,7 +134,9 @@ export const adminSetEventPublishState = createServerFn({ method: "POST" })
     let paymentSyncReady = false;
     try {
       const { syncEventPayments } = await import("./ticket-payments.server");
-      paymentSyncReady = await syncEventPayments(event.id);
+      paymentSyncReady = await syncEventPayments(event.id, {
+        backfillUpcomingPublishedTickets: true,
+      });
     } catch (syncError) {
       console.error("[event-publish] ticket payment sync failed", { eventId: event.id, syncError });
     }
@@ -273,7 +275,9 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
     let paymentSyncReady = false;
     try {
       const { syncEventPayments } = await import("./ticket-payments.server");
-      paymentSyncReady = await syncEventPayments(saved.id);
+      paymentSyncReady = await syncEventPayments(saved.id, {
+        backfillUpcomingPublishedTickets: true,
+      });
     } catch {
       // Content is saved in Supabase even during a provider outage. A retry is safe.
       paymentSyncReady = false;
