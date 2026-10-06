@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-06: event registration opens with earliest ticket sale
+
+- Task completed: event save derives `registration_start` from the earliest dated active ticket, and the admin form displays that ticket as the source. Tickets with no individual sale start continue to inherit the event window.
+- Files changed: `src/lib/event-admin.ts`, `src/lib/admin.functions.ts`, `src/components/admin/EventForm.tsx`, `tests/event-admin-schedule.test.mjs`, `.ai/TASKS.md`, `.ai/HANDOFF.md`.
+- Commit hash: implementation `33a9ae9`; this handoff/status entry is committed separately.
+- Tests/checks run: three focused event schedule tests pass, edited files transpile, `git diff --check` passes. Vercel Production deployment `EtyBAzyUWieDwkan2w8Xcjqw5P1J` is Ready and assigned `cometx-prototype.vercel.app`. Re-saved New Demo Event in admin; after reload its opening is shown as 28 Sep 2026 16:12 matching the demo ticket, and the public page displays the ticket on sale at CHF 400.
+- Known issues: repository-wide typecheck still reports existing dependency/type errors. Stripe catalog mapping was not directly inspected; no payment was made. Existing events with mismatched dates are aligned when next saved, not through a bulk data rewrite. Wix was not changed.
+- Exact next recommended task: verify the New Demo Event's test-mode Stripe product and public/member price mapping directly, then perform a designated sandbox checkout and webhook confirmation test.
+
 ## 2026-10-06: scheduled event ticket catalog preparation
 
 - Task completed: changed ordinary event save and publish to prepare Stripe test products/prices for active ticket types on published future events even when registration starts later. The products remain inactive until sales open; checkout availability rules are unchanged.
