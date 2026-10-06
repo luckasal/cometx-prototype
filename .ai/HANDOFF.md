@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-06: CometXXL membership checkout deployed
+
+- Task completed: promoted the isolated CometXXL membership checkout implementation to Vercel Production. Deployment `6mMoYcn722F776Ws1wuf1GKCewSH` is Ready and aliased to `cometx-prototype.vercel.app`.
+- Files changed: deployment source changes are the membership checkout work in commits `a151bbd`, `a6e40ff`, and migration compatibility fix `4f5f6c0`; `.ai/TASKS.md` and `.ai/HANDOFF.md` record deployment status.
+- Commit hash: deployed source `4f5f6c0c6a495bed3b36f69af202ba54b185686d`; handoff/status record `98ae099`.
+- Tests/checks run: focused membership checkout and pricing tests passed (2/2); Vercel Preview build passed, then Production rebuild completed Ready; verified live `/membership` loads all plans and CometXXL opens the required email, nationality, motivation, and feedback fields. Did not submit a membership purchase.
+- Known issues: migration `0011` is applied. A completed test-mode subscription, webhook activation, and Billing Portal behavior remain unverified. Preview deployment does not contain production Supabase variables; Production uses its configured environment.
+- Exact next recommended task: configure/verify the Stripe test-mode membership webhook and customer portal, then complete a sandbox subscription with a dedicated test account and verify exactly one active membership is created.
+
 ## 2026-10-05: homepage hero divider removed
 
 - Task completed: `HOME-DIVIDER-01`. Removed the functionless lime trapezoid below the hero; retained hero content, CTAs, image, and in-hero brand art.
