@@ -300,7 +300,21 @@ export const adminDeleteEvent = createServerFn({ method: "POST" })
     if (registrationsError) throw new Error(registrationsError.message);
     if ((count ?? 0) > 0)
       throw new Error("Events with registrations cannot be deleted. Unpublish or cancel the event instead.");
+    const linkedOrders = await db.from("ticket_order_items")
+      .select("order_id,ticket_orders(status)")
+      .eq("event_id", data.id)
+      .limit(1);
+    if (linkedOrders.error) throw new Error("Could not verify this event's orders. Please try again.");
+    if (linkedOrders.data?.length) {
+      const order = linkedOrders.data[0].ticket_orders;
+      const status = Array.isArray(order) ? order[0]?.status : order?.status;
+      if (status === "pending" || status === "processing") {
+        throw new Error("An unpaid checkout is still open for this event. Cancel or expire that checkout before deleting the event.");
+      }
+      throw new Error("This event has order history. Paid or issued tickets cannot be deleted; contact support to review unpaid records.");
+    }
     const { error } = await db.from("events").delete().eq("id", data.id);
+    if (error?.code === "23503") throw new Error("This event has checkout or ticket records that must be reviewed before it can be deleted.");
     if (error) throw new Error(error.message);
     return { ok: true };
   });
