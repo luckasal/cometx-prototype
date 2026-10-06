@@ -16,6 +16,15 @@ export function formatEventLifecycleStatus(status: string) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
+/** The first scheduled ticket phase opens event registration. Undated tickets inherit that window. */
+export function earliestTicketSaleStart<T extends { sale_start: string | null }>(tickets: T[]): T | null {
+  return tickets.reduce<T | null>((earliest, ticket) => {
+    if (!ticket.sale_start || !Number.isFinite(Date.parse(ticket.sale_start))) return earliest;
+    if (!earliest?.sale_start || Date.parse(ticket.sale_start) < Date.parse(earliest.sale_start)) return ticket;
+    return earliest;
+  }, null);
+}
+
 /** Validate date ordering before an event can be saved or published. */
 export function eventScheduleIssue(input: {
   start_date: string;

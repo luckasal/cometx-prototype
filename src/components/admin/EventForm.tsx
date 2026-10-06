@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 import { formatMoney, isRegistrationOpen } from "@/lib/pricing";
 import { ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
-import { eventScheduleIssue } from "@/lib/event-admin";
+import { earliestTicketSaleStart, eventScheduleIssue } from "@/lib/event-admin";
 
 export type EventFormValues = {
   id?: string;
@@ -127,6 +127,8 @@ export function EventForm({
   const [tickets, setTickets] = useState<TicketDraft[]>(initialTickets);
   const [speakerIds, setSpeakerIds] = useState<string[]>(initialSpeakerIds);
   const [workshops, setWorkshops] = useState<WorkshopDraft[]>(initialWorkshops);
+  const openingTicket = earliestTicketSaleStart(tickets.filter((ticket) => ticket.name.trim()));
+  const registrationOpening = openingTicket?.sale_start || event.registration_start;
 
   const fetchSpeakers = useServerFn(adminListSpeakers);
   const fetchEntitlements = useServerFn(adminListEntitlements);
@@ -160,7 +162,7 @@ export function EventForm({
             venue: nullable(event.venue),
             address: nullable(event.address),
             capacity: event.capacity.trim() === "" ? null : Number(event.capacity),
-            registration_start: isoOrNull(event.registration_start),
+            registration_start: isoOrNull(registrationOpening),
             registration_end: isoOrNull(event.registration_end),
             publish_state: publishState,
             event_status: event.event_status,
@@ -192,7 +194,7 @@ export function EventForm({
       toast.success("Event saved");
       if (!saved.paymentSyncReady) toast.warning("Content saved. Online payments are not ready; save again to retry payment setup.");
       setTickets(previous => previous.filter(t=>t.name.trim()!=="").map((t,i)=>({...(saved.ticketIds[i] ? {id:saved.ticketIds[i]} : {}),...t})));
-      setEvent((previous) => ({ ...previous, id: saved.id, publish_state: publishState }));
+      setEvent((previous) => ({ ...previous, id: saved.id, publish_state: publishState, registration_start: registrationOpening }));
       queryClient.invalidateQueries({ queryKey: ["admin", "events"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["home"] });
@@ -229,7 +231,7 @@ export function EventForm({
     const scheduleIssue = eventScheduleIssue({
       start_date: event.start_date,
       end_date: event.end_date || null,
-      registration_start: event.registration_start || null,
+      registration_start: registrationOpening || null,
       registration_end: event.registration_end || null,
     });
     if (scheduleIssue) {
@@ -398,11 +400,12 @@ export function EventForm({
               ))}
             </select>
           </Field>
-          <Field label="Registration opens">
+          <Field label="Registration opens" hint={openingTicket ? `Matches ${openingTicket.name} ticket sales start. Change that ticket's date to update this time.` : "Tickets without a sales start use this date and time."}>
             <input
               type="datetime-local"
               className={inputClass}
-              value={event.registration_start}
+              value={registrationOpening}
+              disabled={!!openingTicket}
               onChange={(e) => set("registration_start", e.target.value)}
             />
           </Field>

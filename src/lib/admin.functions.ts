@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { eventScheduleIssue } from "./event-admin";
+import { earliestTicketSaleStart, eventScheduleIssue } from "./event-admin";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
@@ -220,6 +220,8 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const db = await admin();
     const { id, ...fields } = data.event;
+    const firstTicket = earliestTicketSaleStart(data.tickets);
+    if (firstTicket?.sale_start) fields.registration_start = firstTicket.sale_start;
     const scheduleIssue = eventScheduleIssue(fields);
     if (scheduleIssue) throw new Error(scheduleIssue);
 
