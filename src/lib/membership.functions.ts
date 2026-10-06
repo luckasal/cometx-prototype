@@ -195,7 +195,11 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
     const amountMinor = Math.round((Number(plan.annual_price) + Number(plan.billing_interval ? plan.setup_fee : 0)) * 100);
     let applicationId: string | null = null;
     if (plan.billing_interval) {
-      const { data: application, error: applicationError } = await getReadClient()
+      // The verified server request owns this write. The application table is
+      // deliberately read-only to user-scoped clients; keep privileged access
+      // on the server and bind the new row to the authenticated user above.
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: application, error: applicationError } = await supabaseAdmin
         .from("membership_applications")
         .insert({
           user_id: user.userId,
@@ -240,7 +244,8 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
       throw new Error("Payment checkout could not be prepared safely.");
     }
     if (applicationId) {
-      const { error: saveError } = await getReadClient().from("membership_applications")
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error: saveError } = await supabaseAdmin.from("membership_applications")
         .update({ stripe_checkout_session_id: session.id })
         .eq("id", applicationId)
         .eq("user_id", user.userId);
