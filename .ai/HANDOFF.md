@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-06: unpaid checkout blocks event deletion
+
+- Task completed: identified a pending CHF 400 order for New Demo Event despite zero confirmed tickets and zero recorded revenue. Added a server-side guard that explains an open checkout instead of exposing the database foreign-key error. It still protects all order history and does not cancel an active checkout.
+- Files changed: `src/lib/admin.functions.ts`, `.ai/TASKS.md`, `.ai/HANDOFF.md`.
+- Commit hash: implementation `9ddae16`; this handoff/status entry is committed separately.
+- Tests/checks run: edited TypeScript transpiles; `git diff --check` passes; admin Orders tab shows one pending, unpaid order for this event.
+- Known issues: this does not yet allow deletion while that checkout is open. Awaiting explicit user direction to cancel the unpaid test checkout and remove the event. No Stripe session, database order, or event was deleted; code is not deployed.
+- Exact next recommended task: after user approval, safely expire the event's test Checkout Session, verify no completed payment/issued ticket or multi-event order, then remove unpaid order references and the event atomically, with focused tests and Production verification.
+
 ## 2026-10-06: event registration opens with earliest ticket sale
 
 - Task completed: event save derives `registration_start` from the earliest dated active ticket, and the admin form displays that ticket as the source. Tickets with no individual sale start continue to inherit the event window.
