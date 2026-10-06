@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-06: scheduled event ticket catalog preparation
+
+- Task completed: changed ordinary event save and publish to prepare Stripe test products/prices for active ticket types on published future events even when registration starts later. The products remain inactive until sales open; checkout availability rules are unchanged.
+- Files changed: `src/lib/admin.functions.ts`, `.ai/TASKS.md`, `.ai/HANDOFF.md`.
+- Commit hash: implementation `d007203`; this handoff/status entry is committed separately.
+- Tests/checks run: edited TypeScript transpiles; two focused event schedule tests pass; `git diff --check` passes. Source commit pushed to origin.
+- Known issues: Vercel Production deployment, the New Demo Event catalog mapping, and public-site behavior could not be verified because the app browser approval check hit a usage limit. The event's registration start is still 2026-10-06 16:11 Swiss time, so customer ticket sales may correctly remain closed before that time. No Stripe payment, live Stripe change, or Wix change was made.
+- Exact next recommended task: after browser approval is available, deploy `d007203` to Vercel Production, save/publish New Demo Event or use the existing admin ticket setup refresh, then verify one inactive Stripe test product and its CHF public/member prices are mapped; confirm ticket purchase opens only at its configured sale time.
+
 ## 2026-10-06: membership application write permission fixed
 
 - Task completed: traced the generic CometXXL checkout error to the application insert/update using a user-scoped Supabase client despite the table granting writes only to `service_role`. After `requireUser`, those two writes now use the existing server-only admin client and remain bound to that user's ID.
