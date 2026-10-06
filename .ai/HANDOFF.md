@@ -2,11 +2,20 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-06: CometXXL checkout price setup repaired
+
+- Task completed: fixed the production “membership is not ready for online payment” blocker. The CometXXL annual recurring and CHF 1.99 setup-fee price IDs were missing; ran the existing admin catalogue sync in Production, which is guarded to Stripe test keys, and verified saved test-price mappings for all three membership tiers in Supabase.
+- Files changed: `.ai/TASKS.md`, `.ai/HANDOFF.md` only. Runtime changes: Stripe test Products/Prices synchronized; `membership_plans` Stripe price references updated. No application code, live Stripe, or Wix changes.
+- Commit hash: source remains deployed at `4f5f6c0`; documentation record committed separately.
+- Tests/checks run: verified Production and Supabase project identity; confirmed `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are configured for Production by variable name only; confirmed saved CometXXL recurring/setup IDs and other tier mappings. Focused local tests could not run in this release worktree because the ignored `.test-runtime/@electric-sql/pglite` package is missing. Did not create an applicant or initiate payment.
+- Known issues: a sandbox Checkout session, payment, webhook activation, and Billing Portal behavior remain unverified. Test-mode key use and catalog sync succeeded, so the missing-price refusal is resolved.
+- Exact next recommended task: use a designated test account and complete one CometXXL sandbox purchase; verify webhook creates one active annual membership and payment record, then test cancellation through the Billing Portal.
+
 ## 2026-10-06: CometXXL membership checkout deployed
 
 - Task completed: promoted the isolated CometXXL membership checkout implementation to Vercel Production. Deployment `6mMoYcn722F776Ws1wuf1GKCewSH` is Ready and aliased to `cometx-prototype.vercel.app`.
 - Files changed: deployment source changes are the membership checkout work in commits `a151bbd`, `a6e40ff`, and migration compatibility fix `4f5f6c0`; `.ai/TASKS.md` and `.ai/HANDOFF.md` record deployment status.
-- Commit hash: deployed source `4f5f6c0c6a495bed3b36f69af202ba54b185686d`; handoff/status record `98ae099`.
+- Commit hash: deployed source `4f5f6c0c6a495bed3b36f69af202ba54b185686d`; handoff/status record `71afa46`.
 - Tests/checks run: focused membership checkout and pricing tests passed (2/2); Vercel Preview build passed, then Production rebuild completed Ready; verified live `/membership` loads all plans and CometXXL opens the required email, nationality, motivation, and feedback fields. Did not submit a membership purchase.
 - Known issues: migration `0011` is applied. A completed test-mode subscription, webhook activation, and Billing Portal behavior remain unverified. Preview deployment does not contain production Supabase variables; Production uses its configured environment.
 - Exact next recommended task: configure/verify the Stripe test-mode membership webhook and customer portal, then complete a sandbox subscription with a dedicated test account and verify exactly one active membership is created.
