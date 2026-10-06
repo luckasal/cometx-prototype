@@ -1,4 +1,6 @@
 -- Keep the verified CometXXL checkout contract separate from legacy one-time plans.
+begin;
+
 alter table public.membership_plans
   add column billing_interval text,
   add column setup_fee numeric(10,2) not null default 0,
@@ -16,6 +18,16 @@ set annual_price = 250,
     billing_interval = 'year',
     setup_fee = 1.99
 where slug = 'cometxxl';
+
+-- Some hosted CometX schema snapshots were bootstrapped without migration 0002.
+-- The payment webhook uses this private table to make fulfillment replay-safe.
+create table if not exists public.stripe_checkout_receipts (
+  session_id text primary key,
+  processed_at timestamptz not null default now()
+);
+alter table public.stripe_checkout_receipts enable row level security;
+revoke all on public.stripe_checkout_receipts from public, anon, authenticated;
+grant all on public.stripe_checkout_receipts to service_role;
 
 create table public.membership_applications (
   id uuid primary key default gen_random_uuid(),
