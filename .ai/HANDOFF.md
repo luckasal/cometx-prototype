@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-08: membership webhook production verification
+
+- Task completed: deployed the nullable Checkout Session webhook fix to Vercel Production and verified the rotated webhook secret by retrying the existing paid sandbox event. Stripe returned HTTP 200 and marked the event recovered; Supabase shows its application paid, one active membership, and one matching paid payment record. No new charge was made.
+- Files changed: `.ai/TASKS.md`, `.ai/HANDOFF.md` (deployment record only; application fix remains commit `0cf6d67`).
+- Commit hash: implementation `0cf6d67`, prior handoff `681a08c`; this verification record is a separate commit.
+- Tests/checks run: three focused webhook schema tests pass; `git diff --check` passes. Vercel Production deployment `6RPzLBek1u8vUMLiZwRSV4t5owxR` is Ready and aliased to `cometx-prototype.vercel.app`; Stripe delivery `evt_1UODX10A7SoM9pRt0q5Xwqn3` returned 200; read-only Supabase verification passed.
+- Known issues: two separate CHF 251.99 sandbox payments created two active Stripe CometXXL subscriptions for the same user. The older checkout application `54904f91-3490-4aea-a067-6917e9838464` is still pending in CometX and its event can retry. Do not silently refund/cancel or resend it: the newer subscription is the one currently linked to the active membership. Avoid new checkout attempts until duplicate subscription cleanup is decided.
+- Exact next recommended task: with the user's decision, cancel the older duplicate sandbox subscription `sub_1UOCoX0A7SoM9pRtWrnDPkBJ` and decide whether to refund its test payment; then reconcile the older application/payment and add a regression guard against concurrent membership checkouts. Verify the newer active subscription `sub_1UODWz0A7SoM9pRtqm82r9tN` remains linked and webhook retries do not replace it.
+
 ## 2026-10-08: membership webhook rejects valid Checkout event
 
 - Task completed: accepted Stripe's nullable Checkout Session fields, including `url: null`, while still rejecting malformed events; logged server-only validation errors and replaced the premature membership payment-success message with a pending state.
