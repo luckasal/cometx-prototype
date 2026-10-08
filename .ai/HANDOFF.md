@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-08: membership webhook rejects valid Checkout event
+
+- Task completed: accepted Stripe's nullable Checkout Session fields, including `url: null`, while still rejecting malformed events; logged server-only validation errors and replaced the premature membership payment-success message with a pending state.
+- Files changed: `src/lib/stripe-webhook-event.ts`, `src/routes/api/public/stripe-webhook.ts`, `src/routes/account.membership.tsx`, `tests/stripe-webhook-event.test.mjs`, `.ai/TASKS.md`, `.ai/HANDOFF.md`.
+- Commit hash: implementation `0cf6d67`; this handoff is committed separately.
+- Tests/checks run: three focused Stripe event schema tests pass; `git diff --check` passes. Repository-wide typecheck still has hundreds of pre-existing errors, including implicit-any errors in the edited route handlers.
+- Known issues: code is not deployed. The existing sandbox `checkout.session.completed` delivery returned HTTP 400, and the account still has no active membership. No webhook was resent, no payment repeated, and no Supabase row or secret was changed.
+- Exact next recommended task: deploy only the focused fix on top of the current production source, resend the existing failed Stripe sandbox event, confirm a 2xx delivery and one active CometXXL membership/application in Supabase, then check the account page. If a 400 persists, inspect the new server log reason before changing the signing secret.
+
 ## 2026-10-06: unpaid checkout blocks event deletion
 
 - Task completed: identified a pending CHF 400 order for New Demo Event despite zero confirmed tickets and zero recorded revenue. Added a server-side guard that explains an open checkout instead of exposing the database foreign-key error. It still protects all order history and does not cancel an active checkout.
