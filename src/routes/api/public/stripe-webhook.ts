@@ -1,20 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { z } from "zod";
 import { isPaidCheckout } from "@/lib/checkout";
-
-const eventSchema = z.object({
-  type: z.string(),
-  data: z.object({ object: z.object({
-    id: z.string().min(1),
-    type: z.string().optional(),
-    url: z.string().optional(),
-    amount_total: z.number().int().optional(),
-    currency: z.string().optional(),
-    metadata: z.record(z.string(),z.string()).optional(),
-    payment_status: z.string().optional(),
-    livemode: z.boolean().optional(),
-  }).passthrough() }),
-});
+import { stripeWebhookEventSchema } from "@/lib/stripe-webhook-event";
 
 export const Route = createFileRoute("/api/public/stripe-webhook")({
   server: { handlers: {
@@ -22,8 +8,9 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
       const { verifyStripeSignature } = await import("@/lib/stripe.server");
       let event;
       try {
-        event = eventSchema.parse(await verifyStripeSignature(await request.text(), request.headers.get("stripe-signature")));
-      } catch {
+        event = stripeWebhookEventSchema.parse(await verifyStripeSignature(await request.text(), request.headers.get("stripe-signature")));
+      } catch (error) {
+        console.error("[stripe-webhook] verification or payload validation failed", error instanceof Error ? error.message : "Unknown error");
         return new Response("Invalid webhook", { status: 400 });
       }
       if (["checkout.session.completed", "checkout.session.async_payment_succeeded","checkout.session.expired","checkout.session.async_payment_failed", "customer.subscription.updated", "customer.subscription.deleted"].includes(event.type)) {

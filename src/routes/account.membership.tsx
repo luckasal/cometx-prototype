@@ -44,7 +44,7 @@ function AccountMembershipPage() {
 
   useEffect(() => {
     if (checkout === "success") {
-      toast.success("Payment received. Your membership activates as soon as Stripe confirms it.");
+      toast("Checkout finished. We are checking your membership confirmation.");
       const timer = setTimeout(() => refetch(), 2500);
       return () => clearTimeout(timer);
     }
@@ -71,12 +71,16 @@ function AccountMembershipPage() {
       {data && !data.membership && (
         <div className="max-w-xl">
           <EmptyBlock
-            title="No active membership"
-            hint="Pick a tier and pay with a Stripe test card to see the full member experience."
+            title={checkout === "success" ? "Membership activation pending" : "No active membership"}
+            hint={checkout === "success"
+              ? "CometX has not confirmed your membership yet. Please refresh shortly. If it stays pending, contact support; do not pay again."
+              : "Pick a tier and pay with a Stripe test card to see the full member experience."}
           />
-          <Button asChild variant="signal" size="lg" className="mt-6">
-            <Link to="/membership">See the plans</Link>
-          </Button>
+          {checkout !== "success" && (
+            <Button asChild variant="signal" size="lg" className="mt-6">
+              <Link to="/membership">See the plans</Link>
+            </Button>
+          )}
         </div>
       )}
 
