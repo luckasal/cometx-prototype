@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-09: Annual sandbox billing for all membership tiers
+
+- Task: `ANNUAL-MEMBERSHIP-ALL-TIERS-01`. At the user's explicit request, Fanoušek, CometXXL and Ambasador are annual auto-renewing plans with a CHF 1.99 initial setup fee. Hosted Supabase migrations `0015` and `0016` were applied; the existing hosted Back Office catalogue refresh generated test-mode recurring and setup Stripe prices for all three. Public `/membership` now reads and shows annual terms for all tiers.
+- Local checkout now requires those annual prices, opens the membership application form for every tier, and creates only Stripe subscription Checkout sessions. Webhook synchronizes the returned subscription period. The unused, authenticated-callable prototype RPC that could grant a free membership was revoked for public/client roles. Existing manual memberships, payments and historical orders were not rewritten.
+- Focused annual/legacy membership and refund-safety tests pass; production Vite build succeeds. Full TypeScript checking still reports pre-existing diagnostics. Hosted plan/price IDs and RPC privileges were read-only verified after applying the migrations. Supabase security advisor no longer lists the prototype grant; other existing security findings remain.
+- This release branch is based on the deployed membership-webhook source and excludes unfinished refund/admin code. Fresh paid sandbox purchase, recurring renewal, webhook delivery and Billing Portal testing remain release verification steps. Recurring renewal payment-ledger entries are not yet implemented.
+
 ## 2026-10-08: membership webhook rejects valid Checkout event
 
 - Task completed: accepted Stripe's nullable Checkout Session fields, including `url: null`, while still rejecting malformed events; logged server-only validation errors and replaced the premature membership payment-success message with a pending state.

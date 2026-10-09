@@ -22,6 +22,15 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               p_session: JSON.parse(JSON.stringify(event.data.object)),
             });
             if (error) throw error;
+            // Align access dates with Stripe's actual subscription-item period.
+            const subscriptionId = event.data.object["subscription"];
+            if (typeof subscriptionId !== "string" || !subscriptionId.startsWith("sub_")) throw new Error("Missing membership subscription");
+            const { stripeRequest } = await import("@/lib/stripe.server");
+            const subscription = await stripeRequest<Record<string, unknown>>(`/subscriptions/${encodeURIComponent(subscriptionId)}`);
+            const { error: syncError } = await supabaseAdmin.rpc("sync_cometx_membership_subscription", {
+              p_subscription: JSON.parse(JSON.stringify(subscription)),
+            });
+            if (syncError) throw syncError;
           } else if (["customer.subscription.updated", "customer.subscription.deleted"].includes(event.type)
             && event.data.object.metadata?.["kind"] === "cometx_membership") {
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

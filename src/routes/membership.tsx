@@ -117,14 +117,10 @@ function MembershipPage() {
                   {formatMoney(plan.annualPrice, plan.currency)}
                   <span className="text-sm font-normal text-muted-foreground"> {cs ? "/ rok" : "/ year"}</span>
                 </p>
-                {plan.billingInterval ? (
-                  <div className="mt-1 space-y-1 text-xs text-muted-foreground">
-                    <p>{cs ? "Roční členství se automaticky obnovuje do zrušení." : "Renews annually until canceled."}</p>
-                    {plan.setupFee > 0 && <p>{cs ? `Jednorázový vstupní poplatek: ${formatMoney(plan.setupFee, plan.currency)}.` : `One-time setup fee: ${formatMoney(plan.setupFee, plan.currency)}.`}</p>}
-                  </div>
-                ) : (
-                  <p className="mt-1 text-xs text-muted-foreground">{cs ? "Jednorázová platba na jeden rok. Bez automatického obnovení." : "One payment for one year. No automatic renewal."}</p>
-                )}
+                <div className="mt-1 space-y-1 text-xs text-muted-foreground">
+                  <p>{cs ? "Roční členství se automaticky obnovuje do zrušení." : "Renews annually until canceled."}</p>
+                  <p>{cs ? `Jednorázový vstupní poplatek: ${formatMoney(plan.setupFee, plan.currency)}.` : `One-time setup fee: ${formatMoney(plan.setupFee, plan.currency)}.`}</p>
+                </div>
 
                 <ul className="mt-6 flex-1 space-y-3 border-t border-border pt-6">
                   {plan.benefits.map((benefit) => (
@@ -144,12 +140,8 @@ function MembershipPage() {
                       disabled={checkoutMutation.isPending}
                       onClick={() => {
                         trackEvent("membership_cta_click", { plan: plan.slug, membership_tier: plan.slug, value: plan.annualPrice + plan.setupFee, currency: plan.currency });
-                        if (plan.billingInterval) {
-                          setApplication((current) => ({ ...current, email: user.email ?? current.email }));
-                          setSelectedPlan(plan);
-                        } else {
-                          checkoutMutation.mutate({ planSlug: plan.slug });
-                        }
+                        setApplication((current) => ({ ...current, email: user.email ?? current.email }));
+                        setSelectedPlan(plan);
                       }}
                     >
                       {checkoutMutation.isPending ? (cs ? "Připravujeme platbu…" : "Preparing payment...") : (cs ? `Zvolit ${plan.name}` : `Join ${plan.name}`)}

@@ -45,8 +45,7 @@ export async function getMembershipCheckoutPrices(input: {
   currency: string;
   interval: string | null;
 }): Promise<MembershipCheckoutPriceLine[]> {
-  if (input.interval) {
-    if (input.interval !== "year") throw new Error("This membership billing interval is not supported yet.");
+  if (input.interval === "year" && input.setupFee === 1.99) {
     const recurring = await verifyPrice({
       priceId: input.recurringPriceId,
       amount: input.amount,
@@ -66,15 +65,7 @@ export async function getMembershipCheckoutPrices(input: {
     }
     return lines;
   }
-  return [{
-    price: await verifyPrice({
-      priceId: input.stripePriceId,
-      amount: input.amount,
-      currency: input.currency,
-      type: "one_time",
-    }),
-    quantity: 1,
-  }];
+  throw new Error("This membership is not configured for annual renewal.");
 }
 
 /** Stripe Prices are immutable snapshots; Supabase remains the price source of truth. */
@@ -118,8 +109,7 @@ export async function ensureMembershipPrice(planId: string): Promise<string> {
   const prices = await stripeRequest<{ data: unknown[] }>(`/prices?product=${encodeURIComponent(productId!)}&active=true&limit=100`);
   const parsed = prices.data.map((price) => providerPrice.safeParse(price)).filter((result) => result.success).map((result) => result.data);
 
-  if (plan.billing_interval) {
-    if (plan.billing_interval !== "year") throw new Error("Only annual recurring memberships are currently supported.");
+  if (plan.billing_interval === "year" && Number(plan.setup_fee) === 1.99) {
     let recurring = parsed.find((price) => price.type === "recurring"
       && price.currency.toUpperCase() === plan.currency.toUpperCase()
       && price.unit_amount === amountMinor
@@ -153,21 +143,7 @@ export async function ensureMembershipPrice(planId: string): Promise<string> {
     if (saved.error) throw new Error("Membership payment prices could not be saved.");
     return recurring.id;
   }
-
-  let price = parsed.find((item) => item.type === "one_time"
-    && item.currency.toUpperCase() === plan.currency.toUpperCase()
-    && item.unit_amount === amountMinor);
-  if (!price) {
-    price = providerPrice.parse(await stripeRequest("/prices", {
-      product: productId,
-      currency: plan.currency.toLowerCase(),
-      unit_amount: amountMinor,
-      metadata: { ...metadata, billing: "one_time" },
-    }, `membership_price_${plan.id}_${plan.currency}_${amountMinor}`));
-  }
-  const saved = await supabaseAdmin.from("membership_plans").update({ stripe_price_id: price.id }).eq("id", plan.id);
-  if (saved.error) throw new Error("Membership payment price could not be saved.");
-  return price.id;
+  throw new Error("Only annual renewing memberships with the CHF 1.99 setup fee can be synchronized.");
 }
 
 export async function syncMembershipProduct(planId: string): Promise<boolean> {

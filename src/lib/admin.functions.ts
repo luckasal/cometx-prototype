@@ -480,9 +480,10 @@ export const adminSavePlan = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const db = await admin();
     const { id, ...fields } = data;
+    const recurringFields = { ...fields, billing_interval: "year", setup_fee: 1.99 };
     const result = id
-      ? await db.from("membership_plans").update(fields).eq("id", id).select("id").single()
-      : await db.from("membership_plans").insert(fields).select("id").single();
+      ? await db.from("membership_plans").update(recurringFields).eq("id", id).select("id").single()
+      : await db.from("membership_plans").insert(recurringFields).select("id").single();
     const { error } = result;
     if (error) throw new Error(error.message);
     let paymentSyncReady = false;

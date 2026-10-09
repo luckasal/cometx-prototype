@@ -180,7 +180,10 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
       throw new Error("This membership plan is not available for online payment.");
     }
     const origin = checkoutOrigin(configuredAppUrl(process.env));
-    if (plan.billing_interval && (plan.billing_interval !== "year" || !data.email || !data.nationality || !data.motivation || !data.missingFromSubscription)) {
+    if (plan.billing_interval !== "year" || Number(plan.setup_fee) !== 1.99) {
+      throw new Error("This membership is not configured for annual renewal. Please contact CometX.");
+    }
+    if (!data.email || !data.nationality || !data.motivation || !data.missingFromSubscription) {
       throw new Error("Complete all required membership details before continuing.");
     }
     const lines = await getMembershipCheckoutPrices({
@@ -192,65 +195,55 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
       currency: plan.currency,
       interval: plan.billing_interval,
     });
-    const amountMinor = Math.round((Number(plan.annual_price) + Number(plan.billing_interval ? plan.setup_fee : 0)) * 100);
-    let applicationId: string | null = null;
-    if (plan.billing_interval) {
-      // The verified server request owns this write. The application table is
-      // deliberately read-only to user-scoped clients; keep privileged access
-      // on the server and bind the new row to the authenticated user above.
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: application, error: applicationError } = await supabaseAdmin
-        .from("membership_applications")
-        .insert({
-          user_id: user.userId,
-          membership_plan_id: plan.id,
-          email: data.email!,
-          nationality: data.nationality!,
-          motivation: data.motivation!,
-          missing_from_subscription: data.missingFromSubscription!,
-        })
-        .select("id")
-        .single();
-      assertDatabaseResult({ error: applicationError });
-      if (!application) throw new Error("Membership application could not be saved.");
-      applicationId = application.id;
-    }
+    const amountMinor = Math.round((Number(plan.annual_price) + Number(plan.setup_fee)) * 100);
+    // This server owns the application write; user-scoped clients cannot edit it.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: application, error: applicationError } = await supabaseAdmin
+      .from("membership_applications")
+      .insert({
+        user_id: user.userId,
+        membership_plan_id: plan.id,
+        email: data.email,
+        nationality: data.nationality,
+        motivation: data.motivation,
+        missing_from_subscription: data.missingFromSubscription,
+      })
+      .select("id")
+      .single();
+    assertDatabaseResult({ error: applicationError });
+    if (!application) throw new Error("Membership application could not be saved.");
+    const applicationId = application.id;
     const metadata = {
-      kind: applicationId ? "membership_application" : "membership",
-      ...(applicationId ? { membership_application_id: applicationId } : {}),
+      kind: "membership_application",
+      membership_application_id: applicationId,
       membership_plan_id: plan.id,
       user_id: user.userId,
       expected_amount: String(amountMinor),
       expected_currency: plan.currency.toLowerCase(),
     };
-    const mode = plan.billing_interval ? "subscription" : "payment";
+    const mode = "subscription";
     const session = await stripeRequest<{ id: string; url: string; livemode: boolean; mode: string }>("/checkout/sessions", {
       mode,
       line_items: lines,
       customer_email: data.email ?? user.email ?? undefined,
-      ...(!plan.billing_interval ? { customer_creation: "always", payment_intent_data: { metadata } } : {
-        subscription_data: { metadata: {
-          kind: "cometx_membership",
-          membership_application_id: applicationId!,
-          membership_plan_id: plan.id,
-          user_id: user.userId,
-        } },
-      }),
+      subscription_data: { metadata: {
+        kind: "cometx_membership",
+        membership_application_id: applicationId,
+        membership_plan_id: plan.id,
+        user_id: user.userId,
+      } },
       success_url: `${origin}/account/membership?checkout=success`,
       cancel_url: `${origin}/account/membership?checkout=cancelled`,
       metadata,
-    }, applicationId ? `membership_checkout_${applicationId}` : undefined);
+    }, `membership_checkout_${applicationId}`);
     if (session.livemode !== false || session.mode !== mode || !session.id.startsWith("cs_test_") || new URL(session.url).hostname !== "checkout.stripe.com") {
       throw new Error("Payment checkout could not be prepared safely.");
     }
-    if (applicationId) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { error: saveError } = await supabaseAdmin.from("membership_applications")
-        .update({ stripe_checkout_session_id: session.id })
-        .eq("id", applicationId)
-        .eq("user_id", user.userId);
-      assertDatabaseResult({ error: saveError });
-    }
+    const { error: saveError } = await supabaseAdmin.from("membership_applications")
+      .update({ stripe_checkout_session_id: session.id })
+      .eq("id", applicationId)
+      .eq("user_id", user.userId);
+    assertDatabaseResult({ error: saveError });
     return { url: session.url };
   });
 

@@ -84,7 +84,7 @@ function AdminPlansPage() {
   return (
     <AdminPage
       title="Membership plans"
-      description="Prices and names are data. Entitlements attached to each plan drive all pricing logic."
+      description="All plans renew annually until cancelled. The first payment also includes a CHF 1.99 setup fee. Entitlements drive member benefits."
       action={<Button type="button" variant="outline" disabled={refreshCatalog.isPending} onClick={() => refreshCatalog.mutate()}>{refreshCatalog.isPending ? "Refreshing…" : "Refresh membership products"}</Button>}
     >
       {isLoading && <LoadingBlock label="Loading plans" />}
@@ -103,6 +103,7 @@ function AdminPlansPage() {
                   {formatMoney(Number(plan.annual_price), plan.currency)}
                 </p>
               </div>
+              <p className="mt-2 text-xs text-muted-foreground">Renews annually · CHF 1.99 one-time setup fee</p>
               {plan.description && (
                 <p className="mt-3 text-sm text-muted-foreground">{plan.description}</p>
               )}
