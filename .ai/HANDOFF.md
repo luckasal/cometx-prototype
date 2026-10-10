@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-10: annual membership invoice ledger
+
+- Task: `ANNUAL-MEMBERSHIP-ALL-TIERS-01`. Added idempotent `invoice.paid` handling for CometX annual subscriptions. Initial invoices attach to the Checkout payment record; later paid renewals create separate CHF payment rows with hosted invoice links. Non-CometX invoices are ignored; the database function accepts test-mode, paid CHF membership invoices only and is executable only by `service_role`.
+- Migration `0017_membership_recurring_invoice_ledger.sql` is applied to hosted Supabase project `vlcssswzlvamtscyobbv`; read-only checks confirmed the invoice column/index and service-role-only execution. Security Advisor showed no new finding for this function; unrelated pre-existing warnings remain.
+- Focused annual membership tests pass; Vite production build passes when permitted to resolve pnpm-linked dependencies. Build output retains existing TanStack `inputValidator()` deprecation notices. `pnpm test` could not run due pnpm attempting an install and Windows EPERM; direct Node focused test passed.
+- Still required: commit/push, deploy this webhook update with Production environment variables, verify live page/webhook endpoint. No paid Checkout, invoice renewal, or Billing Portal action was simulated, so do not claim payment lifecycle E2E completion.
+
 ## 2026-10-09: Annual sandbox billing for all membership tiers
 
 - Task: `ANNUAL-MEMBERSHIP-ALL-TIERS-01`. At the user's explicit request, Fanoušek, CometXXL and Ambasador are annual auto-renewing plans with a CHF 1.99 initial setup fee. Hosted Supabase migrations `0015` and `0016` were applied; the existing hosted Back Office catalogue refresh generated test-mode recurring and setup Stripe prices for all three. Public `/membership` now reads and shows annual terms for all tiers.

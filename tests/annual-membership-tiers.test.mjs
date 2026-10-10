@@ -20,3 +20,14 @@ test('all membership tiers use annual subscription Checkout with first-payment s
   assert.doesNotMatch(page, /No automatic renewal/);
   assert.match(admin, /billing_interval: "year", setup_fee: 1\.99/);
 });
+
+test('recurring paid invoices are recorded idempotently against membership payments', async () => {
+  const migration = await readFile('drizzle/migrations/0017_membership_recurring_invoice_ledger.sql', 'utf8');
+  const webhook = await readFile('src/routes/api/public/stripe-webhook.ts', 'utf8');
+  assert.match(migration, /payments_stripe_invoice_id_unique/);
+  assert.match(migration, /billing_reason.*subscription_create/s);
+  assert.match(migration, /record_cometx_membership_invoice_paid/);
+  assert.match(migration, /grant execute .* to service_role/i);
+  assert.match(webhook, /event\.type === "invoice\.paid"/);
+  assert.match(webhook, /record_cometx_membership_invoice_paid/);
+});
