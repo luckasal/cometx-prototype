@@ -7,7 +7,8 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Task: `ANNUAL-MEMBERSHIP-ALL-TIERS-01`. Added idempotent `invoice.paid` handling for CometX annual subscriptions. Initial invoices attach to the Checkout payment record; later paid renewals create separate CHF payment rows with hosted invoice links. Non-CometX invoices are ignored; the database function accepts test-mode, paid CHF membership invoices only and is executable only by `service_role`.
 - Migration `0017_membership_recurring_invoice_ledger.sql` is applied to hosted Supabase project `vlcssswzlvamtscyobbv`; read-only checks confirmed the invoice column/index and service-role-only execution. Security Advisor showed no new finding for this function; unrelated pre-existing warnings remain.
 - Focused annual membership tests pass; Vite production build passes when permitted to resolve pnpm-linked dependencies. Build output retains existing TanStack `inputValidator()` deprecation notices. `pnpm test` could not run due pnpm attempting an install and Windows EPERM; direct Node focused test passed.
-- Still required: commit/push, deploy this webhook update with Production environment variables, verify live page/webhook endpoint. No paid Checkout, invoice renewal, or Billing Portal action was simulated, so do not claim payment lifecycle E2E completion.
+- Commit `1544fcb` is pushed and deployed to Production as Vercel `82zjg6FiBuG8poN9gLwoYQdNHh3o` (Ready; `cometx-prototype.vercel.app` assigned). Live `/membership` was opened and verified with all three annual plans, renewal notice and CHF 1.99 initial fee.
+- Still unverified: no paid sandbox Checkout, actual renewal invoice/webhook delivery, or Billing Portal cancellation was run. The ledger is implemented and migration/permissions are verified, but do not claim payment lifecycle E2E completion until a supervised sandbox test confirms it.
 
 ## 2026-10-09: Annual sandbox billing for all membership tiers
 
