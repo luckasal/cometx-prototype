@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-12: shared access/content loading follow-up
+
+- Task `BACKOFFICE-PERFORMANCE-02`, implementation `140169c`. User reports both Checking access and Events/Contacts content loading are slow. Warm local Members HTML probes were 126–164ms; unauthenticated Supabase reachability probe was ~682ms (401 expected without API key). These do not measure authenticated data requests.
+- Admin layout now prefetches the current Members/Events/Contacts list concurrently with the access-only check, using the exact same query keys as each page. Both requests retain independent server authorization; denied callers never see the protected outlet. No server-side authorization/token cache introduced.
+- Admin-only browser query defaults reuse fresh results for 30s and disable window-focus refetch. AuthProvider clears the query cache when identity changes; each router owns its own QueryClient. Existing mutation invalidation remains unchanged. Events/Contacts reads now have 15s timeouts, no repeated automatic retries and explicit retry controls. Removed two harmless unnecessary quote escapes reported by existing contact CSV lint.
+- Checks: eleven focused tests pass, including real QueryClient isolation/default behavior and existing authorization/revocation tests. Focused lint passes (existing compact Events/Contacts formatting checked with Prettier rule off); diff check passes. All three local route shells return HTTP 200. No authenticated interactive timing or mutation test; no full build/typecheck rerun.
+- Files: `src/router.tsx`, `src/routes/admin.tsx`, `admin.events.index.tsx`, `admin.contacts.tsx`, `tests/admin-access-performance.test.mjs`, task board/handoff. Pre-existing generated route tree remains uncommitted. No hosted data, Stripe, Wix or deployment changes.
+- Next: measure actual signed-in access/list request waterfall after refresh. Cold dev module compilation and remote Auth/role queries still exist; do not promise a particular speed or mark the loading complaint fully resolved from HTML probes alone. Then return to restricted staff roles.
+
 ## 2026-10-12: boss feedback priority 1 — Back Office access/loading
 
 - Task `BACKOFFICE-PERFORMANCE-01`; implementation commit `b1c6dfc` on `codex/annual-membership-release-20261009`. Added an access-only server function, removing profile/membership/benefit reads from the admin gate. Live server-side role checks remain mandatory for every existing admin data handler; role lookup errors fail closed with a retry message.
