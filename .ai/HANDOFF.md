@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-12: boss feedback priority 1 — Back Office access/loading
+
+- Task `BACKOFFICE-PERFORMANCE-01`; implementation commit `b1c6dfc` on `codex/annual-membership-release-20261009`. Added an access-only server function, removing profile/membership/benefit reads from the admin gate. Live server-side role checks remain mandatory for every existing admin data handler; role lookup errors fail closed with a retry message.
+- Session/access/member loading now has 15-second timeout/error recovery; access and member queries do not silently retry for extended periods. Session initialization ignores stale reads after newer auth events and cleans up on unmount. Member membership/role reads run concurrently, scoped to the displayed profiles; expired/future memberships are excluded.
+- Includes preceding work owned by this chat: member detail dialog with assign/unassign admin, confirmation and self-removal guard; history-protected member deletion; Vite transitive-store optimization fixing the local hydration error. No existing accounts, roles or financial records were changed while testing. Pre-existing generated `src/routeTree.gen.ts` is not committed.
+- Files: `src/lib/admin-access.functions.ts`, `request-timeout.ts`, `auth.server.ts`, `admin.functions.ts`; `src/hooks/useAuth.tsx`; admin layout/member routes; `vite.config.ts`; two focused test files; task board.
+- Checks: nine focused tests pass (mocked authorization/revocation and timeout behavior plus regression contracts); source transpilation reports zero syntax errors; focused ESLint passes with the existing AuthProvider fast-refresh warning (Prettier rule disabled only for the existing large admin function file); CRLF-aware diff check passes. Local Members shell responds HTTP 200 (~1.1 seconds for one request), new browser access module HTTP 200 with no privileged key identifiers. This is NOT an authenticated interactive benchmark or live mutation test.
+- No deployment, migration, Stripe configuration change or Wix access. Full production build/typecheck not rerun; known baseline dependency/type issues remain. Local environment still needs a securely injected server-only Supabase key for privileged role/delete operations; do not claim those operations were hosted E2E-tested.
+- Next: review signed-in local loading and retry states, then claim priority 2 restricted staff roles (Event manager/Data analyst/Marketing) with server/RLS permission coverage. Coordinate schema changes separately; do not push/deploy this broader work automatically.
+
 ## 2026-10-10: annual membership invoice ledger
 
 - Task: `ANNUAL-MEMBERSHIP-ALL-TIERS-01`. Added idempotent `invoice.paid` handling for CometX annual subscriptions. Initial invoices attach to the Checkout payment record; later paid renewals create separate CHF payment rows with hosted invoice links. Non-CometX invoices are ignored; the database function accepts test-mode, paid CHF membership invoices only and is executable only by `service_role`.
