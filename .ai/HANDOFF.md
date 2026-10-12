@@ -2,6 +2,14 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-12: restricted staff role permission foundation
+
+- Task `STAFF-ROLES-FOUNDATION-01`, implementation `18ef5a1`. Added pure permission matrix for Administrator/Event manager/Data analyst/Marketing, combined-role support, safe unknown-role/permission denial, route capability mapping and a server guard that authenticates then reads the caller's current database roles. No global token/role cache or user metadata authorization.
+- Files: `src/lib/staff-permissions.ts`, `src/lib/auth.server.ts`, `tests/staff-permissions.test.mjs`, `docs/STAFF_ROLES.md`, task board. Seventeen focused tests pass (six new role/security tests plus existing loading/member safety checks); focused ESLint and diff checks pass.
+- Partial implementation only: existing handlers, hosted enum/RLS and assignment UI remain Member/Admin. The new guard is prepared but NOT wired to relax any handler. No role assigned/revoked, database changed, migration applied, provider/payment operation or deployment performed. Pre-existing generated route tree untouched.
+- The Supabase connector was removed from the available tool set during this task; no authenticated database introspection/DDL verification occurred. Existing local schema/type inspection shows only user/admin. Do not broaden is_admin() to include restricted roles or bypass RLS to make the role labels work.
+- Exact next task: add and test coordinated database roles/RLS, map all admin handlers and direct URLs/prefetch to capabilities, add genuinely read-only analyst views, then add confirmed role selection in member dialog. Full checklist in docs/STAFF_ROLES.md. Restricted role feature is not complete or ready for deployment.
+
 ## 2026-10-12: loading/member-role changes deployed and live reads verified
 
 - User explicitly requested verify/deploy. Local production Vite/Nitro build passed; eleven focused tests passed. Existing validator-deprecation/chunk warnings remain. Full repository typecheck was not rerun; known baseline diagnostics are separate.
