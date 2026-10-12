@@ -2,6 +2,16 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-12: restricted staff role integration implemented; hosted login needed
+
+- Task `STAFF-ROLES-INTEGRATION-01`, implementation `ba3d173`. Member dialog assigns/unassigns Event manager/Data analyst/Marketing with confirmation, role-scoped idempotent writes and self-change protection. Existing Admin controls and account/history guards remain. Table shows role names only; multiple roles combine capabilities.
+- Admin handlers now require explicit read/write/check-in capabilities. Full Admin keeps caller-scoped RLS client. Restricted handlers authenticate/read current own role assignments before dynamically importing the server-only client; direct database/RPC access retains existing Admin-only policies. Settings readiness endpoint now requires authorization. Analytics/orders and event-preview permissions are integrated; protected content membership rules are not broadened.
+- Layout filters navigation and denies direct forbidden URLs, shows a scoped landing page rather than unauthorized dashboard totals. Analysts get separate no-mutation Events/Contacts/Members/Plans views with projected/formula-safe CSV export; read-only Orders/Registrations/Payments and reports retain existing pages. My CometX offers staff navigation without mislabeling restricted staff as full Admin.
+- Generated migration via official Supabase CLI: `supabase/migrations/20261012173752_restricted_staff_roles.sql` adds enum values only, no role grants/assignment or RLS relaxation. Type definitions updated. Local isolated PostgreSQL test applies it twice and confirms restricted roles cannot directly read/write contacts or self-promote while Admin access still works.
+- Checks: 22 focused tests pass; focused source lint passes (Prettier disabled for baseline compact/mixed-ending files); final production Vite/Nitro build passes; diff check passes. No full repository typecheck rerun or authenticated restricted-account UI/HTTP E2E performed. No Stripe/payment changes.
+- Hosted completion is blocked: opened existing CometX Prototype SQL Editor at project `vlcssswzlvamtscyobbv`, but it displayed Session expired / Please sign in again. No SQL query executed, no hosted enum/policy introspection, no migration applied, role granted/revoked or deployment performed. The attempted editor entry failed while the page re-rendered; do not claim remote SQL was submitted successfully.
+- Exact next: user signs into Supabase; inspect current enum/grants/RLS, apply enum-only migration, verify unchanged restrictions, then coordinate deployment and designated-role account E2E. Existing full Admin rights stay unchanged. New role feature is implemented locally, NOT enabled on live prototype. `.test-runtime` remains ignored; CLI-generated `supabase/.temp` and pre-existing route tree remain uncommitted.
+
 ## 2026-10-12: restricted staff role permission foundation
 
 - Task `STAFF-ROLES-FOUNDATION-01`, implementation `18ef5a1`. Added pure permission matrix for Administrator/Event manager/Data analyst/Marketing, combined-role support, safe unknown-role/permission denial, route capability mapping and a server guard that authenticates then reads the caller's current database roles. No global token/role cache or user metadata authorization.
