@@ -76,7 +76,7 @@ test("route permissions identify editors and reject unmapped/private lookalikes"
 test("server permission guard authenticates, scopes role reads and fails closed", async () => {
   const server = await readFile("src/lib/auth.server.ts", "utf8");
   const guard = server.slice(server.indexOf("export async function requireStaffPermission"));
-  const compiled = ts.transpileModule(guard.replace("export ", ""), {
+  const compiled = ts.transpileModule(guard.replaceAll("export ", ""), {
     compilerOptions: { target: ts.ScriptTarget.ES2022 },
   }).outputText;
   let signedIn = true;
@@ -109,11 +109,14 @@ test("server permission guard authenticates, scopes role reads and fails closed"
     }),
     can,
   );
-  assert.deepEqual(await handler("contacts.write"), { userId: "caller" });
+  assert.deepEqual(await handler("contacts.write"), {
+    userId: "caller",
+    staffRoles: ["marketing"],
+  });
   assert.equal(readId, "caller");
   await assert.rejects(handler("roles.manage"), /permission/);
   roles = ["admin"];
-  assert.deepEqual(await handler("roles.manage"), { userId: "caller" });
+  assert.deepEqual(await handler("roles.manage"), { userId: "caller", staffRoles: ["admin"] });
   error = { message: "private database failure" };
   await assert.rejects(handler("roles.manage"), /verify your access/);
   error = null;

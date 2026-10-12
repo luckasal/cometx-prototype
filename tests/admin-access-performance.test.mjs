@@ -28,6 +28,7 @@ test("access check verifies the caller and reads only their admin access", async
   const js = ts.transpileModule(
     source
       .replace('import { createServerFn } from "@tanstack/react-start";', "")
+      .replace('import { permissionsForRoles } from "./staff-permissions";', "")
       .replace("export const", "const")
       .replace('await import("./auth.server")', "auth"),
     { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
@@ -35,23 +36,31 @@ test("access check verifies the caller and reads only their admin access", async
   let allowed = false;
   let signedIn = true;
   const calls = [];
-  const handler = new Function("createServerFn", "auth", `${js}; return getAdminAccess;`)(
+  const handler = new Function(
+    "createServerFn",
+    "auth",
+    "permissionsForRoles",
+    `${js}; return getAdminAccess;`,
+  )(
     () => ({ handler: (handler) => handler }),
     {
       requireUser: async () => {
         if (!signedIn) throw new Error("Sign in");
         return { userId: "caller", email: "caller@example.com" };
       },
-      isAdmin: async (id) => {
+      getStaffRoles: async (id) => {
         calls.push(id);
-        return allowed;
+        return allowed ? ["admin"] : [];
       },
     },
+    (roles) => (roles.includes("admin") ? ["roles.manage"] : []),
   );
   assert.deepEqual(await handler(), {
     userId: "caller",
     email: "caller@example.com",
     isAdmin: false,
+    roles: [],
+    permissions: [],
   });
   allowed = true;
   assert.equal((await handler()).isAdmin, true);

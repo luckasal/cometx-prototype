@@ -58,6 +58,7 @@ export type AccountOverview = {
     country: string | null;
   };
   isAdmin: boolean;
+  hasStaffAccess: boolean;
   membership: {
     planName: string;
     planSlug: string;
@@ -70,16 +71,18 @@ export type AccountOverview = {
 
 export const getAccountOverview = createServerFn({ method: "GET" }).handler(
   async (): Promise<AccountOverview> => {
-    const { requireUser, isAdmin } = await import("./auth.server");
+    const { requireUser, getStaffRoles } = await import("./auth.server");
+    const { permissionsForRoles } = await import("./staff-permissions");
     const { getReadClient } = await import("./database.server");
     const supabaseAdmin = getReadClient();
     const { getCurrentMembership, getPlanEntitlements } = await import("./membership.server");
 
     const user = await requireUser();
 
-    const [{ data: profile }, membership] = await Promise.all([
+    const [{ data: profile }, membership, roles] = await Promise.all([
       supabaseAdmin.from("profiles").select("*").eq("id", user.userId).maybeSingle(),
       getCurrentMembership(user.userId),
+      getStaffRoles(user.userId),
     ]);
 
     let benefits: AccountOverview["membership"] extends null
@@ -110,7 +113,8 @@ export const getAccountOverview = createServerFn({ method: "GET" }).handler(
         jobTitle: profile?.job_title ?? null,
         country: profile?.country ?? null,
       },
-      isAdmin: await isAdmin(user.userId),
+      isAdmin: roles.includes("admin"),
+      hasStaffAccess: permissionsForRoles(roles).length > 0,
       membership: membership
         ? {
             planName: membership.plan.name,

@@ -4,8 +4,7 @@ import { eventOrdersInput } from "./event-orders";
 export const adminListEventOrders = createServerFn({ method: "GET" })
   .validator((input: unknown) => eventOrdersInput.parse(input))
   .handler(async ({ data }) => {
-    const { requireAdmin } = await import("./auth.server");
-    await requireAdmin();
+    await (await import("./auth.server")).requireStaffPermission("orders.read");
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { readEventOrders } = await import("./event-orders.server");

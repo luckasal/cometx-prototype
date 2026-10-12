@@ -31,6 +31,7 @@ export const staffPermissions = [
   "payments.refund",
   "roles.manage",
   "settings.manage",
+  "entitlements.read",
 ] as const;
 export type StaffPermission = (typeof staffPermissions)[number];
 
@@ -42,6 +43,7 @@ const grants: Record<StaffRole, readonly StaffPermission[]> = {
     "attendees.read",
     "attendees.check_in",
     "orders.read",
+    "entitlements.read",
   ],
   data_analyst: [
     "events.read",
@@ -54,6 +56,7 @@ const grants: Record<StaffRole, readonly StaffPermission[]> = {
     "payments.read",
   ],
   marketing: [
+    "entitlements.read",
     "contacts.read",
     "contacts.write",
     "newsletter.read",

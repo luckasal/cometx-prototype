@@ -165,11 +165,11 @@ function AccountOverviewPage() {
             </div>
           </div>
 
-          {data.isAdmin && (
+          {data.hasStaffAccess && (
             <div className="rounded-2xl border border-border/60 p-6">
               <p className="eyebrow text-muted-foreground">Staff</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                You have admin access to the CometX back office.
+                You have staff access to the CometX Back Office. Available sections depend on your role.
               </p>
               <Button asChild variant="ink" className="mt-4 w-full">
                 <Link to="/admin">Open admin</Link>

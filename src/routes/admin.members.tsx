@@ -13,6 +13,8 @@ import { AdminPage, AdminTable } from "@/components/admin/AdminBits";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { withRequestTimeout } from "@/lib/request-timeout";
+import { adminChangeStaffRole } from "@/lib/staff-roles.functions";
+import { staffRoleLabels, type StaffRole } from "@/lib/staff-permissions";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { EmptyBlock, ErrorBlock, LoadingBlock, StatusPill } from "@/components/site/Bits";
 
@@ -27,6 +29,7 @@ function AdminMembersPage() {
   const revokeAdmin = useServerFn(adminRevokeMemberAdmin);
   const { user } = useAuth();
   const deleteMember = useServerFn(adminDeleteMemberAccount);
+  const changeStaffRole = useServerFn(adminChangeStaffRole);
   const cache = useQueryClient();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin", "members"],
@@ -45,6 +48,7 @@ function AdminMembersPage() {
     planName: string | null;
     membershipStatus: string | null;
     isAdmin: boolean;
+    staffRoles: StaffRole[];
   };
   const members = (data ?? []) as MemberSummary[];
   const selected = members.find((member) => member.id === selectedId) ?? null;
@@ -70,6 +74,18 @@ function AdminMembersPage() {
     onSuccess: () => {
       toast.success("Administrator access removed");
       cache.invalidateQueries({ queryKey: ["admin", "members"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const staffChange = useMutation({
+    mutationFn: (change: {
+      id: string;
+      role: "event_manager" | "data_analyst" | "marketing";
+      assigned: boolean;
+    }) => changeStaffRole({ data: change }),
+    onSuccess: () => {
+      toast.success("Staff role saved");
+      cache.invalidateQueries({ queryKey: ["admin"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -114,7 +130,11 @@ function AdminMembersPage() {
                 {member.isAdmin ? (
                   <StatusPill tone="signal">Admin</StatusPill>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Member</span>
+                  <span className="text-xs text-muted-foreground">
+                    {member.staffRoles?.length
+                      ? member.staffRoles.map((role) => staffRoleLabels[role]).join(" · ")
+                      : "Member"}
+                  </span>
                 )}
               </td>
               <td className="text-muted-foreground">
@@ -232,6 +252,40 @@ function AdminMembersPage() {
                   )}
                 </>
               )}
+              <div className="mt-5 space-y-3 border-t border-border pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Additional staff roles can be combined. Administrator already includes all
+                  permissions.
+                </p>
+                {(["event_manager", "data_analyst", "marketing"] as const).map((role) => {
+                  const assigned = selected.staffRoles?.includes(role) ?? false;
+                  return (
+                    <div key={role} className="flex flex-wrap items-center justify-between gap-3">
+                      <span>{staffRoleLabels[role]}</span>
+                      <Button
+                        variant="outlineInk"
+                        size="sm"
+                        disabled={
+                          staffChange.isPending ||
+                          grant.isPending ||
+                          revoke.isPending ||
+                          selected.id === user?.id
+                        }
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `${assigned ? "Unassign" : "Assign"} ${staffRoleLabels[role]} for ${selected.email ?? "this member"}? This changes Back Office access only; memberships and orders remain unchanged.`,
+                            )
+                          )
+                            staffChange.mutate({ id: selected.id, role, assigned: !assigned });
+                        }}
+                      >
+                        {assigned ? "Unassign" : "Assign"} {staffRoleLabels[role]}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
             </section>
             <div className="flex flex-wrap gap-3">
               <Button

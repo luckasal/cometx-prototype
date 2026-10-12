@@ -1,9 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
+import { permissionsForRoles } from "./staff-permissions";
 
 // Opening the Back Office must not wait for membership, benefits or profile queries.
 // Every admin data handler still checks authorization independently.
 export const getAdminAccess = createServerFn({ method: "GET" }).handler(async () => {
-  const { requireUser, isAdmin } = await import("./auth.server");
+  const { requireUser, getStaffRoles } = await import("./auth.server");
   const user = await requireUser();
-  return { userId: user.userId, email: user.email, isAdmin: await isAdmin(user.userId) };
+  const roles = await getStaffRoles(user.userId);
+  return {
+    userId: user.userId,
+    email: user.email,
+    isAdmin: roles.includes("admin"),
+    roles,
+    permissions: permissionsForRoles(roles),
+  };
 });

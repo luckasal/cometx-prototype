@@ -2,14 +2,20 @@ import { createServerFn } from "@tanstack/react-start";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { earliestTicketSaleStart, eventScheduleIssue } from "./event-admin";
+import type { StaffPermission } from "./staff-permissions";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
-async function admin() {
-  const { requireAdmin } = await import("./auth.server");
-  const { getReadClient } = await import("./database.server");
-  await requireAdmin();
-  return getReadClient();
+async function admin(permission: StaffPermission = "roles.manage") {
+  const { requireStaffPermission } = await import("./auth.server");
+  const actor = await requireStaffPermission(permission);
+  if (actor.staffRoles.includes("admin")) {
+    return (await import("./database.server")).getReadClient();
+  }
+  // Staff access is mediated by scoped server handlers; existing direct Data
+  // API policies stay Admin-only. Never broaden is_admin() to include staff.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
 }
 
 async function loadEventMetrics(eventIds: string[]) {
@@ -88,7 +94,7 @@ const eventSchema = z.object({
 });
 
 export const adminListEvents = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin();
+  const db = await admin("events.read");
   const { data, error } = await db
     .from("events")
     .select("id,title,slug,event_type,publish_state,event_status,start_date,end_date,venue,address,capacity,featured,hero_image_url,short_description,description,registration_start,registration_end,updated_at")
@@ -102,7 +108,7 @@ export const adminListEvents = createServerFn({ method: "GET" }).handler(async (
 export const adminGetEvent = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("events.read");
     const [eventResult, ticketsResult, speakersResult, workshopsResult] = await Promise.all([
       db.from("events").select("*").eq("id", data.id).maybeSingle(),
       db.from("ticket_types").select("*").eq("event_id", data.id).eq("active", true).order("sort_order"),
@@ -127,7 +133,7 @@ export const adminGetEvent = createServerFn({ method: "GET" })
 export const adminSetEventPublishState = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), publishState: z.enum(["published", "unpublished"]) }).parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("events.write");
     const { data: event, error } = await db.from("events").update({ publish_state: data.publishState }).eq("id", data.id).select("id").maybeSingle();
     if (error) throw new Error(error.message);
     if (!event) throw new Error("This event could not be updated.");
@@ -147,7 +153,7 @@ export const adminSyncPublishedTicketCatalog = createServerFn({ method: "POST" }
   .inputValidator((d: unknown) => z.object({}).parse(d))
   .handler(async () => {
     // Require staff authorization before using the server-only database and payment credentials.
-    await admin();
+    await admin("events.write");
     const { isStripeConfigured } = await import("./stripe.server");
     if (!isStripeConfigured()) throw new Error("Ticket setup cannot be refreshed right now. Please contact CometX support.");
 
@@ -218,7 +224,7 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("events.write");
     const { id, ...fields } = data.event;
     const firstTicket = earliestTicketSaleStart(data.tickets);
     if (firstTicket?.sale_start) fields.registration_start = firstTicket.sale_start;
@@ -292,7 +298,7 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
 export const adminDeleteEvent = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("events.write");
     const { count, error: registrationsError } = await db
       .from("registrations")
       .select("id", { count: "exact", head: true })
@@ -338,7 +344,7 @@ const speakerSchema = z.object({
 });
 
 export const adminListSpeakers = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin();
+  const db = await admin("events.read");
   const { data } = await db.from("speakers").select("*").order("name");
   return data ?? [];
 });
@@ -346,7 +352,7 @@ export const adminListSpeakers = createServerFn({ method: "GET" }).handler(async
 export const adminSaveSpeaker = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => speakerSchema.parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("events.write");
     const { id, ...fields } = data;
     const { error } = id
       ? await db.from("speakers").update(fields).eq("id", id)
@@ -358,7 +364,7 @@ export const adminSaveSpeaker = createServerFn({ method: "POST" })
 export const adminDeleteSpeaker = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("events.write");
     const { error } = await db.from("speakers").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -384,7 +390,7 @@ const articleSchema = z.object({
 });
 
 export const adminListArticles = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin();
+  const db = await admin("content.read");
   const { data } = await db
     .from("articles")
     .select("id,title,slug,status,visibility,published_at")
@@ -395,7 +401,7 @@ export const adminListArticles = createServerFn({ method: "GET" }).handler(async
 export const adminGetArticle = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("content.read");
     const { data: article } = await db.from("articles").select("*").eq("id", data.id).maybeSingle();
     return article;
   });
@@ -403,7 +409,7 @@ export const adminGetArticle = createServerFn({ method: "GET" })
 export const adminSaveArticle = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => articleSchema.parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("content.write");
     const { id, ...fields } = data;
     const payload = {
       ...fields,
@@ -420,7 +426,7 @@ export const adminSaveArticle = createServerFn({ method: "POST" })
 export const adminDeleteArticle = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("content.write");
     const { error } = await db.from("articles").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -429,7 +435,7 @@ export const adminDeleteArticle = createServerFn({ method: "POST" })
 /* ------------------------------- membership plans ------------------------------ */
 
 export const adminListPlans = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin();
+  const db = await admin("memberships.read");
   const { data } = await db
     .from("membership_plans")
     .select("*, plan_entitlements(value, entitlements(key,name))")
@@ -440,7 +446,7 @@ export const adminListPlans = createServerFn({ method: "GET" }).handler(async ()
 export const adminSyncMembershipCatalog = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({}).parse(d))
   .handler(async () => {
-    const db = await admin();
+    const db = await admin("memberships.write");
     const { data: plans, error } = await db.from("membership_plans").select("id");
     if (error) throw new Error("Membership plans could not be loaded.");
     const { syncMembershipProduct } = await import("./membership-payments.server");
@@ -478,7 +484,7 @@ export const adminSavePlan = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("memberships.write");
     const { id, ...fields } = data;
     const recurringFields = { ...fields, billing_interval: "year", setup_fee: 1.99 };
     const result = id
@@ -499,7 +505,7 @@ export const adminSavePlan = createServerFn({ method: "POST" })
 /* -------------------------- registrations & members --------------------------- */
 
 export const adminListRegistrations = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin();
+  const db = await admin("attendees.read");
   const { data } = await db
     .from("registrations")
     .select("id,user_id,status,price_paid,currency,created_at,events(title,slug),ticket_types(name)")
@@ -524,7 +530,7 @@ export const adminListRegistrations = createServerFn({ method: "GET" }).handler(
 });
 
 export const adminListMembers = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin();
+  const db = await admin("members.read");
   const { data: profiles, error: profilesError } = await db
     .from("profiles")
     .select("id,first_name,last_name,email,company,country,created_at")
@@ -580,6 +586,7 @@ export const adminListMembers = createServerFn({ method: "GET" }).handler(async 
       planName: Array.isArray(plan) ? (plan[0]?.name ?? null) : (plan?.name ?? null),
       membershipStatus: byUser.get(p.id)?.status ?? null,
       isAdmin: admins.has(p.id),
+      staffRoles: roleRows.filter((role) => role.user_id === p.id).map((role) => role.role).filter((role) => ["admin", "event_manager", "data_analyst", "marketing"].includes(role)),
     };
   });
 });
@@ -723,13 +730,13 @@ export const adminDeleteMemberAccount = createServerFn({ method: "POST" })
   });
 
 export const adminListPartners = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin();
+  const db = await admin("partners.read");
   const { data } = await db.from("partners").select("*").order("name");
   return data ?? [];
 });
 
 export const adminListWorkshops = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin();
+  const db = await admin("events.read");
   const { data } = await db
     .from("workshops")
     .select("id,title,start_time,location,base_price,events(title),speakers(name)")
@@ -738,7 +745,7 @@ export const adminListWorkshops = createServerFn({ method: "GET" }).handler(asyn
 });
 
 export const adminListEntitlements = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin();
+  const db = await admin("entitlements.read");
   const { data } = await db.from("entitlements").select("key,name").order("key");
   return data ?? [];
 });
@@ -756,7 +763,7 @@ const partnerSchema = z.object({
 export const adminSavePartner = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => partnerSchema.parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("partners.write");
     const { id, ...fields } = data;
     const { error } = id ? await db.from("partners").update(fields).eq("id", id) : await db.from("partners").insert(fields);
     if (error) throw new Error(error.message);
@@ -766,26 +773,29 @@ export const adminSavePartner = createServerFn({ method: "POST" })
 export const adminDeletePartner = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("partners.write");
     const { error } = await db.from("partners").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const adminListMemberOptions = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin();
+  const db = await admin("contacts.read");
   const { data, error } = await db.from("profiles").select("id,first_name,last_name,email").order("email").limit(500);
   if (error) throw new Error(error.message);
   return data ?? [];
 });
 
-export const getAdminIntegrationStatus = createServerFn({ method: "GET" }).handler(async () => ({
+export const getAdminIntegrationStatus = createServerFn({ method: "GET" }).handler(async () => {
+  await admin("settings.manage");
+  return ({
   resend: Boolean(process.env["RESEND_API_KEY"] && process.env["RESEND_FROM_EMAIL"]),
   stripe: Boolean(process.env["STRIPE_SECRET_KEY"]),
   stripeWebhook: Boolean(process.env["STRIPE_WEBHOOK_SECRET"]),
   gaMeasurementId: Boolean(process.env["VITE_GA_MEASUREMENT_ID"]),
   gtmContainerId: Boolean(process.env["VITE_GTM_CONTAINER_ID"]),
-}));
+});
+});
 
 /* ---------------------- contacts, newsletter and payments --------------------- */
 
@@ -805,7 +815,7 @@ const contactSchema = z.object({
 export const adminListContacts = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ query: z.string().max(160).default(""), status: z.enum(["all", "subscribed", "unsubscribed", "pending"]).default("all") }).parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("contacts.read");
     let request = db.from("contacts").select("*").order("created_at", { ascending: false }).limit(500);
     if (data.status !== "all") request = request.eq("newsletter_status", data.status);
     if (data.query.trim()) {
@@ -820,7 +830,7 @@ export const adminListContacts = createServerFn({ method: "GET" })
 export const adminSaveContact = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => contactSchema.parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("contacts.write");
     const { id, ...fields } = data;
     const payload = {
       ...fields,
@@ -833,14 +843,14 @@ export const adminSaveContact = createServerFn({ method: "POST" })
   });
 
 export const adminListPayments = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin();
+  const db = await admin("payments.read");
   const { data, error } = await db.from("payments").select("id,user_id,registration_id,membership_id,amount,currency,status,invoice_url,receipt_url,created_at").order("created_at", { ascending: false }).limit(300);
   if (error) throw new Error(error.message);
   return data ?? [];
 });
 
 export const adminListTicketOrders = createServerFn({ method: "GET" }).handler(async () => {
-  await admin();
+  await admin("orders.read");
   const { listAdminTicketOrders } = await import("./ticket-orders.server");
   return listAdminTicketOrders();
 });
@@ -851,7 +861,7 @@ const attendeeCheckInInput = z.object({ eventId: z.string().uuid(), attendeeId: 
 export const adminListEventAttendees = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => eventAttendeesInput.parse(d))
   .handler(async ({ data }) => {
-    await admin();
+    await admin("attendees.read");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as unknown as SupabaseClient;
     const rows: unknown[] = [];
@@ -872,8 +882,7 @@ export const adminListEventAttendees = createServerFn({ method: "GET" })
 export const adminCheckInEventAttendee = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => attendeeCheckInInput.parse(d))
   .handler(async ({ data }) => {
-    const { requireAdmin } = await import("./auth.server");
-    const actor = await requireAdmin();
+    const actor = await (await import("./auth.server")).requireStaffPermission("attendees.check_in");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as unknown as SupabaseClient;
     const { data: attendee, error } = await db.from("ticket_attendees")
@@ -928,7 +937,7 @@ const contentSchema = z.object({
 });
 
 export const adminListContent = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin();
+  const db = await admin("content.read");
   const { data, error } = await db.from("content_entries").select("*").order("updated_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data ?? [];
@@ -937,7 +946,7 @@ export const adminListContent = createServerFn({ method: "GET" }).handler(async 
 export const adminSaveContent = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => contentSchema.parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("content.write");
     const { id, ...fields } = data;
     const payload = { ...fields, published_at: fields.status === "published" ? (fields.published_at ?? new Date().toISOString()) : null };
     const { error } = id ? await db.from("content_entries").update(payload).eq("id", id) : await db.from("content_entries").insert(payload);
@@ -948,7 +957,7 @@ export const adminSaveContent = createServerFn({ method: "POST" })
 export const adminDeleteContent = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => {
-    const db = await admin();
+    const db = await admin("content.write");
     const { error } = await db.from("content_entries").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

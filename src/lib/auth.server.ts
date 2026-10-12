@@ -48,9 +48,10 @@ export async function requireAdmin(): Promise<SessionUser> {
   return user;
 }
 
-/** Prepared for restricted staff handlers. Existing handlers remain admin-only
- * until database policies and read-only UI are integrated and tested together. */
-export async function requireStaffPermission(permission: StaffPermission): Promise<SessionUser> {
+/** Current database roles, never user-editable metadata, authorize each handler. */
+export async function requireStaffPermission(
+  permission: StaffPermission,
+): Promise<SessionUser & { staffRoles: string[] }> {
   const user = await requireUser();
   const { data, error } = await getReadClient()
     .from("user_roles")
@@ -65,5 +66,14 @@ export async function requireStaffPermission(permission: StaffPermission): Promi
   ) {
     throw new Error("You do not have permission to perform this action.");
   }
-  return user;
+  return { ...user, staffRoles: (data ?? []).map((row) => String(row.role)) };
+}
+
+export async function getStaffRoles(userId: string): Promise<string[]> {
+  const { data, error } = await getReadClient()
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  if (error) throw new Error("We could not verify your access. Please try again.");
+  return (data ?? []).map((row) => String(row.role));
 }

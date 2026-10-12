@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { ErrorBlock, LoadingBlock } from "@/components/site/Bits";
 import { CometXLogo } from "@/components/site/CometXLogo";
+import { staffRoutePermission } from "@/lib/staff-permissions";
+import { StaffReadOnly } from "@/components/admin/StaffReadOnly";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -35,6 +37,8 @@ const nav = [
   { to: "/admin/newsletter", label: "Newsletter", exact: false },
   { to: "/admin/payments", label: "Payments", exact: false },
   { to: "/admin/content", label: "Content", exact: false },
+  { to: "/admin/articles", label: "Articles", exact: false },
+  { to: "/admin/speakers", label: "Speakers", exact: false },
   { to: "/admin/partners", label: "Partners", exact: false },
   { to: "/admin/settings", label: "Settings", exact: false },
 ] as const;
@@ -123,12 +127,12 @@ function AdminLayout() {
       </div>
     );
 
-  if (!data?.isAdmin)
+  if (!data?.permissions.length)
     return (
       <div className="mx-auto max-w-md px-5 py-28 text-center">
         <h1 className="display-lg">Staff only</h1>
         <p className="mt-4 text-sm text-muted-foreground">
-          Your account does not have administrator access.
+          Your account does not have Back Office access.
         </p>
         <Link to="/account" className="mt-6 inline-block underline underline-offset-4">
           Back to My CometX
@@ -136,6 +140,22 @@ function AdminLayout() {
       </div>
     );
 
+  const canVisit = (path: string) =>
+    path === "/admin" ||
+    path === "/admin/" ||
+    !!data.permissions.includes(staffRoutePermission(path) as never);
+  const visibleNav = nav.filter((item) => canVisit(item.to));
+  const section = pathname.split("/")[2];
+  const writePermission = (
+    {
+      events: "events.write",
+      contacts: "contacts.write",
+      members: "members.write",
+      plans: "memberships.write",
+    } as Record<string, string>
+  )[section];
+  const readOnly = writePermission && !data.permissions.includes(writePermission as never);
+  const root = pathname === "/admin" || pathname === "/admin/";
   return (
     <div className="flex min-h-screen bg-paper">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-ink text-ink-foreground lg:flex">
@@ -144,7 +164,7 @@ function AdminLayout() {
           <p className="eyebrow mt-1 text-ink-foreground/50">Back office</p>
         </div>
         <nav className="flex-1 space-y-1 p-3">
-          {nav.map((item) => (
+          {visibleNav.map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -162,7 +182,7 @@ function AdminLayout() {
 
       <div className="min-w-0 flex-1">
         <div className="flex gap-4 overflow-x-auto border-b border-border bg-ink px-4 py-3 text-ink-foreground lg:hidden">
-          {nav.map((item) => (
+          {visibleNav.map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -173,7 +193,28 @@ function AdminLayout() {
             </Link>
           ))}
         </div>
-        <Outlet />
+        {!canVisit(pathname) ? (
+          <div className="p-10">
+            <h1 className="text-2xl font-bold">Access restricted</h1>
+            <p className="mt-3">Your role does not allow this section.</p>
+          </div>
+        ) : root && !data.isAdmin ? (
+          <div className="space-y-4 p-10">
+            <h1 className="text-2xl font-bold">Your Back Office</h1>
+            <p>Select a section available to your role.</p>
+            {visibleNav
+              .filter((item) => item.to !== "/admin")
+              .map((item) => (
+                <Link key={item.to} to={item.to} className="block underline">
+                  {item.label}
+                </Link>
+              ))}
+          </div>
+        ) : readOnly ? (
+          <StaffReadOnly pathname={pathname} />
+        ) : (
+          <Outlet />
+        )}
       </div>
     </div>
   );
