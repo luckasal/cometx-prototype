@@ -1,5 +1,6 @@
 import { getRequest } from "@tanstack/react-start/server";
 import { getReadClient } from "./database.server";
+import { hasStaffPermission, type StaffPermission } from "./staff-permissions";
 
 export type SessionUser = {
   userId: string;
@@ -43,6 +44,26 @@ export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
   if (!(await isAdmin(user.userId))) {
     throw new Error("Admin access required.");
+  }
+  return user;
+}
+
+/** Prepared for restricted staff handlers. Existing handlers remain admin-only
+ * until database policies and read-only UI are integrated and tested together. */
+export async function requireStaffPermission(permission: StaffPermission): Promise<SessionUser> {
+  const user = await requireUser();
+  const { data, error } = await getReadClient()
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.userId);
+  if (error) throw new Error("We could not verify your access. Please try again.");
+  if (
+    !hasStaffPermission(
+      (data ?? []).map((row) => row.role),
+      permission,
+    )
+  ) {
+    throw new Error("You do not have permission to perform this action.");
   }
   return user;
 }
