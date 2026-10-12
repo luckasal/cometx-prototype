@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-12: loading/member-role changes deployed and live reads verified
+
+- User explicitly requested verify/deploy. Local production Vite/Nitro build passed; eleven focused tests passed. Existing validator-deprecation/chunk warnings remain. Full repository typecheck was not rerun; known baseline diagnostics are separate.
+- Pushed committed source `dc9f402797fc766c9f152f0d73564b41d6d1c941`; Vercel Preview `6JcT3bGpQ3AqhTt2H1QeKy2n55QX` built Ready. Redeployed that same source with **Production** settings (not promotion of a Preview environment build), yielding `BkmSA2Wddt67rHAHQhjNtWhpXy43`, Ready, assigned `cometx-prototype.vercel.app`.
+- Authenticated live `/admin/members` loads real accounts with Role and View details. Adam's dialog shows Unassign admin role; the signed-in user's own dialog disables unassignment and deletion with clear explanations. Live Events and Contacts both completed initial loading and displayed records; returning to Members displayed the loaded table without a fresh access gate. Screenshot of self-role protection captured. No role assignment, revocation, deletion, contact edit or payment was performed.
+- This verifies deployment and read-only UI flow, not a numerical performance benchmark or mutation E2E certification. First-load remote auth/database latency remains possible; monitor the user's experience before claiming the speed issue fully resolved.
+- No Supabase schema, Stripe configuration, Wix or original cometx.ch change. Pre-existing generated route tree stays uncommitted. This entry/task board is a documentation-only follow-up to the deployed source.
+- Next: restricted staff roles after review; Event manager/Data analyst/Marketing are NOT implemented by this release (only Member/Admin).
+
 ## 2026-10-12: shared access/content loading follow-up
 
 - Task `BACKOFFICE-PERFORMANCE-02`, implementation `140169c`. User reports both Checking access and Events/Contacts content loading are slow. Warm local Members HTML probes were 126–164ms; unauthenticated Supabase reachability probe was ~682ms (401 expected without API key). These do not measure authenticated data requests.
