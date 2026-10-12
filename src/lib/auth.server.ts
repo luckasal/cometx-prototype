@@ -29,12 +29,13 @@ export async function requireUser(): Promise<SessionUser> {
 }
 
 export async function isAdmin(userId: string): Promise<boolean> {
-  const { data } = await getReadClient()
+  const { data, error } = await getReadClient()
     .from("user_roles")
     .select("role")
     .eq("user_id", userId)
     .eq("role", "admin")
     .maybeSingle();
+  if (error) throw new Error("We could not verify your access. Please try again.");
   return !!data;
 }
 

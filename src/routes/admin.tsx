@@ -2,7 +2,9 @@ import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-rout
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getAccountOverview } from "@/lib/membership.functions";
+import { getAdminAccess } from "@/lib/admin-access.functions";
+import { withRequestTimeout } from "@/lib/request-timeout";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { ErrorBlock, LoadingBlock } from "@/components/site/Bits";
 import { CometXLogo } from "@/components/site/CometXLogo";
@@ -37,30 +39,41 @@ const nav = [
 ] as const;
 
 function AdminLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, error: authError } = useAuth();
   const navigate = useNavigate();
-  const fetchOverview = useServerFn(getAccountOverview);
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["account"],
-    queryFn: () => fetchOverview(),
+  const fetchAccess = useServerFn(getAdminAccess);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin", "access", user?.id],
+    queryFn: () =>
+      withRequestTimeout(fetchAccess(), 15000, "The access check took too long. Please try again."),
     enabled: !!user,
+    retry: false,
   });
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login", search: { redirect: "/admin" } });
-  }, [loading, user, navigate]);
+    if (!loading && !authError && !user) navigate({ to: "/login", search: { redirect: "/admin" } });
+  }, [loading, authError, user, navigate]);
+
+  if (authError || error)
+    return (
+      <div className="mx-auto max-w-lg space-y-4 p-10">
+        <ErrorBlock error={authError ?? error} />
+        <Button
+          variant="outlineInk"
+          onClick={() => (authError ? window.location.reload() : refetch())}
+        >
+          Try again
+        </Button>
+        <Link to="/login" search={{ redirect: "/admin" }} className="ml-4 text-sm underline">
+          Sign in again
+        </Link>
+      </div>
+    );
 
   if (loading || isLoading || !user)
     return (
       <div className="mx-auto max-w-7xl px-5 py-20">
         <LoadingBlock label="Checking your access" />
-      </div>
-    );
-
-  if (error)
-    return (
-      <div className="mx-auto max-w-lg p-10">
-        <ErrorBlock error={error} />
       </div>
     );
 
@@ -97,7 +110,7 @@ function AdminLayout() {
           ))}
         </nav>
         <div className="border-t border-ink-foreground/15 px-6 py-4 text-xs text-ink-foreground/50">
-          {data?.profile.email}
+          {data?.email}
         </div>
       </aside>
 

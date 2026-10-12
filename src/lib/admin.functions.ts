@@ -525,24 +525,202 @@ export const adminListRegistrations = createServerFn({ method: "GET" }).handler(
 
 export const adminListMembers = createServerFn({ method: "GET" }).handler(async () => {
   const db = await admin();
-  const { data: profiles } = await db
+  const { data: profiles, error: profilesError } = await db
     .from("profiles")
     .select("id,first_name,last_name,email,company,country,created_at")
     .order("created_at", { ascending: false })
     .limit(200);
+  if (profilesError) throw new Error(profilesError.message);
 
-  const { data: memberships } = await db
-    .from("memberships")
-    .select("user_id,status,ends_at,membership_plans(name)")
-    .eq("status", "active");
+  const userIds = ((profiles ?? []) as { id: string }[]).map((profile) => profile.id);
+  if (!userIds.length) return [];
+  const now = new Date().toISOString();
+  const [{ data: memberships, error: membershipsError }, { data: roles, error: rolesError }] = await Promise.all([
+    db.from("memberships")
+      .select("user_id,status,ends_at,membership_plans(name)")
+      .in("user_id", userIds)
+      .eq("status", "active")
+      .lte("starts_at", now)
+      .or(`ends_at.is.null,ends_at.gt.${now}`)
+      .order("starts_at", { ascending: false }),
+    db.from("user_roles").select("user_id,role").in("user_id", userIds),
+  ]);
+  if (membershipsError) throw new Error(membershipsError.message);
+  if (rolesError) throw new Error(rolesError.message);
 
-  const byUser = new Map((memberships ?? []).map((m) => [m.user_id, m]));
-  return (profiles ?? []).map((p) => ({
-    ...p,
-    planName: byUser.get(p.id)?.membership_plans?.name ?? null,
-    membershipStatus: byUser.get(p.id)?.status ?? null,
-  }));
+  type MemberProfile = {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+    company: string | null;
+    country: string | null;
+    created_at: string;
+  };
+  type MemberMembership = {
+    user_id: string;
+    status: string;
+    membership_plans: { name: string } | { name: string }[] | null;
+  };
+  type MemberRole = { user_id: string; role: string };
+  const memberProfiles = (profiles ?? []) as MemberProfile[];
+  const memberRows = (memberships ?? []) as MemberMembership[];
+  const roleRows = (roles ?? []) as MemberRole[];
+  const byUser = new Map<string, MemberMembership>();
+  for (const membership of memberRows) {
+    if (!byUser.has(membership.user_id)) byUser.set(membership.user_id, membership);
+  }
+  const admins = new Set(
+    roleRows.filter((role) => role.role === "admin").map((role) => role.user_id),
+  );
+  return memberProfiles.map((p) => {
+    const plan = byUser.get(p.id)?.membership_plans;
+    return {
+      ...p,
+      planName: Array.isArray(plan) ? (plan[0]?.name ?? null) : (plan?.name ?? null),
+      membershipStatus: byUser.get(p.id)?.status ?? null,
+      isAdmin: admins.has(p.id),
+    };
+  });
 });
+
+const memberRoleSchema = z.object({ id: z.string().uuid() });
+
+export const adminGrantMemberAdmin = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => memberRoleSchema.parse(input))
+  .handler(async ({ data }: { data: z.infer<typeof memberRoleSchema> }) => {
+    await (await import("./auth.server")).requireAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as unknown as SupabaseClient;
+    const { data: profile, error: profileError } = await db
+      .from("profiles")
+      .select("id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (profileError) throw new Error(profileError.message);
+    if (!profile) throw new Error("This member account could not be found.");
+
+    const { data: existingRole, error: roleError } = await db
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", data.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (roleError) throw new Error(roleError.message);
+    if (existingRole) return { ok: true, alreadyAdmin: true };
+
+    const { error } = await db.from("user_roles").insert({ user_id: data.id, role: "admin" });
+    if (error && error.code !== "23505") throw new Error(error.message);
+    return { ok: true, alreadyAdmin: error?.code === "23505" };
+  });
+
+export const adminRevokeMemberAdmin = createServerFn({ method: "POST" })
+  .validator((input: unknown) => memberRoleSchema.parse(input))
+  .handler(async ({ data }: { data: z.infer<typeof memberRoleSchema> }) => {
+    const actor = await (await import("./auth.server")).requireAdmin();
+    if (data.id === actor.userId) {
+      throw new Error("You cannot remove your own administrator access. Ask another administrator.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as unknown as SupabaseClient;
+    // Remove only this privilege; keep all other roles, the account and its history.
+    const { error } = await db
+      .from("user_roles")
+      .delete()
+      .eq("user_id", data.id)
+      .eq("role", "admin");
+    if (error) throw new Error("Administrator access could not be removed. Please try again.");
+    return { ok: true };
+  });
+
+export const adminDeleteMemberAccount = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => memberRoleSchema.parse(input))
+  .handler(async ({ data }: { data: z.infer<typeof memberRoleSchema> }) => {
+    const actor = await (await import("./auth.server")).requireAdmin();
+    if (data.id === actor.userId) {
+      throw new Error("You cannot delete your own administrator account here.");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as unknown as SupabaseClient;
+    const { data: profile, error: profileError } = await db
+      .from("profiles")
+      .select("id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (profileError) throw new Error(profileError.message);
+    if (!profile) throw new Error("This member account could not be found.");
+
+    const { data: adminRole, error: roleError } = await db
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", data.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (roleError) throw new Error(roleError.message);
+    if (adminRole) throw new Error("Remove administrator access before deleting this account.");
+
+    // Keep the auth identity whenever any business, attendee, membership, or payment
+    // history exists. A query failure also blocks deletion (fail closed).
+    const historyChecks = [
+      [
+        "memberships",
+        () => db.from("memberships").select("id", { count: "exact", head: true }).eq("user_id", data.id),
+      ],
+      [
+        "membership applications",
+        () => db.from("membership_applications").select("id", { count: "exact", head: true }).eq("user_id", data.id),
+      ],
+      [
+        "event registrations",
+        () => db.from("registrations").select("id", { count: "exact", head: true }).eq("user_id", data.id),
+      ],
+      [
+        "ticket orders",
+        () => db.from("ticket_orders").select("id", { count: "exact", head: true }).eq("user_id", data.id),
+      ],
+      [
+        "issued tickets",
+        () => db.from("ticket_attendees").select("id", { count: "exact", head: true }).eq("user_id", data.id),
+      ],
+      [
+        "checkout records",
+        () => db.from("ticket_checkout_batches").select("id", { count: "exact", head: true }).eq("user_id", data.id),
+      ],
+      [
+        "payments",
+        () => db.from("payments").select("id", { count: "exact", head: true }).eq("user_id", data.id),
+      ],
+    ] as const;
+    const history = await Promise.all(
+      historyChecks.map(async ([label, check]) => ({ label, ...(await check()) })),
+    );
+    const failedCheck = history.find((item) => item.error);
+    if (failedCheck?.error) {
+      console.error("[admin member deletion] Could not verify account history", {
+        table: failedCheck.label,
+        error: failedCheck.error.message,
+      });
+      throw new Error(
+        "Could not safely verify this account’s history. Nothing was deleted; please try again or contact support.",
+      );
+    }
+    const linkedHistory = history
+      .filter((item) => (item.count ?? 0) > 0)
+      .map((item) => item.label);
+    if (linkedHistory.length) {
+      throw new Error(
+        `This account has linked ${linkedHistory.join(", ")}. Deletion is blocked to preserve its history.`,
+      );
+    }
+
+    const authAdmin = (supabaseAdmin.auth as unknown as {
+      admin: { deleteUser(id: string): Promise<{ error: { message: string } | null }> };
+    }).admin;
+    const { error: deleteError } = await authAdmin.deleteUser(data.id);
+    if (deleteError) throw new Error(`Account deletion failed: ${deleteError.message}`);
+    return { ok: true };
+  });
 
 export const adminListPartners = createServerFn({ method: "GET" }).handler(async () => {
   const db = await admin();
