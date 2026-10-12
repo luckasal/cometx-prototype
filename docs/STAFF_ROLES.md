@@ -1,6 +1,6 @@
 # Restricted Back Office roles
 
-Status: application integration implemented and locally tested; hosted activation is pending the role-label migration and deployment. No existing user has been granted access.
+Status: application integration implemented and locally tested; hosted role-label migration applied and verified on 2026-10-12. Deployment and restricted-account E2E are pending. No existing user has been granted additional access.
 
 The member detail dialog supports assigning/unassigning Event manager, Data analyst and Marketing independently, with confirmation and self-change protection. Admin assignment/removal remains separate and full-admin-only. Role names alone appear in the table.
 
@@ -18,8 +18,8 @@ Implemented in `src/lib/staff-permissions.ts`; `requireStaffPermission` authenti
 
 ## Hosted release sequence
 
-1. Sign into the existing CometX Prototype Supabase dashboard (project vlcssswzlvamtscyobbv). The agent encountered an expired session and performed no hosted SQL.
-2. Inspect enum/RLS, apply CLI-generated `supabase/migrations/20261012173752_restricted_staff_roles.sql` and commit the migration transaction before attempting inserts using new labels. Verify all five enum values and unchanged Admin policies/role grants. No existing role assignments should change.
+1. Supabase login restored; verified existing CometX Prototype project vlcssswzlvamtscyobbv on 2026-10-12.
+2. Applied CLI-generated `supabase/migrations/20261012173752_restricted_staff_roles.sql` through SQL Editor with explicit BEGIN/COMMIT. Postflight confirms all five labels, RLS enabled on contacts/user_roles, unchanged Admin-only contacts policy, own_read user_roles policy and Admin-only is_admin(). Assignments remain six user roles and two Admin roles, no restricted grants. The initial editor replacement produced a syntax error before DDL; replaced the complete buffer and verified successful execution. No unrelated migrations applied.
 3. Deploy the tested app with existing server-only Supabase credentials. No Stripe credential/payment change is required.
 4. Use designated test accounts for each restricted role; verify allowed reads/writes, denied direct handler/RPC calls, forbidden section URLs, role removal, combined roles and analyst export/read-only views. No real account should be used for destructive tests.
 5. Review UI and data-access logs before certifying hosted E2E completion. Only then assign staff roles to the intended people.

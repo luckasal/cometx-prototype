@@ -2,6 +2,14 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-12: contact-security follow-up saved; hosted role labels applied
+
+- User requested saving security recommendations for later and completing STAFF-ROLES-INTEGRATION-01. Saved docs/CONTACT_SECURITY_FOLLOWUP.md and backlog CONTACT-SECURITY-01; no security-policy redesign in this task.
+- Supabase dashboard login restored. On project vlcssswzlvamtscyobbv, preflight confirmed user/admin enum, contacts/user_roles RLS enabled, Admin-only contacts policy, own_read user_roles SELECT policy, and is_admin() checks admin only.
+- Applied enum-only migration 20261012173752 in explicit transaction; postflight confirms user/admin/event_manager/data_analyst/marketing, same policies/function and same assignments (six user, two admin). No account role assigned/revoked and no contact/financial data changed. First editor replacement left preceding SQL and failed at parse time; replaced the entire editor and verified Success plus postflight.
+- Production build passed outside Windows sandbox (initial sandbox Nitro dependency tracing failed); focused tests rerun. Local implementation remains ba3d173. Deployment and designated restricted-account E2E still pending at this entry. No Wix/Stripe changes. Existing route-tree/temp changes remain uncommitted.
+- Next: coordinated deployment of this tested source, verify Admin reads and dialog; use explicitly approved designated test accounts before certifying restricted-role E2E. Contact hardening is saved for later, not marked complete.
+
 ## 2026-10-12: restricted staff role integration implemented; hosted login needed
 
 - Task `STAFF-ROLES-INTEGRATION-01`, implementation `ba3d173`. Member dialog assigns/unassigns Event manager/Data analyst/Marketing with confirmation, role-scoped idempotent writes and self-change protection. Existing Admin controls and account/history guards remain. Table shows role names only; multiple roles combine capabilities.
