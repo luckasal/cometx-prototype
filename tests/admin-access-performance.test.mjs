@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import ts from "typescript";
+import { QueryClient } from "@tanstack/react-query";
 
 async function loadTimeout() {
   const source = await readFile("src/lib/request-timeout.ts", "utf8");
@@ -90,4 +91,54 @@ test("auth initialization handles failed session checks and ignores stale reads 
   assert.match(source, /setError\(new Error/);
   assert.match(source, /setLoading\(false\)/);
   assert.match(source, /clearTimeout\(timer\)/);
+});
+
+test("admin page reads start before the access gate and reuse the same page cache keys", async () => {
+  const page = await readFile("src/routes/admin.tsx", "utf8");
+  const prefetch = page.slice(
+    page.indexOf("// These are independently protected"),
+    page.indexOf("if (authError || error)"),
+  );
+  assert.match(prefetch, /cache\.prefetchQuery/);
+  for (const key of [
+    '["admin", "members"]',
+    '["admin", "events"]',
+    '["admin", "contacts", "", "all"]',
+  ]) {
+    assert.ok(prefetch.includes(key), `missing prefetch for ${key}`);
+  }
+  assert.match(prefetch, /fetchMembers\(\)/);
+  assert.match(prefetch, /fetchEvents\(\)/);
+  assert.match(prefetch, /fetchContacts\(/);
+  assert.match(page, /if \(!user \|\| loading \|\| authError\) return/);
+  for (const route of ["admin.events.index.tsx", "admin.contacts.tsx"]) {
+    const source = await readFile(`src/routes/${route}`, "utf8");
+    assert.match(source, /withRequestTimeout/);
+    assert.match(source, /retry: false/);
+    assert.match(source, /Try again/);
+  }
+});
+
+test("short-lived admin cache avoids focus reloads without changing public query defaults or sharing clients", async () => {
+  const source = await readFile("src/router.tsx", "utf8");
+  const js = ts.transpileModule(
+    source.replace(/^import .*;\r?\n/gm, "").replace("export const", "const"),
+    { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+  ).outputText;
+  const getRouter = new Function(
+    "QueryClient",
+    "createRouter",
+    "routeTree",
+    `${js}; return getRouter;`,
+  )(QueryClient, (options) => options, {});
+  const first = getRouter().context.queryClient;
+  const second = getRouter().context.queryClient;
+  assert.notEqual(first, second);
+  assert.equal(first.getQueryDefaults(["admin", "members"]).staleTime, 30000);
+  assert.equal(first.getQueryDefaults(["admin", "access", "user-a"]).refetchOnWindowFocus, false);
+  assert.deepEqual(first.getQueryDefaults(["events"]), {});
+  first.setQueryData(["admin", "members"], ["private"]);
+  assert.equal(second.getQueryData(["admin", "members"]), undefined);
+  first.clear();
+  assert.equal(first.getQueryData(["admin", "members"]), undefined);
 });

@@ -9,6 +9,7 @@ import { formatMoney } from "@/lib/pricing";
 import { AdminPage, AdminTable } from "@/components/admin/AdminBits";
 import { EmptyBlock, ErrorBlock, LoadingBlock, StatusPill } from "@/components/site/Bits";
 import { Button } from "@/components/ui/button";
+import { withRequestTimeout } from "@/lib/request-timeout";
 
 export const Route = createFileRoute("/admin/events/")({ component: AdminEventsPage });
 
@@ -37,7 +38,7 @@ function AdminEventsPage() {
   const deleteEvent = useServerFn(adminDeleteEvent);
   const setPublishState = useServerFn(adminSetEventPublishState);
   const syncTicketCatalog = useServerFn(adminSyncPublishedTicketCatalog);
-  const { data, isLoading, error } = useQuery({ queryKey: ["admin", "events"], queryFn: () => fetchEvents() });
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ["admin", "events"], queryFn: () => withRequestTimeout(fetchEvents(), 15000, "Loading events took too long. Please try again."), retry: false });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin", "events"] });
   const remove = useMutation({
@@ -104,7 +105,7 @@ function AdminEventsPage() {
       </div>
 
       {isLoading && <LoadingBlock label="Loading events" />}
-      {error && <ErrorBlock error={error} />}
+      {error && <div className="mb-5 space-y-3"><ErrorBlock error={error} /><Button variant="outlineInk" onClick={() => refetch()}>Try again</Button></div>}
       {data?.some((event) => !event.metrics) && <p role="status" className="mb-4 rounded-xl border border-border/60 bg-card px-4 py-3 text-sm text-muted-foreground">Sales totals are temporarily unavailable. Event details and publishing are still available.</p>}
       {data && data.length === 0 && <EmptyBlock title="No events yet" hint="Add an event to start publishing your programme." />}
       {data && data.length > 0 && filtered.length === 0 && <EmptyBlock title="No matching events" hint="Change the search or filters and try again." />}

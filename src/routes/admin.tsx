@@ -1,8 +1,9 @@
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getAdminAccess } from "@/lib/admin-access.functions";
+import { adminListMembers, adminListEvents, adminListContacts } from "@/lib/admin.functions";
 import { withRequestTimeout } from "@/lib/request-timeout";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,6 +42,11 @@ const nav = [
 function AdminLayout() {
   const { user, loading, error: authError } = useAuth();
   const navigate = useNavigate();
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const cache = useQueryClient();
+  const fetchMembers = useServerFn(adminListMembers);
+  const fetchEvents = useServerFn(adminListEvents);
+  const fetchContacts = useServerFn(adminListContacts);
   const fetchAccess = useServerFn(getAdminAccess);
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin", "access", user?.id],
@@ -49,6 +55,46 @@ function AdminLayout() {
     enabled: !!user,
     retry: false,
   });
+
+  useEffect(() => {
+    if (!user || loading || authError) return;
+    // These are independently protected server functions. Start the selected
+    // page's read alongside the access gate, without exposing its UI or records.
+    if (pathname === "/admin/members") {
+      void cache.prefetchQuery({
+        queryKey: ["admin", "members"],
+        queryFn: () =>
+          withRequestTimeout(
+            fetchMembers(),
+            15000,
+            "Loading members took too long. Please try again.",
+          ),
+        retry: false,
+      });
+    } else if (pathname === "/admin/events" || pathname === "/admin/events/") {
+      void cache.prefetchQuery({
+        queryKey: ["admin", "events"],
+        queryFn: () =>
+          withRequestTimeout(
+            fetchEvents(),
+            15000,
+            "Loading events took too long. Please try again.",
+          ),
+        retry: false,
+      });
+    } else if (pathname === "/admin/contacts") {
+      void cache.prefetchQuery({
+        queryKey: ["admin", "contacts", "", "all"],
+        queryFn: () =>
+          withRequestTimeout(
+            fetchContacts({ data: { query: "", status: "all" } }),
+            15000,
+            "Loading contacts took too long. Please try again.",
+          ),
+        retry: false,
+      });
+    }
+  }, [user, loading, authError, pathname, cache, fetchMembers, fetchEvents, fetchContacts]);
 
   useEffect(() => {
     if (!loading && !authError && !user) navigate({ to: "/login", search: { redirect: "/admin" } });

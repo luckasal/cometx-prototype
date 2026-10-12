@@ -7,6 +7,7 @@ import { adminListContacts, adminListMemberOptions, adminSaveContact } from "@/l
 import { AdminPage, AdminTable, Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 import { Button } from "@/components/ui/button";
 import { EmptyBlock, ErrorBlock, LoadingBlock, StatusPill } from "@/components/site/Bits";
+import { withRequestTimeout } from "@/lib/request-timeout";
 
 export const Route = createFileRoute("/admin/contacts")({ component: ContactsPage });
 
@@ -21,8 +22,8 @@ function ContactsPage() {
   const fetchMembers = useServerFn(adminListMemberOptions);
   const saveContact = useServerFn(adminSaveContact);
   const cache = useQueryClient();
-  const contacts = useQuery({ queryKey: ["admin", "contacts", query, status], queryFn: () => fetchContacts({ data: { query, status } }) });
-  const members = useQuery({ queryKey: ["admin", "member-options"], queryFn: () => fetchMembers() });
+  const contacts = useQuery({ queryKey: ["admin", "contacts", query, status], queryFn: () => withRequestTimeout(fetchContacts({ data: { query, status } }), 15000, "Loading contacts took too long. Please try again."), retry: false });
+  const members = useQuery({ queryKey: ["admin", "member-options"], queryFn: () => withRequestTimeout(fetchMembers(), 15000, "Loading linked accounts took too long. Please try again."), retry: false });
   const save = useMutation({
     mutationFn: () => saveContact({ data: { ...draft, first_name: draft.first_name || null, last_name: draft.last_name || null, phone: draft.phone || null, company: draft.company || null, notes: draft.notes || null, member_id: draft.member_id || null } }),
     onSuccess: () => { toast.success("Contact saved"); setDraft(blank); cache.invalidateQueries({ queryKey: ["admin", "contacts"] }); },
@@ -30,7 +31,7 @@ function ContactsPage() {
   });
   function exportContacts() {
     const rows = contacts.data ?? [];
-    const values = ["email", "first_name", "last_name", "company", "source", "newsletter_status", "member_id"].map((key) => key).join(",") + "\n" + rows.map((contact) => [contact.email, contact.first_name, contact.last_name, contact.company, contact.source, contact.newsletter_status, contact.member_id].map((value) => `\"${String(value ?? "").replaceAll("\"", "\"\"")}\"`).join(",")).join("\n");
+    const values = ["email", "first_name", "last_name", "company", "source", "newsletter_status", "member_id"].map((key) => key).join(",") + "\n" + rows.map((contact) => [contact.email, contact.first_name, contact.last_name, contact.company, contact.source, contact.newsletter_status, contact.member_id].map((value) => `"${String(value ?? "").replaceAll("\"", "\"\"")}"`).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([values], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a"); link.href = url; link.download = "cometx-contacts.csv"; link.click(); URL.revokeObjectURL(url);
   }
@@ -42,7 +43,7 @@ function ContactsPage() {
       <Button type="button" variant="outlineInk" onClick={exportContacts} disabled={!contacts.data?.length}>Export CSV</Button>
     </div>
     {contacts.isLoading && <LoadingBlock label="Loading contacts" />}
-    {contacts.error && <ErrorBlock error={contacts.error} />}
+    {contacts.error && <div className="mb-5 space-y-3"><ErrorBlock error={contacts.error} /><Button variant="outlineInk" onClick={() => contacts.refetch()}>Try again</Button></div>}
     {contacts.data?.length === 0 && <EmptyBlock title="No contacts found" />}
     {contacts.data && contacts.data.length > 0 && <AdminTable head={["Contact", "Company", "Source", "Newsletter", "Linked member", "Added", ""]}>{contacts.data.map((contact) => <tr key={contact.id} className="[&>td]:px-4 [&>td]:py-3"><td><p className="font-medium">{[contact.first_name, contact.last_name].filter(Boolean).join(" ") || "-"}</p><p className="text-xs text-muted-foreground">{contact.email}</p></td><td>{contact.company ?? "-"}</td><td>{contact.source}</td><td><StatusPill tone={contact.newsletter_status === "subscribed" ? "success" : "muted"}>{contact.newsletter_status}</StatusPill></td><td>{contact.member_id ? "Linked" : "-"}</td><td>{new Date(contact.created_at).toLocaleDateString("en-GB")}</td><td><button className="text-xs underline" onClick={() => { setDraft({ id: contact.id, email: contact.email, first_name: contact.first_name ?? "", last_name: contact.last_name ?? "", phone: contact.phone ?? "", company: contact.company ?? "", source: contact.source, newsletter_status: contact.newsletter_status, member_id: contact.member_id ?? "", notes: contact.notes ?? "" }); document.getElementById("new-contact")?.scrollIntoView({ behavior: "smooth" }); }}>Edit</button></td></tr>)}</AdminTable>}
     <form id="new-contact" className="mt-10 space-y-5 rounded-2xl border border-border/60 bg-card p-6" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
