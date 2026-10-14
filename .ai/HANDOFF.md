@@ -2,6 +2,14 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-14: restricted-role acceptance preparation
+
+- Task `STAFF-ROLES-INTEGRATION-01` remains in review. The enum migration and role implementation are deployed. Hosted Admin `/admin/members` shows role-assignment controls for all three restricted roles; inspected only, with no assignment or account mutation.
+- Corrected the member detail summary so an account with restricted roles is described as having role-specific Back Office access, rather than incorrectly saying it has no access. Updated `docs/STAFF_ROLES.md` to reflect deployment and to give a concrete per-role E2E matrix and cleanup sequence.
+- Checks: 11 focused role/guard/isolated PostgreSQL tests pass; focused lint and `git diff --check` pass; Production Vite/Nitro build passes with required filesystem access. Full TypeScript check still fails on extensive pre-existing dependency/source diagnostics; its output was not used as a release gate. Initial sandbox build failed on Windows Nitro `EPERM` while resolving installed `tslib`, then the escalated build passed.
+- Supabase Auth Users browser navigation was rejected by automatic approval review because it would expose existing account identities. No workaround was attempted. This leaves creation/selection of dedicated test identities and hosted restricted-account sign-in unverified. An asynchronous user question asks whether to use temporary accounts or user-designated accounts.
+- Files: `src/routes/admin.members.tsx`, `docs/STAFF_ROLES.md`, `.ai/TASKS.md`, `.ai/HANDOFF.md`. Existing generated `src/routeTree.gen.ts` and `supabase/.temp/` are unrelated and must remain unstaged. Exact next: after explicit user approval and browser access clearance, prepare dedicated staff test sign-ins; verify allowed/denied UI and server actions per matrix; remove test roles/accounts; then mark the task done and coordinate deployment of the label fix. Contact-security work remains separate.
+
 ## 2026-10-14: Back Office loading/access acceptance check
 
 - Tasks `BACKOFFICE-PERFORMANCE-01` and `BACKOFFICE-PERFORMANCE-02` are complete. Their implementation was already deployed in Production release `BkmSA2Wddt67rHAHQhjNtWhpXy43` and retained in `2DetfcmyNmDS4fWHyyW375y4EcKa`; this cycle changed documentation only.

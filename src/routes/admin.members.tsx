@@ -207,7 +207,9 @@ function AdminMembersPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 {selected.isAdmin
                   ? "Administrator — full Back Office access"
-                  : "Member — no Back Office access"}
+                  : selected.staffRoles?.length
+                    ? `${selected.staffRoles.map((role) => staffRoleLabels[role]).join(" · ")} — role-specific Back Office access`
+                    : "Member — no Back Office access"}
               </p>
               {!selected.isAdmin && (
                 <Button

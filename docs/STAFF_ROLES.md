@@ -1,6 +1,6 @@
 # Restricted Back Office roles
 
-Status: application integration implemented and locally tested; hosted role-label migration applied and verified on 2026-10-12. Deployment and restricted-account E2E are pending. No existing user has been granted additional access.
+Status: application integration and hosted role-label migration are deployed to the CometX prototype. Restricted-account sign-in and allowed/denied end-to-end checks are pending. No restricted role has been granted to an existing user.
 
 The member detail dialog supports assigning/unassigning Event manager, Data analyst and Marketing independently, with confirmation and self-change protection. Admin assignment/removal remains separate and full-admin-only. Role names alone appear in the table.
 
@@ -20,10 +20,20 @@ Implemented in `src/lib/staff-permissions.ts`; `requireStaffPermission` authenti
 
 1. Supabase login restored; verified existing CometX Prototype project vlcssswzlvamtscyobbv on 2026-10-12.
 2. Applied CLI-generated `supabase/migrations/20261012173752_restricted_staff_roles.sql` through SQL Editor with explicit BEGIN/COMMIT. Postflight confirms all five labels, RLS enabled on contacts/user_roles, unchanged Admin-only contacts policy, own_read user_roles policy and Admin-only is_admin(). Assignments remain six user roles and two Admin roles, no restricted grants. The initial editor replacement produced a syntax error before DDL; replaced the complete buffer and verified successful execution. No unrelated migrations applied.
-3. Deploy the tested app with existing server-only Supabase credentials. No Stripe credential/payment change is required.
+3. The tested app was deployed to Production as Vercel `2DetfcmyNmDS4fWHyyW375y4EcKa` on 2026-10-14. Existing Admin member reads and role controls were verified without changing assignments. No Stripe credential/payment change was required.
 4. Use designated test accounts for each restricted role; verify allowed reads/writes, denied direct handler/RPC calls, forbidden section URLs, role removal, combined roles and analyst export/read-only views. No real account should be used for destructive tests.
 5. Review UI and data-access logs before certifying hosted E2E completion. Only then assign staff roles to the intended people.
 
+The hosted check needs three dedicated temporary sign-ins controlled by the tester. Assign one restricted role to each, then verify:
+
+| Role | Allowed | Denied |
+| --- | --- | --- |
+| Event manager | Event editor, ticket setup, attendee list and check-in on a disposable draft/test event | Contacts, refunds, role assignment and account deletion |
+| Data analyst | Reports and read-only Events, Contacts, Members, Orders and Payments, including projected CSV export | All save, delete, refund and role-assignment actions |
+| Marketing | Contacts, newsletter, content and partners using a disposable test contact | Event editing, Orders, Payments, refunds and role assignment |
+
+Also verify a combined Event manager + Marketing account, then remove one role and confirm the corresponding access disappears on refresh and at the server handler. Remove all temporary roles, records and test accounts after checking that they have no financial or membership history. Do not use a real member for destructive test operations.
+
 ## Acceptance before release
 
-The presence of a role label or pure permission tests is not sufficient. Each role must pass allowed and denied operations on the actual restricted page and database. Local checks cover handler permission mapping, assignment/revocation behavior, authorization failures, route/view boundaries and actual isolated PostgreSQL enum/RLS tests. Hosted authenticated E2E and migration application remain pending; do not describe them as verified.
+The presence of a role label or pure permission tests is not sufficient. Each role must pass allowed and denied operations on the actual restricted page and database. Local checks cover handler permission mapping, assignment/revocation behavior, authorization failures, route/view boundaries and actual isolated PostgreSQL enum/RLS tests. The hosted migration is applied; hosted authenticated restricted-account E2E remains pending.
