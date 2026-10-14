@@ -10,6 +10,14 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Production build passed outside Windows sandbox (initial sandbox Nitro dependency tracing failed); focused tests rerun. Local implementation remains ba3d173. Deployment and designated restricted-account E2E still pending at this entry. No Wix/Stripe changes. Existing route-tree/temp changes remain uncommitted.
 - Next: coordinated deployment of this tested source, verify Admin reads and dialog; use explicitly approved designated test accounts before certifying restricted-role E2E. Contact hardening is saved for later, not marked complete.
 
+## 2026-10-14: restricted staff roles deployed to prototype
+
+- Task `STAFF-ROLES-INTEGRATION-01`; source commit `fefb39d04f966c2b26943ffcf18976fbae37387d`, pushed to `codex/annual-membership-release-20261009`.
+- Production rebuild from the tested Preview source with Production settings: Vercel `2DetfcmyNmDS4fWHyyW375y4EcKa`, Ready, alias `cometx-prototype.vercel.app` assigned. No Preview env was promoted.
+- Smoke check: authenticated `/admin/members` loaded actual member rows and showed role names (`ADMIN`/`Member`) and View details controls. No role assignment, contact access, deletion or payment mutation was performed.
+- Hosted enum/RLS verification and 22 focused tests plus Production Vite/Nitro build are recorded above. No further app code changed in this release cycle; local pre-existing `src/routeTree.gen.ts` and ignored `supabase/.temp/` were not staged.
+- Status: implementation is deployed; mark for review until designated restricted-role accounts pass hosted allowed/denied end-to-end checks. No restricted role was assigned to an existing user. Contact-security backlog is saved in `docs/CONTACT_SECURITY_FOLLOWUP.md` for later.
+
 ## 2026-10-12: restricted staff role integration implemented; hosted login needed
 
 - Task `STAFF-ROLES-INTEGRATION-01`, implementation `ba3d173`. Member dialog assigns/unassigns Event manager/Data analyst/Marketing with confirmation, role-scoped idempotent writes and self-change protection. Existing Admin controls and account/history guards remain. Table shows role names only; multiple roles combine capabilities.
