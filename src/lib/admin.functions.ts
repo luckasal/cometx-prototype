@@ -72,8 +72,8 @@ const eventSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "Use lowercase letters, numbers and dashes only"),
   short_description: z.string().max(400).nullable().default(null),
   description: z.string().max(20000).nullable().default(null),
-  hero_image_url: z.string().url().nullable().default(null),
-  gallery_urls: z.array(z.string().url()).default([]),
+  hero_image_url: z.union([z.string().url(), z.string().regex(/^\/assets\/cometx\/[a-z0-9._-]+\.(?:jpg|jpeg|png|webp)$/i)]).nullable().default(null),
+  gallery_urls: z.array(z.union([z.string().url(), z.string().regex(/^\/assets\/cometx\/[a-z0-9._-]+\.(?:jpg|jpeg|png|webp)$/i)])).default([]),
   start_date: z.string().min(1),
   end_date: z.string().nullable().default(null),
   venue: z.string().max(200).nullable().default(null),
@@ -747,6 +747,17 @@ export const adminListWorkshops = createServerFn({ method: "GET" }).handler(asyn
 export const adminListEntitlements = createServerFn({ method: "GET" }).handler(async () => {
   const db = await admin("entitlements.read");
   const { data } = await db.from("entitlements").select("key,name").order("key");
+  return data ?? [];
+});
+
+export const adminListEventBenefitMatrix = createServerFn({ method: "GET" }).handler(async () => {
+  const db = await admin("events.read");
+  const { data, error } = await db
+    .from("membership_plans")
+    .select("id,name,plan_entitlements(value,entitlements(key,name))")
+    .eq("active", true)
+    .order("sort_order");
+  if (error) throw new Error("Membership benefits could not be loaded.");
   return data ?? [];
 });
 

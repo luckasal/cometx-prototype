@@ -9,6 +9,7 @@ import {
   adminDeleteEvent,
   adminListSpeakers,
   adminListEntitlements,
+  adminListEventBenefitMatrix,
 } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
@@ -106,6 +107,20 @@ export const emptyWorkshop: WorkshopDraft = {
 const nullable = (value: string) => (value.trim() === "" ? null : value.trim());
 const isoOrNull = (value: string) => (value.trim() === "" ? null : new Date(value).toISOString());
 
+const existingEventPhotos = [
+  { label: "Symposium 2026", path: "/assets/cometx/symposium-2026.png" },
+  { label: "Symposium 2025", path: "/assets/cometx/symposium-2025.png" },
+  { label: "Emotional regulation", path: "/assets/cometx/emotional-regulation.jpg" },
+  { label: "Conflict workshop", path: "/assets/cometx/conflict-workshop.jpg" },
+  { label: "AI workshop", path: "/assets/cometx/ai-workshop.jpeg" },
+] as const;
+
+type EventBenefitPlan = {
+  id: string;
+  name: string;
+  plan_entitlements: { value: number | null; entitlements: { key: string; name: string } | null }[];
+};
+
 export function EventForm({
   initialEvent,
   initialTickets,
@@ -132,6 +147,7 @@ export function EventForm({
 
   const fetchSpeakers = useServerFn(adminListSpeakers);
   const fetchEntitlements = useServerFn(adminListEntitlements);
+  const fetchBenefitMatrix = useServerFn(adminListEventBenefitMatrix);
   const save = useServerFn(adminSaveEvent);
   const remove = useServerFn(adminDeleteEvent);
 
@@ -142,6 +158,11 @@ export function EventForm({
   const { data: entitlements = [] } = useQuery({
     queryKey: ["admin", "entitlements"],
     queryFn: () => fetchEntitlements(),
+  });
+  const { data: benefitMatrix = [], error: benefitsError } = useQuery<EventBenefitPlan[]>({
+    queryKey: ["admin", "event-benefit-matrix"],
+    queryFn: async () => (await fetchBenefitMatrix()) as EventBenefitPlan[],
+    enabled: !section || section === "tickets",
   });
 
   const mutation = useMutation({
@@ -319,6 +340,24 @@ export function EventForm({
             placeholder="https://..."
           />
         </Field>
+        <div className="space-y-3">
+          <p className="text-sm font-medium">Choose an existing CometX event photo</p>
+          <p className="text-xs text-muted-foreground">These photos are already hosted with this website. Select one to fill the hero URL, or paste the public URL of an approved image above. This does not upload a new file.</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {existingEventPhotos.map((photo) => (
+              <button
+                key={photo.path}
+                type="button"
+                className="overflow-hidden rounded-xl border border-border bg-background text-left focus-visible:outline-2 focus-visible:outline-accent"
+                onClick={() => set("hero_image_url", photo.path)}
+              >
+                <img src={photo.path} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
+                <span className="block p-2 text-xs">{photo.label}</span>
+              </button>
+            ))}
+          </div>
+          {event.hero_image_url && <img src={event.hero_image_url} alt="Selected event hero preview" className="max-h-52 w-full rounded-xl object-cover" />}
+        </div>
         <Field label="Gallery image URLs" hint="One image URL per line. Optional on public pages.">
           <textarea className={textareaClass} rows={3} value={event.gallery_urls} onChange={(e) => set("gallery_urls", e.target.value)} placeholder="https://..." />
         </Field>
@@ -429,6 +468,8 @@ export function EventForm({
 
       <section hidden={!!section && section !== "content"} className="space-y-4 rounded-2xl border border-border/60 bg-card p-6">
         <h2 className="font-display text-lg font-bold">Speakers</h2>
+        <p className="text-sm text-muted-foreground">Speakers are reusable profiles, but you do not need to reuse one. Create or edit a speaker in <a href="/admin/speakers" target="_blank" rel="noreferrer" className="underline underline-offset-4">Speakers</a>, then select them for this event. Save the event to apply the selection. A workshop speaker is selected separately in Programme and workshops.</p>
+        {speakers.length === 0 && <p className="text-sm text-muted-foreground">No speaker profiles yet. Open Speakers to add one, then return here and refresh.</p>}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {speakers.map((speaker) => (
             <label key={speaker.id} className="flex items-center gap-3 text-sm">
@@ -467,6 +508,23 @@ export function EventForm({
           </p>
         )}
         <p className="text-sm text-muted-foreground">Saved ticket types shown here are active. Removing a saved type archives it when you save. Archived types cannot yet be restored here.</p>
+        <div className="rounded-xl border border-border bg-background p-4 text-sm">
+          <p className="font-semibold">How membership benefits connect to tickets</p>
+          <p className="mt-2 text-muted-foreground">“Requires” limits who may buy. “Discount” applies the selected benefit’s percentage; “Free” makes one eligible ticket free. The buyer’s active membership must include that entitlement. These fields do not create benefits or assign them to a plan.</p>
+          {benefitsError ? <p className="mt-2 text-destructive">Membership-plan benefits could not be loaded. Ticket settings still work.</p> : benefitMatrix.length > 0 && (
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {benefitMatrix.map((plan) => (
+                <div key={plan.id} className="rounded-lg border border-border p-3">
+                  <p className="font-medium">{plan.name}</p>
+                  <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                    {(plan.plan_entitlements ?? []).map((benefit) => <li key={benefit.entitlements?.key ?? "unknown"}>{benefit.entitlements?.name ?? "Benefit"}{benefit.value !== null ? ` (${benefit.value})` : ""}</li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="mt-3 text-xs text-muted-foreground">Plan assignments are listed under <a href="/admin/plans" className="underline underline-offset-4">Memberships</a>. They cannot yet be edited there; ask an administrator before promising a new benefit. Do not use a free-ticket entitlement as a percentage discount.</p>
+        </div>
         {tickets.map((ticket, index) => (
           <div key={index} className="space-y-4 border-t border-border pt-5">
             <p className="text-xs text-muted-foreground">{ticket.id ? "Active ticket type" : "New ticket type · not saved"}</p>
@@ -604,7 +662,7 @@ export function EventForm({
             size="lg"
             disabled={deleteMutation.isPending}
             onClick={() => {
-              if (confirm(`Delete \"${event.title}\"? Events with registrations cannot be deleted.`)) deleteMutation.mutate();
+              if (confirm(`Delete "${event.title}"? Events with registrations cannot be deleted.`)) deleteMutation.mutate();
             }}
           >
             {deleteMutation.isPending ? "Deleting..." : "Delete"}
