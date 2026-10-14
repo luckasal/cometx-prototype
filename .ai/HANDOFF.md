@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-14: Back Office loading/access acceptance check
+
+- Tasks `BACKOFFICE-PERFORMANCE-01` and `BACKOFFICE-PERFORMANCE-02` are complete. Their implementation was already deployed in Production release `BkmSA2Wddt67rHAHQhjNtWhpXy43` and retained in `2DetfcmyNmDS4fWHyyW375y4EcKa`; this cycle changed documentation only.
+- On a signed-in Production browser tab, timed full Members reload from reload to visible member rows at about 2.9s and full Contacts reload to visible contact table at about 3.1s. First Events navigation to visible rows took about 2.7s. The browser showed no loading errors. Timings include UI observation overhead and are not a request waterfall or before/after benchmark; no baseline speedup is claimed.
+- Verified source still uses access-only staff role lookup, parallel guarded page prefetch, concurrent member reads, 15s timeouts, manual retry states, and a 30s user-scoped admin cache. Earlier focused checks and authenticated read-only Production smoke checks remain documented below. No user, contact, payment, database, or Wix records were changed.
+- Files: `.ai/TASKS.md`, `.ai/HANDOFF.md`. Check: documentation diff check. Exact next task: finish designated restricted-role allowed/denied end-to-end checks for `STAFF-ROLES-INTEGRATION-01`; handle `CONTACT-SECURITY-01` separately when prioritized.
+
 ## 2026-10-12: contact-security follow-up saved; hosted role labels applied
 
 - User requested saving security recommendations for later and completing STAFF-ROLES-INTEGRATION-01. Saved docs/CONTACT_SECURITY_FOLLOWUP.md and backlog CONTACT-SECURITY-01; no security-policy redesign in this task.
