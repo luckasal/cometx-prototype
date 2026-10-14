@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-14: boss feedback task 3 — event editor clarity, first increment
+
+- Task `EVENT-EDITOR-FEEDBACK-03`, implementation commit `7325e78`. The event editor now explains required/discount/free entitlements and displays active membership plans' current benefit mappings via a server-authorized read. It offers five existing CometX event photos; the chosen same-origin asset path works on local and deployed domains. It links to the existing Speakers editor and explains per-event and workshop assignments. A new `docs/EVENT_EDITOR_WORKFLOW.md` records the staff workflow and boundaries.
+- Checks: seven focused event/schedule tests pass; focused lint has no errors (three existing Fast Refresh export warnings); Production Vite/Nitro build passes with filesystem access. Initial sandbox build failed while tracing Windows dependencies; escalated build passed. CRLF-aware diff check passed. Full repository typecheck retains broad pre-existing diagnostics and was not a release gate.
+- No hosted database, existing event, benefit, ticket, Stripe, Wix, or deployment change. Existing `src/routeTree.gen.ts` and `supabase/.temp/` were not staged.
+- Exact next task: `EVENT-BENEFITS-EDIT-04` for a guarded admin benefit/plan editor with pricing tests; `EVENT-MEDIA-UPLOAD-05` for approved image upload and management. Task 2 restricted-role hosted E2E remains separately in review pending designated test accounts.
+
 ## 2026-10-14: restricted-role acceptance preparation
 
 - Task `STAFF-ROLES-INTEGRATION-01` remains in review. The enum migration and role implementation are deployed. Hosted Admin `/admin/members` shows role-assignment controls for all three restricted roles; inspected only, with no assignment or account mutation.
