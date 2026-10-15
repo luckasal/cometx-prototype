@@ -22,6 +22,8 @@ type SpeakerForm = {
   photo_url: string;
 };
 
+type SpeakerRow = { id: string; name: string; slug: string; job_title: string | null; company: string | null; bio: string | null; photo_url: string | null };
+
 const empty: SpeakerForm = {
   name: "",
   slug: "",
@@ -41,9 +43,9 @@ function AdminSpeakersPage() {
   const saveSpeaker = useServerFn(adminSaveSpeaker);
   const deleteSpeaker = useServerFn(adminDeleteSpeaker);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<SpeakerRow[]>({
     queryKey: ["admin", "speakers"],
-    queryFn: () => fetchSpeakers(),
+    queryFn: () => fetchSpeakers({ data: {} }),
   });
 
   const save = useMutation({
@@ -90,7 +92,7 @@ function AdminSpeakersPage() {
           {error && <ErrorBlock error={error} />}
           {data && (
             <AdminTable head={["Name", "Role", ""]}>
-              {data.map((speaker) => (
+              {data.map((speaker: SpeakerRow) => (
                 <tr key={speaker.id} className="[&>td]:px-4 [&>td]:py-3">
                   <td className="font-medium">{speaker.name}</td>
                   <td className="text-muted-foreground">

@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { uploadEventImage, type EventMediaScope } from "@/lib/event-media";
 import { eventImageIssue } from "@/lib/event-media-rules";
 
 export function AdminImageUpload({ scope, label, onUploaded }: { scope: EventMediaScope; label: string; onUploaded: (url: string) => void }) {
+  const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +31,7 @@ export function AdminImageUpload({ scope, label, onUploaded }: { scope: EventMed
           setUploading(true);
           try {
             onUploaded(await uploadEventImage(file, scope));
+            queryClient.invalidateQueries({ queryKey: ["admin", "event-media", scope] });
           } catch (cause) {
             setError(cause instanceof Error ? cause.message : "The upload failed. Please try again.");
           } finally {

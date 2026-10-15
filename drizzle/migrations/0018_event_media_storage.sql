@@ -18,6 +18,7 @@ on storage.objects for insert to authenticated
 with check (
   bucket_id = 'cometx-event-media'
   and (storage.foldername(name))[1] in ('event-heroes', 'event-gallery', 'speaker-photos')
+  and storage.extension(name) in ('jpg', 'png', 'webp')
   and exists (
     select 1 from public.user_roles as ur
     where ur.user_id = auth.uid()

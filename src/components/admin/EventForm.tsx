@@ -10,9 +10,10 @@ import {
   adminListSpeakers,
   adminListEntitlements,
   adminListEventBenefitMatrix,
-  adminSaveSpeaker,
 } from "@/lib/admin.functions";
 import { AdminImageUpload } from "@/components/admin/AdminImageUpload";
+import { AdminMediaLibrary } from "@/components/admin/AdminMediaLibrary";
+import { EventOwnedSpeakerEditor } from "@/components/admin/EventOwnedSpeakerEditor";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 import { formatMoney, isRegistrationOpen } from "@/lib/pricing";
@@ -123,7 +124,7 @@ type EventBenefitPlan = {
   plan_entitlements: { value: number | null; entitlements: { key: string; name: string } | null }[];
 };
 
-type EventSpeakerOption = { id: string; name: string };
+type EventSpeakerOption = { id: string; name: string; event_id: string | null; job_title: string | null; company: string | null; bio: string | null; photo_url: string | null };
 
 export function EventForm({
   initialEvent,
@@ -146,6 +147,7 @@ export function EventForm({
   const [tickets, setTickets] = useState<TicketDraft[]>(initialTickets);
   const [speakerIds, setSpeakerIds] = useState<string[]>(initialSpeakerIds);
   const [speakerDraft, setSpeakerDraft] = useState({ name: "", job_title: "", company: "", bio: "", photo_url: "" });
+  const [newSpeakers, setNewSpeakers] = useState<typeof speakerDraft[]>([]);
   const [workshops, setWorkshops] = useState<WorkshopDraft[]>(initialWorkshops);
   const openingTicket = earliestTicketSaleStart(tickets.filter((ticket) => ticket.name.trim()));
   const registrationOpening = openingTicket?.sale_start || event.registration_start;
@@ -154,12 +156,11 @@ export function EventForm({
   const fetchEntitlements = useServerFn(adminListEntitlements);
   const fetchBenefitMatrix = useServerFn(adminListEventBenefitMatrix);
   const save = useServerFn(adminSaveEvent);
-  const saveSpeaker = useServerFn(adminSaveSpeaker);
   const remove = useServerFn(adminDeleteEvent);
 
   const { data: speakers = [] } = useQuery<EventSpeakerOption[]>({
-    queryKey: ["admin", "speakers"],
-    queryFn: async () => (await fetchSpeakers()) as EventSpeakerOption[],
+    queryKey: ["admin", "speakers", event.id ?? "new"],
+    queryFn: async () => (await fetchSpeakers({ data: event.id ? { eventId: event.id } : {} })) as EventSpeakerOption[],
   });
   const { data: entitlements = [] } = useQuery({
     queryKey: ["admin", "entitlements"],
@@ -170,26 +171,6 @@ export function EventForm({
     queryFn: async () => (await fetchBenefitMatrix()) as EventBenefitPlan[],
     enabled: !section || section === "tickets",
   });
-  const speakerMutation = useMutation({
-    mutationFn: () => saveSpeaker({ data: {
-      name: speakerDraft.name.trim(),
-      slug: `${speakerDraft.name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "speaker"}-${crypto.randomUUID().slice(0, 8)}`,
-      job_title: nullable(speakerDraft.job_title),
-      company: nullable(speakerDraft.company),
-      bio: nullable(speakerDraft.bio),
-      photo_url: nullable(speakerDraft.photo_url),
-      linkedin_url: null,
-      website_url: null,
-    } as never }),
-    onSuccess: (saved: { id: string }) => {
-      setSpeakerIds((previous) => [...previous, saved.id]);
-      setSpeakerDraft({ name: "", job_title: "", company: "", bio: "", photo_url: "" });
-      queryClient.invalidateQueries({ queryKey: ["admin", "speakers"] });
-      toast.success("Speaker added. Save the event to attach them.");
-    },
-    onError: (error: Error) => toast.error(error.message),
-  });
-
   const mutation = useMutation({
     mutationFn: (publishState: EventFormValues["publish_state"]) =>
       save({
@@ -215,6 +196,13 @@ export function EventForm({
             featured: event.featured,
           },
           speakerIds,
+          newSpeakers: newSpeakers.map((draft) => ({
+            name: draft.name.trim(),
+            job_title: nullable(draft.job_title),
+            company: nullable(draft.company),
+            bio: nullable(draft.bio),
+            photo_url: nullable(draft.photo_url),
+          })),
           tickets: tickets
             .filter((ticket) => ticket.name.trim() !== "")
             .map((ticket) => ({
@@ -236,11 +224,14 @@ export function EventForm({
           })),
         } as never,
       }),
-    onSuccess: (saved, publishState) => {
+    onSuccess: (saved: { id: string; slug: string; paymentSyncReady: boolean; ticketIds: string[]; newSpeakerIds: string[] }, publishState: EventFormValues["publish_state"]) => {
       toast.success("Event saved");
       if (!saved.paymentSyncReady) toast.warning("Content saved. Online payments are not ready; save again to retry payment setup.");
       setTickets(previous => previous.filter(t=>t.name.trim()!=="").map((t,i)=>({...(saved.ticketIds[i] ? {id:saved.ticketIds[i]} : {}),...t})));
       setEvent((previous) => ({ ...previous, id: saved.id, publish_state: publishState, registration_start: registrationOpening }));
+      setSpeakerIds((previous) => [...previous, ...saved.newSpeakerIds]);
+      setNewSpeakers([]);
+      queryClient.invalidateQueries({ queryKey: ["admin", "speakers"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "events"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["home"] });
@@ -359,6 +350,7 @@ export function EventForm({
         </Field>
         <h3 className="font-display text-lg font-bold">Event photos</h3>
         <AdminImageUpload scope="event-heroes" label="Upload main photo from your computer" onUploaded={(url) => set("hero_image_url", url)} />
+        <AdminMediaLibrary scope="event-heroes" selectedUrls={[event.hero_image_url]} onChoose={(url) => set("hero_image_url", url)} />
         <div className="space-y-3">
           <p className="text-sm font-medium">Choose an existing CometX event photo</p>
           <p className="text-xs text-muted-foreground">These photos are already hosted with this website. Select one for the main image, or upload a new photo above.</p>
@@ -378,6 +370,7 @@ export function EventForm({
           {event.hero_image_url && <img src={event.hero_image_url} alt="Selected event hero preview" className="max-h-52 w-full rounded-xl object-cover" />}
         </div>
         <AdminImageUpload scope="event-gallery" label="Add a gallery photo from your computer" onUploaded={(url) => set("gallery_urls", [event.gallery_urls.trim(), url].filter(Boolean).join("\n"))} />
+        <AdminMediaLibrary scope="event-gallery" selectedUrls={event.gallery_urls.split("\n").map((url) => url.trim()).filter(Boolean)} onChoose={(url) => set("gallery_urls", [...new Set([...event.gallery_urls.split("\n").map((item) => item.trim()).filter(Boolean), url])].join("\n"))} />
         {event.gallery_urls.trim() && <p className="text-xs text-muted-foreground">{event.gallery_urls.split("\n").filter(Boolean).length} gallery photo(s) selected. Open the URL section to remove one.</p>}
         <details className="rounded-xl border border-border p-4">
           <summary className="cursor-pointer text-sm font-medium">Use an existing image URL instead</summary>
@@ -503,13 +496,21 @@ export function EventForm({
             <Field label="Photo URL"><input className={inputClass} value={speakerDraft.photo_url} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, photo_url: e.target.value }))} /></Field>
           </div>
           <AdminImageUpload scope="speaker-photos" label="Upload speaker portrait from your computer" onUploaded={(url) => setSpeakerDraft((previous) => ({ ...previous, photo_url: url }))} />
+          <AdminMediaLibrary scope="speaker-photos" selectedUrls={[speakerDraft.photo_url, ...newSpeakers.map((speaker) => speaker.photo_url)]} onChoose={(url) => setSpeakerDraft((previous) => ({ ...previous, photo_url: url }))} />
           <Field label="Short bio"><textarea className={textareaClass} value={speakerDraft.bio} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, bio: e.target.value }))} /></Field>
-          <Button type="button" variant="outlineInk" disabled={speakerMutation.isPending || speakerDraft.name.trim().length < 2} onClick={() => speakerMutation.mutate()}>
-            {speakerMutation.isPending ? "Adding speaker…" : "Add speaker"}
+          <Button type="button" variant="outlineInk" disabled={speakerDraft.name.trim().length < 2} onClick={() => {
+            setNewSpeakers((previous) => [...previous, { ...speakerDraft }]);
+            setSpeakerDraft({ name: "", job_title: "", company: "", bio: "", photo_url: "" });
+          }}>
+            Add speaker to event draft
           </Button>
-          <p className="text-xs text-muted-foreground">Adding saves the speaker profile immediately. Save the event afterwards to attach them. Unused profiles can be removed under <a href="/admin/speakers" className="underline underline-offset-4">Speakers</a>.</p>
+          <p className="text-xs text-muted-foreground">The speaker is saved only when you save the event. One-off speakers are not added to the reusable speaker list.</p>
         </div>
+        {newSpeakers.length > 0 && <div className="space-y-2" aria-label="New speakers pending event save">
+          {newSpeakers.map((speaker, index) => <div key={`${speaker.name}-${index}`} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"><span>{speaker.name} · pending event save</span><Button type="button" variant="ghost" size="sm" onClick={() => setNewSpeakers((previous) => previous.filter((_, itemIndex) => itemIndex !== index))}>Remove</Button></div>)}
+        </div>}
         {speakerIds.length > 0 && <p className="text-sm">Selected for this event: {speakers.filter((speaker: EventSpeakerOption) => speakerIds.includes(speaker.id)).map((speaker: EventSpeakerOption) => speaker.name).join(", ") || `${speakerIds.length} speaker(s)`}</p>}
+        {event.id && speakers.filter((speaker: EventSpeakerOption) => speaker.event_id === event.id).map((speaker: EventSpeakerOption) => <EventOwnedSpeakerEditor key={speaker.id} eventId={event.id!} speaker={speaker} onDeleted={(id) => setSpeakerIds((previous) => previous.filter((item) => item !== id))} />)}
         <details className="rounded-xl border border-border p-4">
           <summary className="cursor-pointer text-sm font-medium">Choose or remove an existing speaker</summary>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

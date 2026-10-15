@@ -552,6 +552,7 @@ export type Database = {
           bio: string | null
           company: string | null
           created_at: string
+          event_id: string | null
           id: string
           job_title: string | null
           linkedin_url: string | null
@@ -564,6 +565,7 @@ export type Database = {
           bio?: string | null
           company?: string | null
           created_at?: string
+          event_id?: string | null
           id?: string
           job_title?: string | null
           linkedin_url?: string | null
@@ -576,6 +578,7 @@ export type Database = {
           bio?: string | null
           company?: string | null
           created_at?: string
+          event_id?: string | null
           id?: string
           job_title?: string | null
           linkedin_url?: string | null
@@ -584,7 +587,15 @@ export type Database = {
           slug?: string
           website_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "speakers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ticket_types: {
         Row: {

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { earliestTicketSaleStart, eventScheduleIssue } from "./event-admin";
+import { managedEventMediaPath } from "./event-media-rules";
 import type { StaffPermission } from "./staff-permissions";
 
 const idSchema = z.object({ id: z.string().uuid() });
@@ -189,6 +190,13 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
       .object({
         event: eventSchema,
         speakerIds: z.array(z.string().uuid()).default([]),
+        newSpeakers: z.array(z.object({
+          name: z.string().trim().min(2).max(160),
+          job_title: z.string().max(160).nullable().default(null),
+          company: z.string().max(160).nullable().default(null),
+          bio: z.string().max(4000).nullable().default(null),
+          photo_url: z.string().url().nullable().default(null),
+        })).max(30).default([]),
         tickets: z
         .array(
             z.object({
@@ -231,6 +239,16 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
     const scheduleIssue = eventScheduleIssue(fields);
     if (scheduleIssue) throw new Error(scheduleIssue);
 
+    const { assertDatabaseResult } = await import("./database.server");
+    if (data.speakerIds.length) {
+      const allowedSpeakers = await db.from("speakers").select("id,event_id").in("id", data.speakerIds);
+      assertDatabaseResult(allowedSpeakers);
+      if (allowedSpeakers.data?.length !== new Set(data.speakerIds).size ||
+        allowedSpeakers.data.some((speaker: { event_id: string | null }) => speaker.event_id && speaker.event_id !== (id ?? null))) {
+        throw new Error("A selected speaker belongs to another event.");
+      }
+    }
+
     const { data: saved, error } = id
       ? await db.from("events").update(fields).eq("id", id).select("id,slug").single()
       : await db.from("events").insert(fields).select("id,slug").single();
@@ -238,14 +256,6 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
     if (error) {
       if (error.code === "23505") throw new Error("An event with that slug already exists.");
       throw new Error(error.message);
-    }
-
-    const { assertDatabaseResult } = await import("./database.server");
-    assertDatabaseResult(await db.from("event_speakers").delete().eq("event_id", saved.id));
-    if (data.speakerIds.length) {
-      assertDatabaseResult(await db
-        .from("event_speakers")
-        .insert(data.speakerIds.map((sid, i) => ({ event_id: saved.id, speaker_id: sid, sort_order: i }))));
     }
 
     const ticketLookup = await db.from("ticket_types").select("id").eq("event_id", saved.id);
@@ -280,6 +290,40 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
       else assertDatabaseResult(await db.from("workshops").insert(payload));
     }
 
+    // Create event-owned profiles only at the end of the event save. If their
+    // event link fails, remove the new rows so no detached speaker records remain.
+    const newSpeakerIds: string[] = [];
+    if (data.newSpeakers.length) {
+      const speakerRows = data.newSpeakers.map((draft: { name: string; job_title: string | null; company: string | null; bio: string | null; photo_url: string | null }) => {
+        const slugStem = draft.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "speaker";
+        return { ...draft, event_id: saved.id, slug: `${slugStem.slice(0, 140)}-${crypto.randomUUID().slice(0, 8)}` };
+      });
+      const { data: createdSpeakers, error: speakerError } = await db.from("speakers").insert(speakerRows).select("id");
+      if (speakerError) throw new Error(speakerError.message);
+      newSpeakerIds.push(...(createdSpeakers ?? []).map((speaker: { id: string }) => speaker.id));
+    }
+    const selectedSpeakerIds = [...new Set([...data.speakerIds, ...newSpeakerIds])];
+    const existingSpeakerLinks = await db.from("event_speakers").select("speaker_id").eq("event_id", saved.id);
+    if (existingSpeakerLinks.error) {
+      if (newSpeakerIds.length) await db.from("speakers").delete().eq("event_id", saved.id).in("id", newSpeakerIds);
+      throw new Error("Existing event speakers could not be loaded. No new speaker was attached.");
+    }
+    if (selectedSpeakerIds.length) {
+      const links = await db.from("event_speakers").upsert(
+        selectedSpeakerIds.map((sid, i) => ({ event_id: saved.id, speaker_id: sid, sort_order: i })),
+        { onConflict: "event_id,speaker_id" },
+      );
+      if (links.error) {
+        if (newSpeakerIds.length) await db.from("speakers").delete().eq("event_id", saved.id).in("id", newSpeakerIds);
+        throw new Error(links.error.message);
+      }
+    }
+    const removedSpeakerIds = existingSpeakerLinks.data.map((link: { speaker_id: string }) => link.speaker_id).filter((speakerId: string) => !selectedSpeakerIds.includes(speakerId));
+    if (removedSpeakerIds.length) {
+      const removed = await db.from("event_speakers").delete().eq("event_id", saved.id).in("speaker_id", removedSpeakerIds);
+      if (removed.error) throw new Error("The event was saved, but removed speaker links could not be updated. Please save again.");
+    }
+
     let paymentSyncReady = false;
     try {
       const { syncEventPayments } = await import("./ticket-payments.server");
@@ -292,7 +336,7 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
     }
     const updatedTickets = await db.from("ticket_types").select("id,sort_order").eq("event_id",saved.id).eq("active",true).order("sort_order");
     assertDatabaseResult(updatedTickets);
-    return { id: saved.id, slug: saved.slug, paymentSyncReady, ticketIds:(updatedTickets.data ?? []).map(t=>t.id) };
+    return { id: saved.id, slug: saved.slug, paymentSyncReady, newSpeakerIds, ticketIds:(updatedTickets.data ?? []).map(t=>t.id) };
   });
 
 export const adminDeleteEvent = createServerFn({ method: "POST" })
@@ -325,6 +369,50 @@ export const adminDeleteEvent = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/* -------------------------------- event media -------------------------------- */
+
+const eventMediaBucket = "cometx-event-media";
+const eventMediaScope = z.enum(["event-heroes", "event-gallery", "speaker-photos"]);
+const eventMediaPath = z.string().regex(managedEventMediaPath);
+
+export const adminListEventMedia = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => z.object({ scope: eventMediaScope, offset: z.number().int().min(0).default(0) }).parse(d))
+  .handler(async ({ data: input }: { data: { scope: z.infer<typeof eventMediaScope>; offset: number } }) => {
+    await admin("events.read");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.storage.from(eventMediaBucket).list(input.scope, {
+      limit: 100,
+      offset: input.offset,
+      sortBy: { column: "created_at", order: "desc" },
+    });
+    if (error) throw new Error("Event photos could not be loaded.");
+    return (data ?? []).filter((file: { id?: string | null; name: string }) => file.id && /\.(?:jpg|png|webp)$/i.test(file.name)).map((file: { name: string; created_at: string }) => {
+      const path = `${input.scope}/${file.name}`;
+      return { path, url: supabaseAdmin.storage.from(eventMediaBucket).getPublicUrl(path).data.publicUrl, createdAt: file.created_at };
+    });
+  });
+
+export const adminDeleteUnusedEventMedia = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ path: eventMediaPath }).parse(d))
+  .handler(async ({ data: input }: { data: { path: string } }) => {
+    await admin("events.write");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const bucket = supabaseAdmin.storage.from(eventMediaBucket);
+    const url = bucket.getPublicUrl(input.path).data.publicUrl;
+    const [hero, gallery, speaker] = await Promise.all([
+      supabaseAdmin.from("events").select("id", { count: "exact", head: true }).eq("hero_image_url", url),
+      supabaseAdmin.from("events").select("id", { count: "exact", head: true }).contains("gallery_urls", [url]),
+      supabaseAdmin.from("speakers").select("id", { count: "exact", head: true }).eq("photo_url", url),
+    ]);
+    if (hero.error || gallery.error || speaker.error) throw new Error("Photo references could not be verified. Nothing was deleted.");
+    if ((hero.count ?? 0) + (gallery.count ?? 0) + (speaker.count ?? 0) > 0) {
+      throw new Error("This photo is still used by an event or speaker. Remove the reference and save first.");
+    }
+    const { error } = await bucket.remove([input.path]);
+    if (error) throw new Error("The unused photo could not be deleted.");
+    return { ok: true };
+  });
+
 /* ---------------------------------- speakers ---------------------------------- */
 
 const speakerSchema = z.object({
@@ -343,9 +431,13 @@ const speakerSchema = z.object({
   website_url: z.string().url().nullable().default(null),
 });
 
-export const adminListSpeakers = createServerFn({ method: "GET" }).handler(async () => {
+export const adminListSpeakers = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => z.object({ eventId: z.string().uuid().optional() }).parse(d ?? {}))
+  .handler(async ({ data: input }: { data: { eventId?: string } }) => {
   const db = await admin("events.read");
-  const { data } = await db.from("speakers").select("*").order("name");
+  const query = db.from("speakers").select("*").order("name");
+  const { data, error } = await (input.eventId ? query.or(`event_id.is.null,event_id.eq.${input.eventId}`) : query.is("event_id", null));
+  if (error) throw new Error(error.message);
   return data ?? [];
 });
 
@@ -355,7 +447,7 @@ export const adminSaveSpeaker = createServerFn({ method: "POST" })
     const db = await admin("events.write");
     const { id, ...fields } = data;
     const { data: saved, error } = id
-      ? await db.from("speakers").update(fields).eq("id", id).select("id").single()
+      ? await db.from("speakers").update(fields).eq("id", id).is("event_id", null).select("id").single()
       : await db.from("speakers").insert(fields).select("id").single();
     if (error) throw new Error(error.message);
     return { ok: true, id: saved.id };
@@ -365,8 +457,41 @@ export const adminDeleteSpeaker = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data }) => {
     const db = await admin("events.write");
-    const { error } = await db.from("speakers").delete().eq("id", data.id);
+    const { error } = await db.from("speakers").delete().eq("id", data.id).is("event_id", null);
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminUpdateEventSpeaker = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({
+    eventId: z.string().uuid(),
+    speakerId: z.string().uuid(),
+    name: z.string().trim().min(2).max(160),
+    job_title: z.string().max(160).nullable(),
+    company: z.string().max(160).nullable(),
+    bio: z.string().max(4000).nullable(),
+    photo_url: z.string().url().nullable(),
+  }).parse(d))
+  .handler(async ({ data: input }: { data: { eventId: string; speakerId: string; name: string; job_title: string | null; company: string | null; bio: string | null; photo_url: string | null } }) => {
+    const db = await admin("events.write");
+    const { eventId, speakerId, ...fields } = input;
+    const { data, error } = await db.from("speakers").update(fields)
+      .eq("id", speakerId).eq("event_id", eventId).select("id").single();
+    if (error || !data) throw new Error("This one-off speaker could not be updated for the event.");
+    return { ok: true };
+  });
+
+export const adminDeleteEventSpeaker = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ eventId: z.string().uuid(), speakerId: z.string().uuid() }).parse(d))
+  .handler(async ({ data: input }: { data: { eventId: string; speakerId: string } }) => {
+    const db = await admin("events.write");
+    const workshop = await db.from("workshops").select("id", { count: "exact", head: true })
+      .eq("event_id", input.eventId).eq("speaker_id", input.speakerId);
+    if (workshop.error) throw new Error("The speaker's programme links could not be checked.");
+    if ((workshop.count ?? 0) > 0) throw new Error("Remove this speaker from the event's workshops and save before deleting them.");
+    const { data, error } = await db.from("speakers").delete()
+      .eq("id", input.speakerId).eq("event_id", input.eventId).select("id").single();
+    if (error || !data) throw new Error("This one-off speaker could not be deleted.");
     return { ok: true };
   });
 

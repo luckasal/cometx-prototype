@@ -1,4 +1,5 @@
 export const eventMediaMaxBytes = 5 * 1024 * 1024;
+export const managedEventMediaPath = /^(?:event-heroes|event-gallery|speaker-photos)\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:jpg|png|webp)$/i;
 
 export const eventMediaExtensions: Record<string, string> = {
   "image/jpeg": "jpg",
