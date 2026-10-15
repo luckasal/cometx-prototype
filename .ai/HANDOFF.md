@@ -2,6 +2,14 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-15: event photos — PC-upload-only editor
+
+- Task `EVENT-CONTENT-PHOTO-UX-09`; implementation commit `3926d15`. Event Edit content now offers only PC uploads for main, gallery and one-off speaker photos. Current references show previews and can be detached; removing a reference does not delete the stored file. URL inputs, bundled-photo picker and uploaded-media browser were removed from this editor. The upload component now has unique file-input IDs and context-appropriate save instructions.
+- Files: `src/components/admin/EventForm.tsx`, `EventOwnedSpeakerEditor.tsx`, `AdminImageUpload.tsx`, `docs/EVENT_EDITOR_WORKFLOW.md`, `docs/BOSS_EVENT_FEEDBACK_AUDIT.md`, `.ai/TASKS.md`. Server Storage permissions and event data were not changed. User's request ended with “and”; an asynchronous clarification asked for any additional desired change, but this increment covers the explicit PC-upload request.
+- Checks: five focused event-media/schedule tests pass; focused ESLint has zero errors and three existing Fast Refresh warnings; Production Vite/Nitro build passes with Windows filesystem escalation; CRLF-aware diff check passes. No authenticated upload or visual acceptance was performed.
+- Known boundary: Storage bucket migration `0018` and event-owned speaker migration `0019` are not applied; this source is not deployed, so uploads cannot be promised on the hosted site. Removed images may leave unused stored files, protected from automatic deletion.
+- Exact next task: coordinate migrations `0018`/`0019` and matching app release, then test PC upload, replacement, gallery removal and speaker portrait save with a designated event manager. Handle any clarification to the user's trailing “and” separately.
+
 ## 2026-10-15: simpler event ticket controls
 
 - Task `EVENT-TICKET-EDITOR-CLARITY-08`; implementation commit `33e62f1`. Each ticket now groups sales dates, public/member buyer eligibility and member pricing. Existing discount/free selectors remain available under Advanced, limited to event-relevant choices while preserving legacy selections. The collapsible plan-benefit reference labels percentages, CHF workshop credit and included benefits, and links to the read-only Memberships page.
