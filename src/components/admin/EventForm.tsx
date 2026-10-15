@@ -84,7 +84,7 @@ export const emptyEvent: EventFormValues = {
   registration_start: "",
   registration_end: "",
   publish_state: "draft",
-  event_status: "upcoming",
+  event_status: "registration_open",
   featured: false,
 };
 
@@ -417,10 +417,12 @@ export function EventForm({
         </div>
       </section>
 
-      <section hidden={!!section && section !== "settings"} className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
-        <h2 className="font-display text-lg font-bold">Registration</h2>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Capacity" hint="Leave empty for unlimited.">
+      <section hidden={!!section && section !== "tickets"} className="rounded-2xl border border-border/60 bg-card p-6">
+        <details className="rounded-xl border border-border bg-background p-4">
+          <summary className="cursor-pointer font-semibold">Event-wide ticket sales settings · {event.event_status === "registration_open" ? "Open" : event.event_status === "upcoming" ? "Not open yet" : event.event_status === "registration_closed" ? "Closed" : event.event_status.replace(/_/g, " ")}</summary>
+          <p className="mt-3 text-sm text-muted-foreground">Buying a ticket registers its attendee. Publish the event, set sales to Open, and add at least one ticket type below. Ticket-specific dates and eligibility are set on each ticket.</p>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+          <Field label="Overall event capacity" hint="Across all ticket types. Leave empty for unlimited.">
             <input
               type="number"
               min={1}
@@ -429,27 +431,21 @@ export function EventForm({
               onChange={(e) => set("capacity", e.target.value)}
             />
           </Field>
-          <Field label="Event status" hint="Controls registration and labels; it does not publish the event.">
+          <Field label="Ticket sales status" hint="Open allows eligible tickets to be bought during their sale dates. Publishing the event alone does not open sales.">
             <select
               className={inputClass}
               value={event.event_status}
               onChange={(e) => set("event_status", e.target.value as EventFormValues["event_status"])}
             >
-              {[
-                "upcoming",
-                "registration_open",
-                "registration_closed",
-                "sold_out",
-                "completed",
-                "cancelled",
-              ].map((status) => (
-                <option key={status} value={status}>
-                  {status.replace(/_/g, " ")}
-                </option>
-              ))}
+              <option value="upcoming">Not open yet</option>
+              <option value="registration_open">Open for ticket purchases</option>
+              <option value="registration_closed">Closed to ticket purchases</option>
+              <option value="sold_out">Sold out</option>
+              <option value="completed">Event completed</option>
+              <option value="cancelled">Event cancelled</option>
             </select>
           </Field>
-          <Field label="Registration opens" hint={openingTicket ? `Matches ${openingTicket.name} ticket sales start. Change that ticket's date to update this time.` : "Tickets without a sales start use this date and time."}>
+          <Field label="Sales open from" hint={openingTicket ? `Automatically follows the earliest scheduled ticket: ${openingTicket.name}. Change that ticket's Sales open date below.` : "Optional event-wide start. Individual tickets can have their own sale dates below."}>
             <input
               type="datetime-local"
               className={inputClass}
@@ -458,7 +454,7 @@ export function EventForm({
               onChange={(e) => set("registration_start", e.target.value)}
             />
           </Field>
-          <Field label="Registration closes">
+          <Field label="Sales close at" hint="Optional event-wide cutoff for every ticket. Individual tickets may close sooner.">
             <input
               type="datetime-local"
               className={inputClass}
@@ -466,8 +462,8 @@ export function EventForm({
               onChange={(e) => set("registration_end", e.target.value)}
             />
           </Field>
-        </div>
-
+          </div>
+        </details>
       </section>
 
       {section === "settings" && <section className="space-y-3 rounded-2xl border border-border/60 bg-card p-6">
@@ -529,7 +525,7 @@ export function EventForm({
         </div>
         {tickets.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            No ticket types yet. Without one, nobody can register.
+            No ticket types yet. Add one to let attendees buy tickets and register.
           </p>
         )}
         <p className="text-sm text-muted-foreground">Saved ticket types shown here are active. Removing a saved type archives it when you save. Archived types cannot yet be restored here.</p>
@@ -621,7 +617,7 @@ export function EventForm({
             </Field>
             <div className="space-y-3 rounded-xl border border-border bg-background p-4">
               <h3 className="font-semibold">When can people buy this ticket?</h3>
-              <p className="text-xs text-muted-foreground">Leave both dates empty to use the event registration window. The earliest ticket start also sets the event’s registration opening.</p>
+              <p className="text-xs text-muted-foreground">Leave both dates empty to use the event-wide sales dates in the dropdown above. The earliest ticket start also sets the event-wide sales opening.</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Sales open"><input type="datetime-local" className={inputClass} value={ticket.sale_start} onChange={e=>setTicket(index,"sale_start",e.target.value)} /></Field>
                 <Field label="Sales close"><input type="datetime-local" className={inputClass} value={ticket.sale_end} onChange={e=>setTicket(index,"sale_end",e.target.value)} /></Field>
