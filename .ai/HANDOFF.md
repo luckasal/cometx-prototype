@@ -2,6 +2,14 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-15: boss feedback — PC event photos and one-off speakers
+
+- Task `EVENT-EDITOR-UPLOAD-SPEAKER-06` is in review. The event editor now has a PC file picker for main/gallery photos and a portrait picker plus inline create flow for a one-off speaker. Existing hosted photo selection and optional speaker reuse remain. Speaker creation uses the existing `speakers` table; it saves a profile immediately, then event Save attaches it. Abandoned profiles/uploads are not automatically cleaned up.
+- Added `0018_event_media_storage.sql` for a public CometX event-media bucket limited to JPEG/PNG/WebP, 5 MB and authenticated Admin/Event-manager upload paths. The migration was **not applied** and the change was **not deployed**. Hosted photo upload and speaker-write acceptance were not tested. Coordinate migration and release before presenting upload as working.
+- Compared the boss's ticket/benefit, image, speaker and role feedback in `docs/BOSS_EVENT_FEEDBACK_AUDIT.md`. Entitlement definitions and plan assignments are still read-only in Back Office (`EVENT-BENEFITS-EDIT-04`); restricted-role signed-in E2E remains pending. No Wix, Stripe, pricing, plan benefits or existing event record changed.
+- Checks: five focused tests pass; focused ESLint has no errors; escalated Production Vite/Nitro build passes; CRLF-aware diff check passes. Repository-wide typecheck still fails on broad pre-existing diagnostics; it was not a release gate. Existing generated `src/routeTree.gen.ts` and `supabase/.temp/` were not staged.
+- Next: apply the storage migration in a controlled release, deploy matching app build, and verify upload and one-off speaker creation with a designated staff account. Separately implement guarded entitlement management with pricing regression tests; do not alter active member benefits implicitly.
+
 ## 2026-10-14: boss feedback task 3 — event editor clarity, first increment
 
 - Task `EVENT-EDITOR-FEEDBACK-03`, implementation commit `7325e78`. The event editor now explains required/discount/free entitlements and displays active membership plans' current benefit mappings via a server-authorized read. It offers five existing CometX event photos; the chosen same-origin asset path works on local and deployed domains. It links to the existing Speakers editor and explains per-event and workshop assignments. A new `docs/EVENT_EDITOR_WORKFLOW.md` records the staff workflow and boundaries.
