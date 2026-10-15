@@ -2,6 +2,15 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-15: event photo library and event-owned speakers
+
+- Task `EVENT-MEDIA-SPEAKER-LIFECYCLE-07` adds an admin photo browser for event hero, gallery and speaker portrait folders, plus a server-guarded permanent delete that checks event hero/gallery and speaker photo references before removal. The editor prevents deleting a photo currently selected in unsaved form state. Storage deletion uses the Supabase Storage API, not SQL.
+- Implementation commit: `9a4479c` (`Manage event media and one-off speakers`).
+- Inline one-off speakers now stay as local form drafts until save, then get `speakers.event_id` ownership. The event editor can edit/delete those profiles; workshop use blocks delete until the link is removed. Shared speakers remain in the reusable list. Event saving creates new speaker rows only after ticket/workshop writes and preserves existing links until the new link set is ready.
+- Migrations `0018_event_media_storage.sql` and `0019_event_owned_speakers.sql` must both be applied before deploying this source. Supabase CLI is not installed in this checkout; no migration was applied. Hosted Storage and speaker CRUD were not verified.
+- Checks: focused ESLint has zero errors (three existing Fast Refresh warnings); Production Vite/Nitro build passes; CRLF-aware diff check passes. Full TypeScript check continues to fail on existing implicit-any diagnostics across `admin.functions.ts`; new editor component modules have no reported type diagnostics. No tests were run in this follow-up. No hosted data, Stripe, Wix, plans, pricing or existing event was changed.
+- Next: controlled application of both migrations, matching deployment, then verify upload/list/reuse/unused-delete/reference-protection and create/edit/delete an event-owned speaker using a designated event-manager account.
+
 ## 2026-10-15: boss feedback — PC event photos and one-off speakers
 
 - Task `EVENT-EDITOR-UPLOAD-SPEAKER-06` is in review. The event editor now has a PC file picker for main/gallery photos and a portrait picker plus inline create flow for a one-off speaker. Existing hosted photo selection and optional speaker reuse remain. Speaker creation uses the existing `speakers` table; it saves a profile immediately, then event Save attaches it. Abandoned profiles/uploads are not automatically cleaned up.
