@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-15: post-release acceptance, read-only phase
+
+- Hosted signed-in `/admin/plans` renders current plans, benefit wording, assigned values and edit controls; no plan or entitlement data was changed. `/admin/events/new` renders PC photo pickers; no file was uploaded or event created in this phase.
+- Sixteen focused media, content, pricing and cart tests pass, including the PGlite SQL test for one discounted ticket, repeat-order reservation and split attendee lines. No Stripe test payment/webhook was run.
+- Supabase security advisor returned pre-existing warnings for exposed SECURITY DEFINER functions, one mutable function search path and leaked-password protection. Logged separate `DATABASE-SECURITY-ADVISOR-01`; no live grant or Auth setting was changed without an access review.
+- A request for approval to create/remove a private test draft and upload one official CometX image is pending. Keep hosted write-path acceptance open until it is actually exercised.
+
 ## 2026-10-15: coordinated event editor and member-pricing release
 
 - Promoted commit `53ed45e` to Vercel Production deployment `9zNbR3wNfnk7AWsR1UaaifhM8Jwn`; Vercel reports Ready and assigns `cometx-prototype.vercel.app`.
