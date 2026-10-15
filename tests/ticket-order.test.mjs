@@ -25,6 +25,14 @@ test('one-member policy discounts exactly one chosen ticket across the basket', 
 test('all-ticket policy applies trusted member price to each ticket', () => {
   assert.equal(quoteTicketOrder([line('a', 3)], { scope: 'all' }).amount, 24000);
 });
+test('one-member policy matches checkout across supported currencies', () => {
+  const result = quoteTicketOrder([line('a', 2, { currency: 'EUR' })], { scope: 'one', memberTicketId: 'a' });
+  assert.equal(result.currency, 'EUR');
+  assert.equal(result.amount, 18000);
+  assert.equal(result.lines[0].memberQuantity, 1);
+  assert.equal(result.lines[0].regularQuantity, 1);
+  assert.throws(() => quoteTicketOrder([line('a', 1), line('b', 1, { currency: 'EUR' })]), /same currency/);
+});
 test('included ticket benefit does not silently grant free guest tickets', () => {
   const result = quoteTicketOrder([line('a', 3, { finalPrice: 0 })], { scope: 'one', memberTicketId: 'a' });
   assert.equal(result.amount, 20000);

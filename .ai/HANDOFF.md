@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-15: cart displays the one-ticket membership quote
+
+- Follow-up to `EVENT-MEMBER-BENEFIT-LIMIT-05`: the public cart now estimates event totals using the same first-eligible-ticket membership benefit rule as migration `0020`, shows the split member/public quantity, and uses the resulting quote in checkout analytics. Supported ticket currencies follow the checkout/database allowlist (CHF/EUR/USD/GBP/CZK). Checkout/server quote remains authoritative.
+- Checks: 14 focused pricing, media and staff-permission tests pass; focused ESLint excluding the legacy whole-file Prettier rule has zero errors and two existing cart-analytics dependency warnings; Production Vite/Nitro build passes. A broader combined test command also hit an unrelated `event-orders.test.mjs` mock failure (`requireStaffPermission is not a function`).
+- No deployment or hosted ticket purchase. Migration `0019_event_owned_speakers.sql` is still blocked by the platform approval limit and migration `0020_one_member_benefit_ticket_per_event.sql` remains unapplied, so the corresponding hosted experience is not release-ready. Preserve pre-existing dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
+
 ## 2026-10-15: admin membership-benefit management and one-benefit ticket pricing
 
 - Tasks `EVENT-BENEFITS-EDIT-04` and `EVENT-MEMBER-BENEFIT-LIMIT-05`; branch `codex/annual-membership-release-20261009`. `/admin/plans` now includes Admin-guarded benefit wording and plan-assignment controls. Benefit keys stay fixed, changes require confirmation, percentage values are bounded, and workshop credits stay at the checkout-supported CHF 100 / CHF 300. Custom benefits are access-only. No current plan assignments were changed.

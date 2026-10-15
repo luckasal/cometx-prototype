@@ -9,7 +9,7 @@ export type TicketOrderLine = {
 
 export type MemberDiscountScope = "one" | "all";
 
-/** Integer minor units for the current CHF ticket catalogue. No business-rule default. */
+/** Integer minor units for supported two-decimal ticket currencies. No business-rule default. */
 export function quoteTicketOrder(
   lines: TicketOrderLine[],
   policy: { scope?: MemberDiscountScope; memberTicketId?: string } = {},
@@ -19,12 +19,15 @@ export function quoteTicketOrder(
   let quantity = 0;
   let total = 0;
   let regularTotal = 0;
+  const currency = lines[0]!.price.currency.toUpperCase();
+  const supportedCurrencies = new Set(["CHF", "EUR", "USD", "GBP", "CZK"]);
   for (const line of lines) {
     if (!line.ticketId || ids.has(line.ticketId)) throw new Error("Duplicate or missing ticket type.");
     ids.add(line.ticketId);
     if (!Number.isSafeInteger(line.quantity) || line.quantity < 1) throw new Error("Invalid ticket quantity.");
     if (!line.price.eligible) throw new Error("This ticket requires an eligible membership.");
-    if (line.price.currency.toUpperCase() !== "CHF") throw new Error("Unsupported ticket currency.");
+    if (!supportedCurrencies.has(line.price.currency.toUpperCase())) throw new Error("Unsupported ticket currency.");
+    if (line.price.currency.toUpperCase() !== currency) throw new Error("Ticket types in one order must use the same currency.");
     quantity += line.quantity;
     if (!Number.isSafeInteger(quantity)) throw new Error("Invalid ticket quantity.");
   }
@@ -58,5 +61,5 @@ export function quoteTicketOrder(
     return { ticketId: line.ticketId, quantity: line.quantity, memberQuantity,
       regularQuantity, regularUnit, memberUnit, amount };
   });
-  return { currency: "CHF", quantity, amount: total, discount: regularTotal - total, lines: quotedLines };
+  return { currency, quantity, amount: total, discount: regularTotal - total, lines: quotedLines };
 }

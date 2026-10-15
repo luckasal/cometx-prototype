@@ -16,6 +16,7 @@ import { attendeeMatchesBuyer, buyerNamedAttendeeCount, clearAttendeeName, copyB
 import { ticketPricingType, trackEvent } from "@/lib/analytics";
 import { startTicketCheckoutBatch } from "@/lib/ticket-orders.functions";
 import { ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
+import { quoteTicketOrder } from "@/lib/ticket-order";
 
 export const Route = createFileRoute("/cart")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -107,9 +108,27 @@ function CartPage() {
     const ticket = detail?.tickets.find((item) => item.id === line.ticketId);
     return { line, detail, ticket };
   });
+  const buildEventQuotes = (cartLines: TicketCartLine[]) => {
+    const quotes = new Map<string, ReturnType<typeof quoteTicketOrder>>();
+    for (const slug of new Set(cartLines.map((line) => line.eventSlug))) {
+      const detail = eventQueries[groups.indexOf(slug)]?.data;
+      const eventLines = cartLines.filter((line) => line.eventSlug === slug);
+      const rows = eventLines.map((line) => ({ line, ticket: detail?.tickets.find((item) => item.id === line.ticketId) }));
+      if (!rows.length || !rows.every(({ ticket }) => ticket?.price.eligible)) continue;
+      const memberTicketId = rows.find(({ ticket }) => ticket && ticket.price.finalPrice < ticket.price.basePrice)?.line.ticketId;
+      try {
+        quotes.set(slug, quoteTicketOrder(rows.map(({ line, ticket }) => ({ ticketId: line.ticketId, quantity: line.quantity, price: ticket!.price })), { scope: "one", memberTicketId }));
+      } catch {
+        // The server quote remains authoritative; withhold a misleading estimate.
+      }
+    }
+    return quotes;
+  };
+  const eventQuotes = buildEventQuotes(lines);
+  const quotedLine = (slug: string, ticketId: string) => eventQuotes.get(slug)?.lines.find((item) => item.ticketId === ticketId);
   const pricedCurrencies = new Set(pricedCartLines.flatMap(({ ticket }) => ticket ? [ticket.price.currency] : []));
-  const cartValue = pricedCartLines.every(({ ticket }) => ticket) && pricedCurrencies.size === 1
-    ? pricedCartLines.reduce((sum, { line, ticket }) => sum + ticket!.price.finalPrice * line.quantity, 0)
+  const cartValue = pricedCartLines.every(({ ticket, line }) => ticket && eventQuotes.has(line.eventSlug)) && pricedCurrencies.size === 1
+    ? [...eventQuotes.values()].reduce((sum, quote) => sum + quote.amount / 100, 0)
     : undefined;
   const cartAnalytics = {
     quantity: lines.reduce((sum, line) => sum + line.quantity, 0),
@@ -122,7 +141,7 @@ function CartPage() {
       event_type: pricedCartLines[0].detail.event.eventType,
       ticket_type: pricedCartLines[0].ticket.name,
       ticket_type_id: pricedCartLines[0].ticket.id,
-      value: pricedCartLines[0].ticket.price.finalPrice * pricedCartLines[0].line.quantity,
+      value: (quotedLine(pricedCartLines[0].line.eventSlug, pricedCartLines[0].line.ticketId)?.amount ?? Math.round(pricedCartLines[0].ticket.price.basePrice * 100)) / 100,
       membership_tier: pricedCartLines[0].detail.membershipName ?? undefined,
       pricing_type: ticketPricingType(pricedCartLines[0].ticket.price),
     } : {}),
@@ -160,7 +179,7 @@ function CartPage() {
       ticket && ticketAvailability({ registrationOpen: detail.registrationOpen, soldOut: ticket.soldOut,
         saleStart: ticket.saleStart, saleEnd: ticket.saleEnd, eligible: ticket.price.eligible }) === "available",
     );
-    return { slug, purchasable, free: purchasable && tickets.every(({ ticket }) => ticket!.price.finalPrice === 0) };
+    return { slug, purchasable, free: purchasable && eventQuotes.get(slug)?.amount === 0 };
   });
   const cartCurrencies = new Set(eventQueries.flatMap((query, index) => lines.filter((line) => line.eventSlug === groups[index]).flatMap((line) => {
     const ticket = query.data?.tickets.find((item) => item.id === line.ticketId);
@@ -188,9 +207,9 @@ function CartPage() {
         trackEvent("begin_checkout", {
           event_count: groups.length,
           quantity: lines.reduce((sum, line) => sum + line.quantity, 0),
-          value: ticketRows.reduce((sum, { line, ticket }) => sum + ticket.price.finalPrice * line.quantity, 0),
+          value: [...eventQuotes.values()].reduce((sum, quote) => sum + quote.amount / 100, 0),
           currency: ticketRows[0]?.ticket.price.currency,
-          cart_value: ticketRows.reduce((sum, { line, ticket }) => sum + ticket.price.finalPrice * line.quantity, 0),
+          cart_value: [...eventQuotes.values()].reduce((sum, quote) => sum + quote.amount / 100, 0),
           ...ticketRows.length === 1 ? {
             event_id: eventQueries.find((query) => query.data?.event.slug === ticketRows[0]?.line.eventSlug)?.data?.event.id,
             event_slug: ticketRows[0]?.line.eventSlug,
@@ -259,15 +278,11 @@ function CartPage() {
         ticket_type: current.ticket.name,
         ticket_type_id: current.ticket.id,
         quantity: nextQuantity === 0 ? line.quantity - nextQuantity : nextQuantity,
-        value: current.ticket.price.finalPrice * (nextQuantity === 0 ? line.quantity - nextQuantity : nextQuantity),
+        value: (quotedLine(line.eventSlug, line.ticketId)?.amount ?? Math.round(current.ticket.price.basePrice * 100)) / 100,
         currency: current.ticket.price.currency,
         membership_tier: current.detail.membershipName ?? undefined,
         pricing_type: ticketPricingType(current.ticket.price),
-        cart_value: nextLines.reduce((sum, item) => {
-          const itemDetail = eventQueries[groups.indexOf(item.eventSlug)]?.data;
-          const itemTicket = itemDetail?.tickets.find((candidate) => candidate.id === item.ticketId);
-          return sum + (itemTicket?.price.finalPrice ?? 0) * item.quantity;
-        }, 0),
+        cart_value: [...buildEventQuotes(nextLines).values()].reduce((sum, quote) => sum + quote.amount / 100, 0),
       };
       trackEvent(nextQuantity === 0 ? "remove_from_cart" : "cart_quantity_change", meta);
     }
@@ -280,7 +295,7 @@ function CartPage() {
     } : item));
   }
 
-  function useBuyerNameForAttendee(line: TicketCartLine, index: number) {
+  function copyBuyerNameToTicketAttendee(line: TicketCartLine, index: number) {
     if (!buyerFirstName.trim() || !buyerLastName.trim()) return;
     saveCart(copyBuyerNameToAttendee(lines, line, index, { firstName: buyerFirstName, lastName: buyerLastName }));
   }
@@ -362,9 +377,11 @@ function CartPage() {
                   </div>
                   <div className="text-sm tabular-nums xl:text-base">
                     <span className="mr-2 text-xs text-muted-foreground xl:hidden">{cs ? "Cena" : "Price"}</span>
-                    <span className="font-medium">{ticket ? formatMoney(ticket.price.finalPrice, ticket.price.currency) : "—"}</span>
-                    {ticket && <p className="mt-1 text-[10px] text-muted-foreground">{formatMembershipBenefit(ticket.price, cs)}</p>}
-                    {ticket && ticket.price.finalPrice !== ticket.price.basePrice && <p className="text-[10px] text-muted-foreground">{cs ? "Veřejná" : "Public"}: {formatMoney(ticket.price.basePrice, ticket.price.currency)}</p>}
+                    <span className="font-medium">{ticket && quotedLine(slug, line.ticketId)
+                      ? [quotedLine(slug, line.ticketId)!.memberQuantity ? `1 × ${formatMoney(quotedLine(slug, line.ticketId)!.memberUnit / 100, ticket.price.currency)}` : "", quotedLine(slug, line.ticketId)!.regularQuantity ? `${quotedLine(slug, line.ticketId)!.regularQuantity} × ${formatMoney(quotedLine(slug, line.ticketId)!.regularUnit / 100, ticket.price.currency)}` : ""].filter(Boolean).join(" + ")
+                      : ticket ? formatMoney(ticket.price.basePrice, ticket.price.currency) : "—"}</span>
+                    {ticket && <p className="mt-1 text-[10px] text-muted-foreground">{quotedLine(slug, line.ticketId)?.memberQuantity ? (cs ? "Členská výhoda použita na 1 vstupenku" : "Membership benefit applies to 1 ticket") : formatMembershipBenefit(ticket.price, cs)}</p>}
+                    {ticket && quotedLine(slug, line.ticketId)?.memberQuantity ? <p className="text-[10px] text-muted-foreground">{cs ? "Běžná cena" : "Regular price"}: {formatMoney(ticket.price.basePrice, ticket.price.currency)}</p> : null}
                   </div>
                   <div className="flex items-center justify-between xl:justify-start">
                     <span className="text-xs text-muted-foreground xl:hidden">{cs ? "Počet" : "Quantity"}</span>
@@ -376,7 +393,7 @@ function CartPage() {
                   </div>
                   <div className="flex items-center justify-between xl:block xl:text-right">
                     <span className="text-xs text-muted-foreground xl:hidden">{cs ? "Celkem" : "Line total"}</span>
-                    <span className="text-sm font-bold tabular-nums">{ticket ? formatMoney(ticket.price.finalPrice * line.quantity, ticket.price.currency) : "—"}</span>
+                    <span className="text-sm font-bold tabular-nums">{ticket && quotedLine(slug, line.ticketId) ? formatMoney(quotedLine(slug, line.ticketId)!.amount / 100, ticket.price.currency) : "—"}</span>
                   </div>
                   <button type="button" aria-label={cs ? "Odebrat vstupenku" : "Remove ticket"} title={cs ? "Odebrat vstupenku" : "Remove ticket"} className="absolute right-2 top-2 grid size-7 place-items-center rounded-full text-muted-foreground/65 transition-colors hover:bg-background hover:text-foreground xl:static" onClick={() => changeQuantity(line, 0)}><Trash2 className="size-3.5" /></button>
                   <div className="col-span-full w-full space-y-4 py-3">
@@ -384,7 +401,7 @@ function CartPage() {
                       <legend className="mb-2 text-sm font-semibold">{ticket?.name} · {cs ? "Účastník" : "Attendee"} {index + 1}</legend>
                       <label className="text-sm">{cs ? "Jméno" : "First name"} *<Input required maxLength={120} autoComplete="off" className="mt-1 rounded-xl" value={line.attendees?.[index]?.firstName ?? (totalTickets === 1 ? buyerFirstName : "")} onChange={(event) => updateAttendee(line, index, "firstName", event.target.value)} /></label>
                       <label className="text-sm">{cs ? "Příjmení" : "Last name"} *<Input required maxLength={120} autoComplete="off" className="mt-1 rounded-xl" value={line.attendees?.[index]?.lastName ?? (totalTickets === 1 ? buyerLastName : "")} onChange={(event) => updateAttendee(line, index, "lastName", event.target.value)} /></label>
-                      {index === 0 && eventLines[0]?.ticketId === line.ticketId && <button type="button" className="justify-self-start text-sm text-accent underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2" aria-pressed={attendeeMatchesBuyer(line.attendees?.[index], buyer)} disabled={!buyerFirstName.trim() || !buyerLastName.trim()} onClick={() => attendeeMatchesBuyer(line.attendees?.[index], buyer) ? clearBuyerNameForAttendee(line, index) : useBuyerNameForAttendee(line, index)}>{attendeeMatchesBuyer(line.attendees?.[index], buyer) ? (cs ? "Odebrat jméno kupujícího" : "Remove buyer’s name") : (cs ? "Použít jméno kupujícího pro tuto vstupenku" : "Use buyer’s name for this ticket")}</button>}
+                      {index === 0 && eventLines[0]?.ticketId === line.ticketId && <button type="button" className="justify-self-start text-sm text-accent underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2" aria-pressed={attendeeMatchesBuyer(line.attendees?.[index], buyer)} disabled={!buyerFirstName.trim() || !buyerLastName.trim()} onClick={() => attendeeMatchesBuyer(line.attendees?.[index], buyer) ? clearBuyerNameForAttendee(line, index) : copyBuyerNameToTicketAttendee(line, index)}>{attendeeMatchesBuyer(line.attendees?.[index], buyer) ? (cs ? "Odebrat jméno kupujícího" : "Remove buyer’s name") : (cs ? "Použít jméno kupujícího pro tuto vstupenku" : "Use buyer’s name for this ticket")}</button>}
                     </fieldset>)}
                   </div>
                 </div>)}
@@ -393,7 +410,7 @@ function CartPage() {
               {!purchasable && <p className="mt-3 text-sm text-destructive">{cs ? "Některé vstupenky nejsou dostupné. Upravte košík nebo vyberte jinou akci." : "Some tickets are unavailable. Update your cart or choose another event."}</p>}
               {buyerNameConflicts.has(slug) && <p className="mt-3 text-sm text-destructive">{cs ? "Kupující může být uveden jen na jedné vstupence pro tuto akci. Upravte dalšího účastníka nebo zvolte, která vstupenka je pro kupujícího." : "The buyer can be named on only one ticket for this event. Edit the other attendee or choose which ticket is for the buyer."}</p>}
               <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-foreground/10 pt-4">
-                <p className="font-semibold">{cs ? "Mezisoučet akce" : "Event subtotal"}: {sameCurrency && ticketRows.every(({ ticket }) => ticket) ? formatMoney(ticketRows.reduce((sum, { line, ticket }) => sum + ticket!.price.finalPrice * line.quantity, 0), ticketRows[0]!.ticket!.price.currency) : "—"}</p>
+                <p className="font-semibold">{cs ? "Mezisoučet akce" : "Event subtotal"}: {sameCurrency && eventQuotes.get(slug) && ticketRows.every(({ ticket }) => ticket) ? formatMoney(eventQuotes.get(slug)!.amount / 100, eventQuotes.get(slug)!.currency) : "—"}</p>
               </div>
             </article>;
           })}
@@ -427,7 +444,11 @@ function CartPage() {
                   {detail.event.venue && <p className="text-xs text-muted-foreground">{detail.event.venue}</p>}
                   {eventLines.map((line) => {
                     const ticket = detail.tickets.find((item) => item.id === line.ticketId);
-                    return <div key={line.ticketId} className="flex items-start justify-between gap-3 border-t border-foreground/5 pt-3 text-xs"><div className="min-w-0"><p className="font-medium">{ticket?.name ?? (cs ? "Vstupenka" : "Ticket")}</p>{ticket && ticket.price.benefitType !== "public" && <p className="mt-1 text-muted-foreground">{cs ? "Běžná cena" : "Regular price"}: {formatMoney(ticket.price.basePrice, ticket.price.currency)} · {formatMembershipBenefit(ticket.price, cs)}</p>}<p className="mt-1 text-muted-foreground">{line.quantity} × {ticket ? formatMoney(ticket.price.finalPrice, ticket.price.currency) : "—"}</p></div><span className="shrink-0 font-semibold tabular-nums">{ticket ? formatMoney(ticket.price.finalPrice * line.quantity, ticket.price.currency) : "—"}</span></div>;
+                    const quote = quotedLine(eventSlug, line.ticketId);
+                    const breakdown = quote && ticket
+                      ? [quote.memberQuantity ? `1 × ${formatMoney(quote.memberUnit / 100, ticket.price.currency)}` : "", quote.regularQuantity ? `${quote.regularQuantity} × ${formatMoney(quote.regularUnit / 100, ticket.price.currency)}` : ""].filter(Boolean).join(" + ")
+                      : "—";
+                    return <div key={line.ticketId} className="flex items-start justify-between gap-3 border-t border-foreground/5 pt-3 text-xs"><div className="min-w-0"><p className="font-medium">{ticket?.name ?? (cs ? "Vstupenka" : "Ticket")}</p>{quote?.memberQuantity ? <p className="mt-1 text-muted-foreground">{cs ? "Členská výhoda jen pro 1 vstupenku" : "Membership benefit for 1 ticket only"}</p> : null}<p className="mt-1 text-muted-foreground">{breakdown}</p></div><span className="shrink-0 font-semibold tabular-nums">{ticket && quote ? formatMoney(quote.amount / 100, ticket.price.currency) : "—"}</span></div>;
                   })}
                 </div>;
               })}
@@ -435,8 +456,8 @@ function CartPage() {
           {(() => {
             const pricedLines = selectedLines.map((line) => ({ line, ticket: eventQueries[groups.indexOf(line.eventSlug)]?.data?.tickets.find((ticket) => ticket.id === line.ticketId) }));
             const currencies = [...new Set(pricedLines.flatMap(({ ticket }) => ticket ? [ticket.price.currency] : []))];
-            const amount = currencies.length === 1 && pricedLines.every(({ ticket }) => ticket)
-              ? formatMoney(pricedLines.reduce((total, { line, ticket }) => total + ticket!.price.finalPrice * line.quantity, 0), currencies[0]!) : "—";
+            const amount = currencies.length === 1 && pricedLines.every(({ ticket, line }) => ticket && eventQuotes.has(line.eventSlug))
+              ? formatMoney([...eventQuotes.values()].reduce((total, quote) => total + quote.amount, 0) / 100, currencies[0]!) : "—";
             return <div className="space-y-3 border-t border-foreground/10 pt-4">
               <h3 className="font-display text-lg font-semibold"><span className="text-accent">4.</span> {cs ? "Kontrola a platba" : "Review and payment"}</h3>
               <div className="flex items-center justify-between gap-4 text-sm">
