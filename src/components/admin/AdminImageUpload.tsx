@@ -1,18 +1,19 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { uploadEventImage, type EventMediaScope } from "@/lib/event-media";
 import { eventImageIssue } from "@/lib/event-media-rules";
 
-export function AdminImageUpload({ scope, label, onUploaded }: { scope: EventMediaScope; label: string; onUploaded: (url: string) => void }) {
+export function AdminImageUpload({ scope, label, onUploaded, saveLabel = "save the event" }: { scope: EventMediaScope; label: string; onUploaded: (url: string) => void; saveLabel?: string }) {
+  const inputId = useId();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium" htmlFor={`upload-${scope}`}>{label}</label>
+      <label className="block text-sm font-medium" htmlFor={inputId}>{label}</label>
       <input
-        id={`upload-${scope}`}
+        id={inputId}
         type="file"
         accept="image/jpeg,image/png,image/webp"
         disabled={uploading}
@@ -41,7 +42,7 @@ export function AdminImageUpload({ scope, label, onUploaded }: { scope: EventMed
           }
         }}
       />
-      <p className="text-xs text-muted-foreground">JPEG, PNG or WebP, up to 5 MB. Upload first, then save the event to publish the image.</p>
+      <p className="text-xs text-muted-foreground">JPEG, PNG or WebP, up to 5 MB. Choose a file, then {saveLabel} to publish it.</p>
       {uploading && <p className="text-sm" role="status">Uploading photo…</p>}
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
     </div>

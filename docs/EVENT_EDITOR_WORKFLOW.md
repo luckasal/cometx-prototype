@@ -16,7 +16,7 @@ These controls reference existing benefits; they do not create benefits or assig
 
 ## Photos
 
-The event's **Edit content** section offers five existing CometX event photos and a browser for uploaded photos. Choosing one stores a relative `/assets/cometx/...` path; uploaded main, gallery and speaker photos are JPEG, PNG or WebP, up to 5 MB, in the public `cometx-event-media` bucket. Uploads happen immediately; save the event to attach the URL. The uploaded-photo browser lets staff reuse photos and permanently delete photos only after the server confirms no event or speaker still references them. A shared photo in an unsaved draft is protected in the editor. Applying migrations `0018_event_media_storage.sql` and `0019_event_owned_speakers.sql` with the matching app release is required; the feature has not yet been verified against hosted Storage. Image rights review remains a staff responsibility.
+The event's **Edit content** section now offers only PC upload for the main image, optional gallery images and speaker portraits. Existing image references remain visible as previews and can be removed from the event or speaker without deleting the stored file. Main/gallery URL fields, preloaded image choices and the uploaded-photo browser are no longer shown in this editor. Uploads accept JPEG, PNG or WebP up to 5 MB in the public `cometx-event-media` bucket. Uploading stores the file immediately; saving the event (or an existing speaker) attaches its URL. Applying migrations `0018_event_media_storage.sql` and `0019_event_owned_speakers.sql` with the matching app release is required; the feature has not yet been verified against hosted Storage. Image rights review remains a staff responsibility.
 
 ## Speakers
 

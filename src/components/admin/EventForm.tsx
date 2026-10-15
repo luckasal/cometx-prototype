@@ -12,7 +12,6 @@ import {
   adminListEventBenefitMatrix,
 } from "@/lib/admin.functions";
 import { AdminImageUpload } from "@/components/admin/AdminImageUpload";
-import { AdminMediaLibrary } from "@/components/admin/AdminMediaLibrary";
 import { EventOwnedSpeakerEditor } from "@/components/admin/EventOwnedSpeakerEditor";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
@@ -110,14 +109,6 @@ export const emptyWorkshop: WorkshopDraft = {
 const nullable = (value: string) => (value.trim() === "" ? null : value.trim());
 const isoOrNull = (value: string) => (value.trim() === "" ? null : new Date(value).toISOString());
 
-const existingEventPhotos = [
-  { label: "Symposium 2026", path: "/assets/cometx/symposium-2026.png" },
-  { label: "Symposium 2025", path: "/assets/cometx/symposium-2025.png" },
-  { label: "Emotional regulation", path: "/assets/cometx/emotional-regulation.jpg" },
-  { label: "Conflict workshop", path: "/assets/cometx/conflict-workshop.jpg" },
-  { label: "AI workshop", path: "/assets/cometx/ai-workshop.jpeg" },
-] as const;
-
 const ticketBenefitKeys: Record<string, { discount?: string; free?: string }> = {
   symposium: { discount: "symposium_half_price", free: "symposium_free_ticket" },
   regular_event: { discount: "other_events_discount" },
@@ -164,6 +155,7 @@ export function EventForm({
   const [workshops, setWorkshops] = useState<WorkshopDraft[]>(initialWorkshops);
   const openingTicket = earliestTicketSaleStart(tickets.filter((ticket) => ticket.name.trim()));
   const registrationOpening = openingTicket?.sale_start || event.registration_start;
+  const galleryPhotos = event.gallery_urls.split("\n").map((url) => url.trim()).filter(Boolean);
 
   const fetchSpeakers = useServerFn(adminListSpeakers);
   const fetchEntitlements = useServerFn(adminListEntitlements);
@@ -361,37 +353,24 @@ export function EventForm({
             onChange={(e) => set("description", e.target.value)}
           />
         </Field>
-        <h3 className="font-display text-lg font-bold">Event photos</h3>
-        <AdminImageUpload scope="event-heroes" label="Upload main photo from your computer" onUploaded={(url) => set("hero_image_url", url)} />
-        <AdminMediaLibrary scope="event-heroes" selectedUrls={[event.hero_image_url]} onChoose={(url) => set("hero_image_url", url)} />
-        <div className="space-y-3">
-          <p className="text-sm font-medium">Choose an existing CometX event photo</p>
-          <p className="text-xs text-muted-foreground">These photos are already hosted with this website. Select one for the main image, or upload a new photo above.</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {existingEventPhotos.map((photo) => (
-              <button
-                key={photo.path}
-                type="button"
-                className="overflow-hidden rounded-xl border border-border bg-background text-left focus-visible:outline-2 focus-visible:outline-accent"
-                onClick={() => set("hero_image_url", photo.path)}
-              >
-                <img src={photo.path} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
-                <span className="block p-2 text-xs">{photo.label}</span>
-              </button>
-            ))}
-          </div>
-          {event.hero_image_url && <img src={event.hero_image_url} alt="Selected event hero preview" className="max-h-52 w-full rounded-xl object-cover" />}
+        <div className="space-y-4 rounded-xl border border-border bg-background p-4">
+          <h3 className="font-display text-lg font-bold">Main event photo</h3>
+          {event.hero_image_url && <div className="space-y-2">
+            <img src={event.hero_image_url} alt="Current main event photo" className="max-h-64 w-full rounded-xl object-cover" />
+            <Button type="button" variant="outlineInk" size="sm" onClick={() => set("hero_image_url", "")}>Remove from event</Button>
+          </div>}
+          <AdminImageUpload scope="event-heroes" label={event.hero_image_url ? "Replace with a photo from your computer" : "Choose a photo from your computer"} onUploaded={(url) => set("hero_image_url", url)} />
         </div>
-        <AdminImageUpload scope="event-gallery" label="Add a gallery photo from your computer" onUploaded={(url) => set("gallery_urls", [event.gallery_urls.trim(), url].filter(Boolean).join("\n"))} />
-        <AdminMediaLibrary scope="event-gallery" selectedUrls={event.gallery_urls.split("\n").map((url) => url.trim()).filter(Boolean)} onChoose={(url) => set("gallery_urls", [...new Set([...event.gallery_urls.split("\n").map((item) => item.trim()).filter(Boolean), url])].join("\n"))} />
-        {event.gallery_urls.trim() && <p className="text-xs text-muted-foreground">{event.gallery_urls.split("\n").filter(Boolean).length} gallery photo(s) selected. Open the URL section to remove one.</p>}
-        <details className="rounded-xl border border-border p-4">
-          <summary className="cursor-pointer text-sm font-medium">Use an existing image URL instead</summary>
-          <div className="mt-4 space-y-4">
-            <Field label="Main image URL"><input className={inputClass} value={event.hero_image_url} onChange={(e) => set("hero_image_url", e.target.value)} placeholder="https://..." /></Field>
-            <Field label="Gallery image URLs" hint="One URL per line. Optional on public pages."><textarea className={textareaClass} rows={3} value={event.gallery_urls} onChange={(e) => set("gallery_urls", e.target.value)} placeholder="https://..." /></Field>
-          </div>
-        </details>
+        <div className="space-y-4 rounded-xl border border-border bg-background p-4">
+          <h3 className="font-display text-lg font-bold">Gallery photos <span className="text-sm font-normal text-muted-foreground">(optional)</span></h3>
+          {galleryPhotos.length > 0 && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {galleryPhotos.map((url, index) => <div key={`${url}-${index}`} className="space-y-2 rounded-xl border border-border p-2">
+              <img src={url} alt={`Event gallery photo ${index + 1}`} className="h-40 w-full rounded-lg object-cover" />
+              <Button type="button" variant="outlineInk" size="sm" onClick={() => set("gallery_urls", galleryPhotos.filter((_, photoIndex) => photoIndex !== index).join("\n"))}>Remove from event</Button>
+            </div>)}
+          </div>}
+          <AdminImageUpload scope="event-gallery" label="Add a gallery photo from your computer" onUploaded={(url) => set("gallery_urls", [...galleryPhotos, url].join("\n"))} />
+        </div>
         <label className="flex items-center gap-3 text-sm">
           <input
             type="checkbox"
@@ -506,10 +485,9 @@ export function EventForm({
             <Field label="Name"><input className={inputClass} value={speakerDraft.name} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, name: e.target.value }))} /></Field>
             <Field label="Role or job title"><input className={inputClass} value={speakerDraft.job_title} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, job_title: e.target.value }))} /></Field>
             <Field label="Company"><input className={inputClass} value={speakerDraft.company} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, company: e.target.value }))} /></Field>
-            <Field label="Photo URL"><input className={inputClass} value={speakerDraft.photo_url} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, photo_url: e.target.value }))} /></Field>
           </div>
+          {speakerDraft.photo_url && <div className="space-y-2"><img src={speakerDraft.photo_url} alt="New speaker portrait" className="h-32 w-32 rounded-xl object-cover" /><Button type="button" variant="outlineInk" size="sm" onClick={() => setSpeakerDraft((previous) => ({ ...previous, photo_url: "" }))}>Remove portrait</Button></div>}
           <AdminImageUpload scope="speaker-photos" label="Upload speaker portrait from your computer" onUploaded={(url) => setSpeakerDraft((previous) => ({ ...previous, photo_url: url }))} />
-          <AdminMediaLibrary scope="speaker-photos" selectedUrls={[speakerDraft.photo_url, ...newSpeakers.map((speaker) => speaker.photo_url)]} onChoose={(url) => setSpeakerDraft((previous) => ({ ...previous, photo_url: url }))} />
           <Field label="Short bio"><textarea className={textareaClass} value={speakerDraft.bio} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, bio: e.target.value }))} /></Field>
           <Button type="button" variant="outlineInk" disabled={speakerDraft.name.trim().length < 2} onClick={() => {
             setNewSpeakers((previous) => [...previous, { ...speakerDraft }]);

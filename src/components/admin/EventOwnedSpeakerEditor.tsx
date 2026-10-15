@@ -4,7 +4,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { adminDeleteEventSpeaker, adminUpdateEventSpeaker } from "@/lib/admin.functions";
 import { AdminImageUpload } from "./AdminImageUpload";
-import { AdminMediaLibrary } from "./AdminMediaLibrary";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass, textareaClass } from "./AdminBits";
 
@@ -64,10 +63,9 @@ export function EventOwnedSpeakerEditor({ eventId, speaker, onDeleted }: {
         <Field label="Name"><input className={inputClass} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></Field>
         <Field label="Role or job title"><input className={inputClass} value={draft.job_title} onChange={(event) => setDraft((current) => ({ ...current, job_title: event.target.value }))} /></Field>
         <Field label="Company"><input className={inputClass} value={draft.company} onChange={(event) => setDraft((current) => ({ ...current, company: event.target.value }))} /></Field>
-        <Field label="Photo URL"><input className={inputClass} value={draft.photo_url} onChange={(event) => setDraft((current) => ({ ...current, photo_url: event.target.value }))} /></Field>
       </div>
-      <AdminImageUpload scope="speaker-photos" label="Upload a new portrait" onUploaded={(url) => setDraft((current) => ({ ...current, photo_url: url }))} />
-      <AdminMediaLibrary scope="speaker-photos" selectedUrls={[draft.photo_url]} onChoose={(url) => setDraft((current) => ({ ...current, photo_url: url }))} />
+      {draft.photo_url && <div className="space-y-2"><img src={draft.photo_url} alt={`${draft.name} portrait`} className="h-32 w-32 rounded-xl object-cover" /><Button type="button" variant="outlineInk" size="sm" onClick={() => setDraft((current) => ({ ...current, photo_url: "" }))}>Remove portrait</Button></div>}
+      <AdminImageUpload scope="speaker-photos" label="Choose a new portrait from your computer" saveLabel="save the speaker" onUploaded={(url) => setDraft((current) => ({ ...current, photo_url: url }))} />
       <Field label="Short bio"><textarea className={textareaClass} value={draft.bio} onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))} /></Field>
       <div className="flex gap-3">
         <Button type="button" disabled={saveMutation.isPending || draft.name.trim().length < 2} onClick={() => saveMutation.mutate()}>Save speaker</Button>
