@@ -8,6 +8,7 @@ import { AdminPage, Field, inputClass, textareaClass } from "@/components/admin/
 import { ErrorBlock, LoadingBlock } from "@/components/site/Bits";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/pricing";
+import { MembershipBenefitsManager } from "@/components/admin/MembershipBenefitsManager";
 
 export const Route = createFileRoute("/admin/plans")({
   component: AdminPlansPage,
@@ -199,6 +200,7 @@ function AdminPlansPage() {
           </div>
         </form>
       </div>
+      <MembershipBenefitsManager />
     </AdminPage>
   );
 }

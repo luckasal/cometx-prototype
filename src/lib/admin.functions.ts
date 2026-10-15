@@ -4,6 +4,7 @@ import { z } from "zod";
 import { earliestTicketSaleStart, eventScheduleIssue } from "./event-admin";
 import { managedEventMediaPath } from "./event-media-rules";
 import type { StaffPermission } from "./staff-permissions";
+import { membershipBenefitValueIssue } from "./membership-benefit-rules";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
@@ -563,10 +564,83 @@ export const adminListPlans = createServerFn({ method: "GET" }).handler(async ()
   const db = await admin("memberships.read");
   const { data } = await db
     .from("membership_plans")
-    .select("*, plan_entitlements(value, entitlements(key,name))")
+    .select("*, plan_entitlements(value, entitlements(id,key,name,description))")
     .order("sort_order");
   return data ?? [];
 });
+
+const entitlementDefinitionSchema = z.object({
+  key: z.string().min(2).max(100).regex(/^[a-z][a-z0-9_]*$/),
+  name: z.string().trim().min(2).max(160),
+  description: z.string().trim().max(1000).nullable().default(null),
+});
+
+/** Stable keys are referenced by tickets/articles; admins may edit wording, never the key. */
+export const adminUpdateEntitlementDefinition = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => entitlementDefinitionSchema.parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin("memberships.write");
+    const { data: saved, error } = await db.from("entitlements").update({
+      name: data.name,
+      description: data.description,
+    }).eq("key", data.key).select("key").maybeSingle();
+    if (error || !saved) throw new Error("Benefit details could not be saved.");
+    return { ok: true };
+  });
+
+export const adminCreateEntitlement = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => entitlementDefinitionSchema.parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin("memberships.write");
+    const { error } = await db.from("entitlements").insert({
+      key: data.key,
+      name: data.name,
+      description: data.description,
+    });
+    if (error?.code === "23505") throw new Error("That benefit key already exists. Choose another key.");
+    if (error) throw new Error("Benefit could not be created.");
+    return { ok: true };
+  });
+
+const planEntitlementSchema = z.object({
+  planId: z.string().uuid(),
+  entitlementKey: z.string().min(2).max(100).regex(/^[a-z][a-z0-9_]*$/),
+  enabled: z.boolean(),
+  value: z.number().min(0).max(100000).nullable(),
+});
+
+/**
+ * Store a single plan/benefit mapping at a time. Keep numeric rules aligned with
+ * quote_cometx_ticket; editing an active mapping takes effect on future checkouts.
+ */
+export const adminSetPlanEntitlement = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => planEntitlementSchema.parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin("memberships.write");
+    const [{ data: plan, error: planError }, { data: entitlement, error: entitlementError }] = await Promise.all([
+      db.from("membership_plans").select("id,slug").eq("id", data.planId).maybeSingle(),
+      db.from("entitlements").select("id").eq("key", data.entitlementKey).maybeSingle(),
+    ]);
+    if (planError || entitlementError) throw new Error("Membership benefit could not be checked.");
+    if (!plan || !entitlement) throw new Error("Choose an existing membership plan and benefit.");
+
+    if (data.enabled) {
+      const valueIssue = membershipBenefitValueIssue(data.entitlementKey, plan.slug, data.value);
+      if (valueIssue) throw new Error(valueIssue);
+      const { error } = await db.from("plan_entitlements").upsert({
+        membership_plan_id: plan.id,
+        entitlement_id: entitlement.id,
+        value: data.value,
+      }, { onConflict: "membership_plan_id,entitlement_id" });
+      if (error) throw new Error("Benefit assignment could not be saved.");
+    } else {
+      const { error } = await db.from("plan_entitlements").delete()
+        .eq("membership_plan_id", plan.id)
+        .eq("entitlement_id", entitlement.id);
+      if (error) throw new Error("Benefit could not be removed from this plan.");
+    }
+    return { ok: true };
+  });
 
 export const adminSyncMembershipCatalog = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({}).parse(d))
@@ -871,7 +945,8 @@ export const adminListWorkshops = createServerFn({ method: "GET" }).handler(asyn
 
 export const adminListEntitlements = createServerFn({ method: "GET" }).handler(async () => {
   const db = await admin("entitlements.read");
-  const { data } = await db.from("entitlements").select("key,name").order("key");
+  const { data, error } = await db.from("entitlements").select("key,name,description").order("key");
+  if (error) throw new Error("Benefits could not be loaded.");
   return data ?? [];
 });
 

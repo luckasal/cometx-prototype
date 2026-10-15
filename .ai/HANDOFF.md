@@ -2,6 +2,14 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-15: admin membership-benefit management and one-benefit ticket pricing
+
+- Tasks `EVENT-BENEFITS-EDIT-04` and `EVENT-MEMBER-BENEFIT-LIMIT-05`; branch `codex/annual-membership-release-20261009`. `/admin/plans` now includes Admin-guarded benefit wording and plan-assignment controls. Benefit keys stay fixed, changes require confirmation, percentage values are bounded, and workshop credits stay at the checkout-supported CHF 100 / CHF 300. Custom benefits are access-only. No current plan assignments were changed.
+- Added migration `0020_one_member_benefit_ticket_per_event.sql`: one benefit-priced/free ticket per member/event across active/past pending or confirmed orders, separate discounted/public lines for Stripe, and matching attendee allocation. Migration is local only; hosted database and app were not deployed.
+- Checks: 3 benefit-value tests and PGlite membership-pricing/checkout-line test pass; focused ESLint on new component/rules/tests passes. Production build passes after allowing Nitro to resolve the Windows pnpm symlinks. Whole-project typecheck remains red with broad existing/dependency type errors; the changed TSX has no reported new errors.
+- Hosted state: Supabase Storage bucket/policy migration `0018` was applied successfully. `0019_event_owned_speakers.sql` was rejected by the platform approval check because of usage limits; do not work around it. No upload or speaker CRUD acceptance test was run. Never deploy app build without the pending speaker schema decision/migration being coordinated.
+- Remaining: obtain approval to apply `0019` when available, run hosted authenticated photo/speaker acceptance, apply `0020`, verify Stripe sandbox prices/webhook, then deploy the coordinated release. Confirm whether “one-time workshop coupon” means once per workshop event or once per membership term before building a separate redemption ledger. Restricted staff-role acceptance still needs test accounts.
+
 ## 2026-10-15: event photos — PC-upload-only editor
 
 - Task `EVENT-CONTENT-PHOTO-UX-09`; implementation commit `3926d15`. Event Edit content now offers only PC uploads for main, gallery and one-off speaker photos. Current references show previews and can be detached; removing a reference does not delete the stored file. URL inputs, bundled-photo picker and uploaded-media browser were removed from this editor. The upload component now has unique file-input IDs and context-appropriate save instructions.
