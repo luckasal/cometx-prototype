@@ -10,7 +10,9 @@ import {
   adminListSpeakers,
   adminListEntitlements,
   adminListEventBenefitMatrix,
+  adminSaveSpeaker,
 } from "@/lib/admin.functions";
+import { AdminImageUpload } from "@/components/admin/AdminImageUpload";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 import { formatMoney, isRegistrationOpen } from "@/lib/pricing";
@@ -121,6 +123,8 @@ type EventBenefitPlan = {
   plan_entitlements: { value: number | null; entitlements: { key: string; name: string } | null }[];
 };
 
+type EventSpeakerOption = { id: string; name: string };
+
 export function EventForm({
   initialEvent,
   initialTickets,
@@ -141,6 +145,7 @@ export function EventForm({
   const [event, setEvent] = useState<EventFormValues>(initialEvent);
   const [tickets, setTickets] = useState<TicketDraft[]>(initialTickets);
   const [speakerIds, setSpeakerIds] = useState<string[]>(initialSpeakerIds);
+  const [speakerDraft, setSpeakerDraft] = useState({ name: "", job_title: "", company: "", bio: "", photo_url: "" });
   const [workshops, setWorkshops] = useState<WorkshopDraft[]>(initialWorkshops);
   const openingTicket = earliestTicketSaleStart(tickets.filter((ticket) => ticket.name.trim()));
   const registrationOpening = openingTicket?.sale_start || event.registration_start;
@@ -149,11 +154,12 @@ export function EventForm({
   const fetchEntitlements = useServerFn(adminListEntitlements);
   const fetchBenefitMatrix = useServerFn(adminListEventBenefitMatrix);
   const save = useServerFn(adminSaveEvent);
+  const saveSpeaker = useServerFn(adminSaveSpeaker);
   const remove = useServerFn(adminDeleteEvent);
 
-  const { data: speakers = [] } = useQuery({
+  const { data: speakers = [] } = useQuery<EventSpeakerOption[]>({
     queryKey: ["admin", "speakers"],
-    queryFn: () => fetchSpeakers(),
+    queryFn: async () => (await fetchSpeakers()) as EventSpeakerOption[],
   });
   const { data: entitlements = [] } = useQuery({
     queryKey: ["admin", "entitlements"],
@@ -163,6 +169,25 @@ export function EventForm({
     queryKey: ["admin", "event-benefit-matrix"],
     queryFn: async () => (await fetchBenefitMatrix()) as EventBenefitPlan[],
     enabled: !section || section === "tickets",
+  });
+  const speakerMutation = useMutation({
+    mutationFn: () => saveSpeaker({ data: {
+      name: speakerDraft.name.trim(),
+      slug: `${speakerDraft.name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "speaker"}-${crypto.randomUUID().slice(0, 8)}`,
+      job_title: nullable(speakerDraft.job_title),
+      company: nullable(speakerDraft.company),
+      bio: nullable(speakerDraft.bio),
+      photo_url: nullable(speakerDraft.photo_url),
+      linkedin_url: null,
+      website_url: null,
+    } as never }),
+    onSuccess: (saved: { id: string }) => {
+      setSpeakerIds((previous) => [...previous, saved.id]);
+      setSpeakerDraft({ name: "", job_title: "", company: "", bio: "", photo_url: "" });
+      queryClient.invalidateQueries({ queryKey: ["admin", "speakers"] });
+      toast.success("Speaker added. Save the event to attach them.");
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const mutation = useMutation({
@@ -332,17 +357,11 @@ export function EventForm({
             onChange={(e) => set("description", e.target.value)}
           />
         </Field>
-        <Field label="Hero image URL">
-          <input
-            className={inputClass}
-            value={event.hero_image_url}
-            onChange={(e) => set("hero_image_url", e.target.value)}
-            placeholder="https://..."
-          />
-        </Field>
+        <h3 className="font-display text-lg font-bold">Event photos</h3>
+        <AdminImageUpload scope="event-heroes" label="Upload main photo from your computer" onUploaded={(url) => set("hero_image_url", url)} />
         <div className="space-y-3">
           <p className="text-sm font-medium">Choose an existing CometX event photo</p>
-          <p className="text-xs text-muted-foreground">These photos are already hosted with this website. Select one to fill the hero URL, or paste the public URL of an approved image above. This does not upload a new file.</p>
+          <p className="text-xs text-muted-foreground">These photos are already hosted with this website. Select one for the main image, or upload a new photo above.</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {existingEventPhotos.map((photo) => (
               <button
@@ -358,9 +377,15 @@ export function EventForm({
           </div>
           {event.hero_image_url && <img src={event.hero_image_url} alt="Selected event hero preview" className="max-h-52 w-full rounded-xl object-cover" />}
         </div>
-        <Field label="Gallery image URLs" hint="One image URL per line. Optional on public pages.">
-          <textarea className={textareaClass} rows={3} value={event.gallery_urls} onChange={(e) => set("gallery_urls", e.target.value)} placeholder="https://..." />
-        </Field>
+        <AdminImageUpload scope="event-gallery" label="Add a gallery photo from your computer" onUploaded={(url) => set("gallery_urls", [event.gallery_urls.trim(), url].filter(Boolean).join("\n"))} />
+        {event.gallery_urls.trim() && <p className="text-xs text-muted-foreground">{event.gallery_urls.split("\n").filter(Boolean).length} gallery photo(s) selected. Open the URL section to remove one.</p>}
+        <details className="rounded-xl border border-border p-4">
+          <summary className="cursor-pointer text-sm font-medium">Use an existing image URL instead</summary>
+          <div className="mt-4 space-y-4">
+            <Field label="Main image URL"><input className={inputClass} value={event.hero_image_url} onChange={(e) => set("hero_image_url", e.target.value)} placeholder="https://..." /></Field>
+            <Field label="Gallery image URLs" hint="One URL per line. Optional on public pages."><textarea className={textareaClass} rows={3} value={event.gallery_urls} onChange={(e) => set("gallery_urls", e.target.value)} placeholder="https://..." /></Field>
+          </div>
+        </details>
         <label className="flex items-center gap-3 text-sm">
           <input
             type="checkbox"
@@ -468,26 +493,34 @@ export function EventForm({
 
       <section hidden={!!section && section !== "content"} className="space-y-4 rounded-2xl border border-border/60 bg-card p-6">
         <h2 className="font-display text-lg font-bold">Speakers</h2>
-        <p className="text-sm text-muted-foreground">Speakers are reusable profiles, but you do not need to reuse one. Create or edit a speaker in <a href="/admin/speakers" target="_blank" rel="noreferrer" className="underline underline-offset-4">Speakers</a>, then select them for this event. Save the event to apply the selection. A workshop speaker is selected separately in Programme and workshops.</p>
-        {speakers.length === 0 && <p className="text-sm text-muted-foreground">No speaker profiles yet. Open Speakers to add one, then return here and refresh.</p>}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {speakers.map((speaker) => (
-            <label key={speaker.id} className="flex items-center gap-3 text-sm">
-              <input
-                type="checkbox"
-                checked={speakerIds.includes(speaker.id)}
-                onChange={(e) =>
-                  setSpeakerIds((prev) =>
-                    e.target.checked
-                      ? [...prev, speaker.id]
-                      : prev.filter((id) => id !== speaker.id),
-                  )
-                }
-              />
-              {speaker.name}
-            </label>
-          ))}
+        <p className="text-sm text-muted-foreground">Most speakers appear at one event. Add them here; no separate speaker-list step is needed. A workshop speaker is assigned separately in Programme and workshops.</p>
+        <div className="space-y-4 rounded-xl border border-border bg-background p-4">
+          <h3 className="font-semibold">Add a speaker for this event</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Name"><input className={inputClass} value={speakerDraft.name} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, name: e.target.value }))} /></Field>
+            <Field label="Role or job title"><input className={inputClass} value={speakerDraft.job_title} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, job_title: e.target.value }))} /></Field>
+            <Field label="Company"><input className={inputClass} value={speakerDraft.company} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, company: e.target.value }))} /></Field>
+            <Field label="Photo URL"><input className={inputClass} value={speakerDraft.photo_url} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, photo_url: e.target.value }))} /></Field>
+          </div>
+          <AdminImageUpload scope="speaker-photos" label="Upload speaker portrait from your computer" onUploaded={(url) => setSpeakerDraft((previous) => ({ ...previous, photo_url: url }))} />
+          <Field label="Short bio"><textarea className={textareaClass} value={speakerDraft.bio} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, bio: e.target.value }))} /></Field>
+          <Button type="button" variant="outlineInk" disabled={speakerMutation.isPending || speakerDraft.name.trim().length < 2} onClick={() => speakerMutation.mutate()}>
+            {speakerMutation.isPending ? "Adding speaker…" : "Add speaker"}
+          </Button>
+          <p className="text-xs text-muted-foreground">Adding saves the speaker profile immediately. Save the event afterwards to attach them. Unused profiles can be removed under <a href="/admin/speakers" className="underline underline-offset-4">Speakers</a>.</p>
         </div>
+        {speakerIds.length > 0 && <p className="text-sm">Selected for this event: {speakers.filter((speaker: EventSpeakerOption) => speakerIds.includes(speaker.id)).map((speaker: EventSpeakerOption) => speaker.name).join(", ") || `${speakerIds.length} speaker(s)`}</p>}
+        <details className="rounded-xl border border-border p-4">
+          <summary className="cursor-pointer text-sm font-medium">Choose or remove an existing speaker</summary>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {speakers.map((speaker: EventSpeakerOption) => (
+              <label key={speaker.id} className="flex items-center gap-3 text-sm">
+                <input type="checkbox" checked={speakerIds.includes(speaker.id)} onChange={(e) => setSpeakerIds((previous) => e.target.checked ? [...previous, speaker.id] : previous.filter((id) => id !== speaker.id))} />
+                {speaker.name}
+              </label>
+            ))}
+          </div>
+        </details>
       </section>
 
       <section hidden={!!section && section !== "tickets"} className="space-y-6 rounded-2xl border border-border/60 bg-card p-6">
@@ -513,11 +546,11 @@ export function EventForm({
           <p className="mt-2 text-muted-foreground">“Requires” limits who may buy. “Discount” applies the selected benefit’s percentage; “Free” makes one eligible ticket free. The buyer’s active membership must include that entitlement. These fields do not create benefits or assign them to a plan.</p>
           {benefitsError ? <p className="mt-2 text-destructive">Membership-plan benefits could not be loaded. Ticket settings still work.</p> : benefitMatrix.length > 0 && (
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              {benefitMatrix.map((plan) => (
+              {benefitMatrix.map((plan: EventBenefitPlan) => (
                 <div key={plan.id} className="rounded-lg border border-border p-3">
                   <p className="font-medium">{plan.name}</p>
                   <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
-                    {(plan.plan_entitlements ?? []).map((benefit) => <li key={benefit.entitlements?.key ?? "unknown"}>{benefit.entitlements?.name ?? "Benefit"}{benefit.value !== null ? ` (${benefit.value})` : ""}</li>)}
+                    {(plan.plan_entitlements ?? []).map((benefit: EventBenefitPlan["plan_entitlements"][number]) => <li key={benefit.entitlements?.key ?? "unknown"}>{benefit.entitlements?.name ?? "Benefit"}{benefit.value !== null ? ` (${benefit.value})` : ""}</li>)}
                   </ul>
                 </div>
               ))}
@@ -616,7 +649,7 @@ export function EventForm({
                     onChange={(e) => setTicket(index, key, e.target.value)}
                   >
                     <option value="">None</option>
-                    {entitlements.map((ent) => (
+                    {entitlements.map((ent: { key: string; name: string }) => (
                       <option key={ent.key} value={ent.key}>
                         {ent.name}
                       </option>
@@ -632,7 +665,7 @@ export function EventForm({
       <section hidden={!!section && section !== "content"} className="space-y-6 rounded-2xl border border-border/60 bg-card p-6">
         <div className="flex items-center justify-between"><h2 className="font-display text-lg font-bold">Programme and workshops</h2><Button type="button" variant="outlineInk" size="sm" onClick={() => setWorkshops((previous) => [...previous, { ...emptyWorkshop }])}>Add workshop</Button></div>
         {workshops.length === 0 && <p className="text-sm text-muted-foreground">Optional. Add workshops or programme sessions shown on the public event page.</p>}
-        {workshops.map((workshop, index) => <div key={workshop.id ?? index} className="space-y-4 border-t border-border pt-5"><div className="grid gap-4 sm:grid-cols-2"><Field label="Title"><input className={inputClass} value={workshop.title} onChange={(event) => setWorkshop(index, "title", event.target.value)} /></Field><Field label="Speaker"><select className={inputClass} value={workshop.speaker_id} onChange={(event) => setWorkshop(index, "speaker_id", event.target.value)}><option value="">No speaker</option>{speakers.map((speaker) => <option key={speaker.id} value={speaker.id}>{speaker.name}</option>)}</select></Field><Field label="Start"><input type="datetime-local" className={inputClass} value={workshop.start_time} onChange={(event) => setWorkshop(index, "start_time", event.target.value)} /></Field><Field label="End"><input type="datetime-local" className={inputClass} value={workshop.end_time} onChange={(event) => setWorkshop(index, "end_time", event.target.value)} /></Field><Field label="Location"><input className={inputClass} value={workshop.location} onChange={(event) => setWorkshop(index, "location", event.target.value)} /></Field><Field label="Capacity"><input type="number" min={1} className={inputClass} value={workshop.capacity} onChange={(event) => setWorkshop(index, "capacity", event.target.value)} /></Field></div><Field label="Description"><textarea className={textareaClass} value={workshop.description} onChange={(event) => setWorkshop(index, "description", event.target.value)} /></Field><div className="flex flex-wrap items-end justify-between gap-4"><Field label="Price (CHF)" className="w-40"><input type="number" min={0} className={inputClass} value={workshop.base_price} onChange={(event) => setWorkshop(index, "base_price", event.target.value)} /></Field><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={workshop.separate_registration_required} onChange={(event) => setWorkshop(index, "separate_registration_required", event.target.checked)} />Separate registration required</label><button type="button" className="text-xs text-destructive underline" onClick={() => setWorkshops((previous) => previous.filter((_, workshopIndex) => workshopIndex !== index))}>Remove</button></div></div>)}
+        {workshops.map((workshop, index) => <div key={workshop.id ?? index} className="space-y-4 border-t border-border pt-5"><div className="grid gap-4 sm:grid-cols-2"><Field label="Title"><input className={inputClass} value={workshop.title} onChange={(event) => setWorkshop(index, "title", event.target.value)} /></Field><Field label="Speaker"><select className={inputClass} value={workshop.speaker_id} onChange={(event) => setWorkshop(index, "speaker_id", event.target.value)}><option value="">No speaker</option>{speakers.map((speaker: EventSpeakerOption) => <option key={speaker.id} value={speaker.id}>{speaker.name}</option>)}</select></Field><Field label="Start"><input type="datetime-local" className={inputClass} value={workshop.start_time} onChange={(event) => setWorkshop(index, "start_time", event.target.value)} /></Field><Field label="End"><input type="datetime-local" className={inputClass} value={workshop.end_time} onChange={(event) => setWorkshop(index, "end_time", event.target.value)} /></Field><Field label="Location"><input className={inputClass} value={workshop.location} onChange={(event) => setWorkshop(index, "location", event.target.value)} /></Field><Field label="Capacity"><input type="number" min={1} className={inputClass} value={workshop.capacity} onChange={(event) => setWorkshop(index, "capacity", event.target.value)} /></Field></div><Field label="Description"><textarea className={textareaClass} value={workshop.description} onChange={(event) => setWorkshop(index, "description", event.target.value)} /></Field><div className="flex flex-wrap items-end justify-between gap-4"><Field label="Price (CHF)" className="w-40"><input type="number" min={0} className={inputClass} value={workshop.base_price} onChange={(event) => setWorkshop(index, "base_price", event.target.value)} /></Field><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={workshop.separate_registration_required} onChange={(event) => setWorkshop(index, "separate_registration_required", event.target.checked)} />Separate registration required</label><button type="button" className="text-xs text-destructive underline" onClick={() => setWorkshops((previous) => previous.filter((_, workshopIndex) => workshopIndex !== index))}>Remove</button></div></div>)}
       </section>
 
       <p className="text-sm text-muted-foreground">Saving applies changes across Tickets, Settings and Edit content. Save before opening the public preview. Save draft also changes the publication state to draft.</p>

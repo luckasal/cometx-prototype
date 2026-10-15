@@ -354,11 +354,11 @@ export const adminSaveSpeaker = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const db = await admin("events.write");
     const { id, ...fields } = data;
-    const { error } = id
-      ? await db.from("speakers").update(fields).eq("id", id)
-      : await db.from("speakers").insert(fields);
+    const { data: saved, error } = id
+      ? await db.from("speakers").update(fields).eq("id", id).select("id").single()
+      : await db.from("speakers").insert(fields).select("id").single();
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true, id: saved.id };
   });
 
 export const adminDeleteSpeaker = createServerFn({ method: "POST" })

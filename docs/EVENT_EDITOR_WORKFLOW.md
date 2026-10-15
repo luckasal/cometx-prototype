@@ -1,6 +1,6 @@
 # Event editor: current staff workflow
 
-This note covers the task-3 feedback increment. It does not change checkout or existing event data.
+This note covers the task-3 feedback work. It does not change checkout or existing event data.
 
 ## Ticket benefits
 
@@ -14,8 +14,8 @@ The selectors reference existing benefits; they do not create benefits or assign
 
 ## Photos
 
-The event's **Edit content** section now offers five existing CometX event photos. Choosing one stores a relative `/assets/cometx/...` path, so a draft saved locally will still load the photo on the deployed site. Staff may paste a public, approved image URL instead. The selection is only a reference to a file already hosted with the website; it is not an upload or shared media library. New-photo upload, validation, rights review, and lifecycle management remain follow-up work.
+The event's **Edit content** section offers five existing CometX event photos. Choosing one stores a relative `/assets/cometx/...` path, so a draft saved locally will still load the photo on the deployed site. Staff can also upload a main photo or gallery photos from their computer, or paste an approved public URL in the advanced section. The upload accepts JPEG, PNG or WebP up to 5 MB in a public Supabase Storage bucket. Apply migration `0018_event_media_storage.sql` with the matching app release before using it; until then uploads will fail gracefully. Uploading stores a file immediately, but saving the event is still required to attach its URL. Clearing an event image reference does not delete the stored file. A managed media library, orphan cleanup and image-rights review are still needed.
 
 ## Speakers
 
-Speaker profiles are managed under **Back Office → Speakers**. Staff can create a new profile for a one-off speaker; a profile does not imply the person must appear at multiple events. Select the profiles in the event's **Speakers** section and save the event. Workshop speaker assignment is separate under **Programme and workshops**. After creating a speaker in another tab, refresh the event editor to see the new profile.
+Staff can add a one-off speaker directly in an event's **Speakers** section, including a portrait upload. This immediately saves the internal speaker record and selects it in the editor; save the event to attach it. For rare repeat appearances, open the collapsed existing-speaker list. The standalone **Back Office → Speakers** page still allows editing or removing an unused profile. Workshop speaker assignment is separate under **Programme and workshops**. An unused inline speaker record is not automatically deleted if the event is abandoned.
