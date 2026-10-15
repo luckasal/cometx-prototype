@@ -118,11 +118,24 @@ const existingEventPhotos = [
   { label: "AI workshop", path: "/assets/cometx/ai-workshop.jpeg" },
 ] as const;
 
+const ticketBenefitKeys: Record<string, { discount?: string; free?: string }> = {
+  symposium: { discount: "symposium_half_price", free: "symposium_free_ticket" },
+  regular_event: { discount: "other_events_discount" },
+  potlach: { discount: "potlach_discount", free: "potlach_free_ticket" },
+  workshop: {},
+};
+
 type EventBenefitPlan = {
   id: string;
   name: string;
   plan_entitlements: { value: number | null; entitlements: { key: string; name: string } | null }[];
 };
+
+function describePlanBenefit(key: string, value: number | null): string {
+  if (key === "workshop_credit" && value !== null) return `CHF ${value} workshop credit`;
+  if (["symposium_half_price", "other_events_discount", "potlach_discount"].includes(key) && value !== null) return `${value}% off`;
+  return "Included";
+}
 
 type EventSpeakerOption = { id: string; name: string; event_id: string | null; job_title: string | null; company: string | null; bio: string | null; photo_url: string | null };
 
@@ -166,7 +179,7 @@ export function EventForm({
     queryKey: ["admin", "entitlements"],
     queryFn: () => fetchEntitlements(),
   });
-  const { data: benefitMatrix = [], error: benefitsError } = useQuery<EventBenefitPlan[]>({
+  const { data: benefitMatrix = [], error: benefitsError, isLoading: benefitsLoading } = useQuery<EventBenefitPlan[]>({
     queryKey: ["admin", "event-benefit-matrix"],
     queryFn: async () => (await fetchBenefitMatrix()) as EventBenefitPlan[],
     enabled: !section || section === "tickets",
@@ -542,23 +555,23 @@ export function EventForm({
           </p>
         )}
         <p className="text-sm text-muted-foreground">Saved ticket types shown here are active. Removing a saved type archives it when you save. Archived types cannot yet be restored here.</p>
-        <div className="rounded-xl border border-border bg-background p-4 text-sm">
-          <p className="font-semibold">How membership benefits connect to tickets</p>
-          <p className="mt-2 text-muted-foreground">“Requires” limits who may buy. “Discount” applies the selected benefit’s percentage; “Free” makes one eligible ticket free. The buyer’s active membership must include that entitlement. These fields do not create benefits or assign them to a plan.</p>
-          {benefitsError ? <p className="mt-2 text-destructive">Membership-plan benefits could not be loaded. Ticket settings still work.</p> : benefitMatrix.length > 0 && (
+        <details className="rounded-xl border border-border bg-background p-4 text-sm">
+          <summary className="cursor-pointer font-semibold">Which benefits belong to each membership?</summary>
+          <p className="mt-2 text-muted-foreground">These benefits belong to the plans, not this event. Ticket settings below can check or use an existing benefit; they cannot create one or change a plan.</p>
+          {benefitsError ? <p className="mt-2 text-destructive">Membership-plan benefits could not be loaded. Check plan assignments before setting a restricted ticket.</p> : benefitMatrix.length > 0 && (
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
               {benefitMatrix.map((plan: EventBenefitPlan) => (
                 <div key={plan.id} className="rounded-lg border border-border p-3">
                   <p className="font-medium">{plan.name}</p>
                   <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
-                    {(plan.plan_entitlements ?? []).map((benefit: EventBenefitPlan["plan_entitlements"][number]) => <li key={benefit.entitlements?.key ?? "unknown"}>{benefit.entitlements?.name ?? "Benefit"}{benefit.value !== null ? ` (${benefit.value})` : ""}</li>)}
+                    {(plan.plan_entitlements ?? []).map((benefit: EventBenefitPlan["plan_entitlements"][number]) => <li key={benefit.entitlements?.key ?? "unknown"}>{benefit.entitlements?.name ?? "Benefit"} · {describePlanBenefit(benefit.entitlements?.key ?? "", benefit.value)}</li>)}
                   </ul>
                 </div>
               ))}
             </div>
           )}
-          <p className="mt-3 text-xs text-muted-foreground">Plan assignments are listed under <a href="/admin/plans" className="underline underline-offset-4">Memberships</a>. They cannot yet be edited there; ask an administrator before promising a new benefit. Do not use a free-ticket entitlement as a percentage discount.</p>
-        </div>
+          <p className="mt-3 text-xs text-muted-foreground">You can <a href="/admin/plans" className="underline underline-offset-4">view membership plans</a> in Back Office. Benefit assignments are currently read-only there; an admin must review any change to promised benefits.</p>
+        </details>
         {tickets.map((ticket, index) => (
           <div key={index} className="space-y-4 border-t border-border pt-5">
             <p className="text-xs text-muted-foreground">{ticket.id ? "Active ticket type" : "New ticket type · not saved"}</p>
@@ -628,36 +641,52 @@ export function EventForm({
                 onChange={(e) => setTicket(index, "description", e.target.value)}
               />
             </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Member price (blank: existing membership benefits)"><input type="number" min="0" step="0.01" className={inputClass} value={ticket.member_price} onChange={e=>setTicket(index,"member_price",e.target.value)} /></Field>
-              <Field label="Currency"><select className={inputClass} value={ticket.currency} onChange={e=>setTicket(index,"currency",e.target.value)}>{["CHF","EUR","USD","GBP","CZK"].map(c=><option key={c}>{c}</option>)}</select></Field>
-              <Field label="Ticket sales start"><input type="datetime-local" className={inputClass} value={ticket.sale_start} onChange={e=>setTicket(index,"sale_start",e.target.value)} /></Field>
-              <Field label="Ticket sales end"><input type="datetime-local" className={inputClass} value={ticket.sale_end} onChange={e=>setTicket(index,"sale_end",e.target.value)} /></Field>
+            <div className="space-y-3 rounded-xl border border-border bg-background p-4">
+              <h3 className="font-semibold">When can people buy this ticket?</h3>
+              <p className="text-xs text-muted-foreground">Leave both dates empty to use the event registration window. The earliest ticket start also sets the event’s registration opening.</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Sales open"><input type="datetime-local" className={inputClass} value={ticket.sale_start} onChange={e=>setTicket(index,"sale_start",e.target.value)} /></Field>
+                <Field label="Sales close"><input type="datetime-local" className={inputClass} value={ticket.sale_end} onChange={e=>setTicket(index,"sale_end",e.target.value)} /></Field>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">An explicit member price applies to an active membership, subject to the required benefit below. Blank sale dates use the event registration window.</p>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {(
-                [
-                  ["required_entitlement", "Requires entitlement"],
-                  ["discount_entitlement", "Discount entitlement"],
-                  ["free_entitlement", "Free with entitlement"],
-                ] as const
-              ).map(([key, label]) => (
-                <Field key={key} label={label}>
-                  <select
-                    className={inputClass}
-                    value={ticket[key]}
-                    onChange={(e) => setTicket(index, key, e.target.value)}
-                  >
-                    <option value="">None</option>
-                    {entitlements.map((ent: { key: string; name: string }) => (
-                      <option key={ent.key} value={ent.key}>
-                        {ent.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              ))}
+            <div className="space-y-3 rounded-xl border border-border bg-background p-4">
+              <h3 className="font-semibold">Who can buy this ticket?</h3>
+              <p className="text-xs text-muted-foreground">The event can stay public while a particular ticket is reserved for eligible members.</p>
+              <Field label="Buyer eligibility">
+                <select className={inputClass} value={ticket.required_entitlement} onChange={e=>setTicket(index,"required_entitlement",e.target.value)}>
+                  <option value="">Anyone (public ticket)</option>
+                  {entitlements.map((ent: { key: string; name: string }) => <option key={ent.key} value={ent.key}>Only members with: {ent.name}</option>)}
+                </select>
+              </Field>
+              {ticket.required_entitlement && benefitsLoading && <p className="text-xs text-muted-foreground">Checking which active plans include this benefit…</p>}
+              {ticket.required_entitlement && !benefitsError && !benefitsLoading && <p className="text-xs text-muted-foreground">Eligible active plans: {benefitMatrix.filter((plan) => plan.plan_entitlements?.some((benefit) => benefit.entitlements?.key === ticket.required_entitlement)).map((plan) => plan.name).join(", ") || "none of the active plans — check before publishing"}.</p>}
+            </div>
+            <div className="space-y-3 rounded-xl border border-border bg-background p-4">
+              <h3 className="font-semibold">What does a member pay?</h3>
+              <p className="text-xs text-muted-foreground">Existing plan benefits are applied automatically for the event type. Outside workshops, an optional fixed member price is used only when it is better than the applicable percentage discount; free admission takes priority.</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Fixed member price (optional)"><input type="number" min="0" step="0.01" className={inputClass} value={ticket.member_price} onChange={e=>setTicket(index,"member_price",e.target.value)} /></Field>
+                <Field label="Currency"><select className={inputClass} value={ticket.currency} onChange={e=>setTicket(index,"currency",e.target.value)}>{["CHF","EUR","USD","GBP","CZK"].map(c=><option key={c}>{c}</option>)}</select></Field>
+              </div>
+              <details className="rounded-lg border border-border p-3">
+                <summary className="cursor-pointer text-sm font-medium">Advanced: add a specific discount or free-ticket benefit{ticket.discount_entitlement || ticket.free_entitlement ? " · configured" : ""}</summary>
+                <p className="mt-2 text-xs text-muted-foreground">Usually leave these empty. Only benefits relevant to this event type are offered. The member must have the selected benefit; workshop credit is handled automatically.</p>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                  <Field label="Extra percentage discount benefit">
+                    <select className={inputClass} value={ticket.discount_entitlement} onChange={e=>setTicket(index,"discount_entitlement",e.target.value)}>
+                      <option value="">No extra discount</option>
+                      {entitlements.filter((ent: { key: string }) => ent.key === ticketBenefitKeys[event.event_type]?.discount || ent.key === ticket.discount_entitlement).map((ent: { key: string; name: string }) => <option key={ent.key} value={ent.key}>{ent.name}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Free-ticket benefit">
+                    <select className={inputClass} value={ticket.free_entitlement} onChange={e=>setTicket(index,"free_entitlement",e.target.value)}>
+                      <option value="">No extra free-ticket rule</option>
+                      {entitlements.filter((ent: { key: string }) => ent.key === ticketBenefitKeys[event.event_type]?.free || ent.key === ticket.free_entitlement).map((ent: { key: string; name: string }) => <option key={ent.key} value={ent.key}>{ent.name}</option>)}
+                    </select>
+                  </Field>
+                </div>
+                {ticket.discount_entitlement && ticket.free_entitlement && <p className="mt-2 text-xs text-accent">Both are set. For members with both benefits, the free ticket takes priority.</p>}
+              </details>
             </div>
           </div>
         ))}

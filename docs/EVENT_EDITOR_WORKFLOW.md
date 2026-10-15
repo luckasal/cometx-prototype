@@ -4,13 +4,15 @@ This note covers the task-3 feedback work. It does not change checkout or existi
 
 ## Ticket benefits
 
-In an event's **Tickets** section, the membership reference now shows which benefits belong to each active plan. The three ticket selectors have different meanings:
+In an event's **Tickets** section, each ticket now groups the everyday decisions:
 
-- **Requires entitlement** limits purchase to a member who has that benefit.
-- **Discount entitlement** uses the benefit's configured percentage where applicable.
-- **Free with entitlement** makes an eligible ticket free where applicable.
+1. **When can people buy?** An empty ticket window uses the event registration window; the earliest dated ticket sets the event registration opening.
+2. **Who can buy?** Choose a public ticket or require a benefit held by an active member. The editor lists the active plans that currently have a selected benefit. The event can remain public while its tickets are member-restricted.
+3. **What does a member pay?** Event-type membership benefits apply automatically. A fixed member price is optional and is used only where the pricing engine supports it; free admission takes priority.
 
-The selectors reference existing benefits; they do not create benefits or assign them to plans. The **Memberships** page currently displays plan assignments but does not edit them. A separate admin-only editor with confirmation and pricing tests is still required before staff can change the promises made to existing members.
+The optional extra percentage/free-ticket selectors are under **Advanced** and show only benefits relevant to the event type, while preserving any legacy selection. The plan-benefit reference is collapsible and labels percentages, CHF workshop credits and included benefits instead of showing unexplained numbers.
+
+These controls reference existing benefits; they do not create benefits or assign them to plans. The **Memberships** page currently displays plan assignments but does not edit them. A separate admin-only editor with confirmation and pricing tests is still required before staff can change the promises made to existing members.
 
 ## Photos
 
