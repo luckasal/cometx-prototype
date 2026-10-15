@@ -2,6 +2,14 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-15: simpler event ticket controls
+
+- Task `EVENT-TICKET-EDITOR-CLARITY-08`; implementation commit `33e62f1`. Each ticket now groups sales dates, public/member buyer eligibility and member pricing. Existing discount/free selectors remain available under Advanced, limited to event-relevant choices while preserving legacy selections. The collapsible plan-benefit reference labels percentages, CHF workshop credit and included benefits, and links to the read-only Memberships page.
+- Files: `src/components/admin/EventForm.tsx`, `docs/EVENT_EDITOR_WORKFLOW.md`, `.ai/TASKS.md`. No ticket pricing, checkout, Supabase data, membership assignments or Stripe behavior changed; existing saved ticket values are preserved.
+- Checks: nine focused event schedule/ticket-order tests passed; focused ESLint reported zero errors and three pre-existing Fast Refresh warnings; Production Vite/Nitro build passed with Windows filesystem escalation; CRLF-aware diff check passed. The broader isolated `membership-pricing.test.mjs` failed because its PGlite fixture references missing `public.select_prototype_membership(text)`; this is outside the UI edit and needs separate investigation.
+- Known boundary: `EVENT-BENEFITS-EDIT-04` (safe Admin editing of benefit definitions/plan assignments) is still unimplemented. Event photo/speaker migrations `0018`/`0019` remain unapplied and that branch is not deployed. No authenticated visual acceptance or hosted purchase was performed for this ticket layout.
+- Exact next task: review the ticket editor with a designated event manager, then separately implement guarded benefit management with pricing regression tests; coordinate pending media/speaker migrations and deployment before testing uploads or one-off speakers on the hosted app.
+
 ## 2026-10-15: event photo library and event-owned speakers
 
 - Task `EVENT-MEDIA-SPEAKER-LIFECYCLE-07` adds an admin photo browser for event hero, gallery and speaker portrait folders, plus a server-guarded permanent delete that checks event hero/gallery and speaker photo references before removal. The editor prevents deleting a photo currently selected in unsaved form state. Storage deletion uses the Supabase Storage API, not SQL.
