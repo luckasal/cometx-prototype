@@ -2,6 +2,14 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-15: coordinated event editor and member-pricing release
+
+- Promoted commit `53ed45e` to Vercel Production deployment `9zNbR3wNfnk7AWsR1UaaifhM8Jwn`; Vercel reports Ready and assigns `cometx-prototype.vercel.app`.
+- Hosted Supabase project `vlcssswzlvamtscyobbv`: migration `0019_event_owned_speakers.sql` applied through the migration connector; `0020_one_member_benefit_ticket_per_event.sql` applied through the SQL Editor after connector request-state failures. Read-only schema checks confirmed `speakers.event_id`, the member-benefit guard in `begin_ticket_order`, removal of the old unique constraint, and no anon execute grant. Storage migration `0018` was already applied.
+- Read-only hosted smoke: `/events` loaded event data and `/admin/events/new` loaded for the signed-in admin, including PC photo pickers. No photo upload, speaker CRUD, ticket purchase, Stripe webhook or restricted-role acceptance test was performed in this release pass. `/events` still lists an existing "New Demo Event"; public-list cleanup remains separate.
+- Local focused pricing tests passed. A broader database test still has an isolated PGlite fixture missing `select_prototype_membership(text)`; do not treat that as a hosted database failure. Preserve pre-existing dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
+- Follow-up: hosted staff acceptance for image upload and one-off speaker save/edit/delete; supervised Stripe sandbox purchase and one-benefit-per-event verification; workshop voucher redemption policy/ledger remains unresolved. Migration `0020` was applied directly in SQL Editor, so verify migration bookkeeping before future automated replays.
+
 ## 2026-10-15: cart displays the one-ticket membership quote
 
 - Follow-up to `EVENT-MEMBER-BENEFIT-LIMIT-05`: the public cart now estimates event totals using the same first-eligible-ticket membership benefit rule as migration `0020`, shows the split member/public quantity, and uses the resulting quote in checkout analytics. Supported ticket currencies follow the checkout/database allowlist (CHF/EUR/USD/GBP/CZK). Checkout/server quote remains authoritative.
