@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-15: hide known internal demo event from public discovery
+
+- The published `new-demo-event` record is excluded from the public `/events` listing and homepage event selections. Its Back Office record and ticket/order logic are unchanged.
+- Focused visibility test passes. Direct TypeScript check still reports broad pre-existing type errors; the package-manager wrapper failed with local Windows EPERM. No deployment or hosted write-path acceptance was performed.
+- This targeted cleanup is not a general demo/test classification system. The earlier approval request for private upload/speaker acceptance remains unanswered.
+
 ## 2026-10-15: post-release acceptance, read-only phase
 
 - Hosted signed-in `/admin/plans` renders current plans, benefit wording, assigned values and edit controls; no plan or entitlement data was changed. `/admin/events/new` renders PC photo pickers; no file was uploaded or event created in this phase.

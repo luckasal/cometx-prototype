@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { isPublicEventListingCandidate } from "./public-event-visibility";
 
 export const subscribeNewsletter = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ email: z.string().email().max(320), firstName: z.string().max(120).optional() }).parse(data))
@@ -49,8 +50,8 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
 
   [events, featured, articles, partners, plans].forEach(assertDatabaseResult);
   return {
-    upcoming: (events.data ?? []).map((event) => ({ ...event, status: event.event_status })),
-    featured: featured.data ? { ...featured.data, status: featured.data.event_status } : null,
+    upcoming: (events.data ?? []).filter(isPublicEventListingCandidate).map((event) => ({ ...event, status: event.event_status })),
+    featured: featured.data && isPublicEventListingCandidate(featured.data) ? { ...featured.data, status: featured.data.event_status } : null,
     articles: articles.data ?? [],
     partners: partners.data ?? [],
     plans: plans.data ?? [],
@@ -69,7 +70,7 @@ export const listEvents = createServerFn({ method: "GET" }).handler(async () => 
 
   assertDatabaseResult({ error });
   const now = Date.now();
-  const all = (data ?? []).map((event) => ({ ...event, status: event.event_status }));
+  const all = (data ?? []).filter(isPublicEventListingCandidate).map((event) => ({ ...event, status: event.event_status }));
   const featured = all.filter((event) => event.featured);
   const standardEvents = all.filter((event) => !event.featured);
   return {
