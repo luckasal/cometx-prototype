@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-16: first feedback task — membership pricing acceptance, partial
+
+- Read-only hosted Supabase check confirmed the three active-plan entitlement assignments; no plan or customer data was changed. Isolated quote/order/cart/credit/webhook-format checks pass (17/17) across guest, Fanoušek, CometXXL and Ambasador cases, including only one benefit ticket per event and one-time opt-in workshop credit.
+- Full customer-to-Stripe-to-webhook/refund acceptance remains open pending designated sandbox accounts and authorization for test payments. The old `ticket-database.test.mjs` fixture fails before assertions while applying migration `0016` (retired function missing); its attempted fixture adjustment then exposed an unrelated annual-plan constraint mismatch, so no fixture edit was retained. See `docs/MEMBER_PRICING_ACCEPTANCE_2026-10-16.md`.
+- No deployment, Stripe charge, Supabase write, refund or membership change in this cycle. Preserve unrelated dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
+
 ## 2026-10-16: boss-feedback task board and local ticket/benefit clarity
 
 - Audited the boss's events, memberships, roles, CRM, newsletter, partners, payments and latency feedback in `docs/BOSS_FEEDBACK_AUDIT_2026-10-16.md`; tracked the prioritized `BOSS-*` work in `.ai/TASKS.md`.
