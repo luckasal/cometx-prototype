@@ -378,6 +378,18 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                         </div>
                         {availabilityMessage && !(earlyBirdBeforeRegular && availability === "sale_not_started") &&
                           <p className="mx-5 mt-4 rounded-xl bg-background px-3 py-2 text-sm font-medium text-muted-foreground" role="status">{availabilityMessage}</p>}
+                        {availability === "membership_required" && (
+                          <div className="mx-5 mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                            <Link to="/membership" className="font-semibold text-accent underline underline-offset-4">
+                              {cs ? "Porovnat členství" : "Compare memberships"}
+                            </Link>
+                            {!data.isSignedIn && (
+                              <button type="button" className="text-muted-foreground underline underline-offset-4" onClick={onLogin}>
+                                {cs ? "Už jste člen? Přihlaste se" : "Already a member? Log in"}
+                              </button>
+                            )}
+                          </div>
+                        )}
                         {priceEndsBeforeEvent && Date.parse(ticket.saleEnd!) > Date.now() && (
                           <p className="mx-5 mt-3 text-xs text-muted-foreground">
                             {isEarlyBird ? (cs ? "Předprodej končí" : "Early bird ends") : (cs ? "Tato cena platí do" : "This price is available until")} {date(ticket.saleEnd!)} · {time(ticket.saleEnd!)} {cs ? "(čas ve Švýcarsku)" : "(Swiss time)"}

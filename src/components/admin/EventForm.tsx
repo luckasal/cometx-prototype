@@ -544,7 +544,7 @@ export function EventForm({
               ))}
             </div>
           )}
-          <p className="mt-3 text-xs text-muted-foreground">You can <a href="/admin/plans" className="underline underline-offset-4">view membership plans</a> in Back Office. Benefit assignments are currently read-only there; an admin must review any change to promised benefits.</p>
+          <p className="mt-3 text-xs text-muted-foreground">Admins can <a href="/admin/plans" className="underline underline-offset-4">review and edit membership benefits</a> in Back Office. Confirm any change to promised benefits before saving it; existing orders keep their recorded prices.</p>
         </details>
         {tickets.map((ticket, index) => (
           <div key={index} className="space-y-4 border-t border-border pt-5">

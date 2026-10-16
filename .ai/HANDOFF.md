@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-16: boss-feedback task board and local ticket/benefit clarity
+
+- Audited the boss's events, memberships, roles, CRM, newsletter, partners, payments and latency feedback in `docs/BOSS_FEEDBACK_AUDIT_2026-10-16.md`; tracked the prioritized `BOSS-*` work in `.ai/TASKS.md`.
+- Corrected stale event-editor guidance to link the existing Admin plan-benefits editor, removed duplicate percentage wording for known My CometX benefits, and added membership/sign-in next steps for an ineligible public ticket. No plan values, checkout, Stripe, database or authorization behavior changed.
+- Focused ticket availability and benefit tests pass. The old event-template test harness cannot resolve React from a data URL; full build could not be verified because local Nitro hit Windows EPERM and the escalation was denied by automatic approval. This work is local, not deployed. Hosted price/payment, media and restricted-role acceptance remain open.
+- Preserve unrelated dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
+
 ## 2026-10-16: My CometX workshop-credit status and Back Office timing
 
 - Added a signed-in, server-only workshop-credit status read for the active membership term. `/account/membership` shows available versus used/temporarily reserved; pending checkout is not falsely called a completed redemption. No cart or admin query was added.

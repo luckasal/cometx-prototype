@@ -24,6 +24,9 @@ export const Route = createFileRoute("/account/membership")({
 function benefitLabel(b: { key: string; name: string; value: number | null }) {
   if (b.value === null) return b.name;
   if (b.key === "workshop_credit") return `One-time workshop credit: CHF ${b.value}`;
+  if (b.key === "symposium_half_price") return `Sleva ${b.value}% na SCAS Symposium`;
+  if (b.key === "other_events_discount") return `Sleva ${b.value}% na další akce (mimo workshopy)`;
+  if (b.key === "potlach_discount") return `Sleva ${b.value}% na POTLA.CH`;
   if (b.key.endsWith("_discount")) return `${b.name}: ${b.value}%`;
   if (b.key.endsWith("_credit")) return `${b.name}: CHF ${b.value}`;
   return b.name;
