@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getEventDetail } from "@/lib/events.functions";
 import { getAccountOverview } from "@/lib/membership.functions";
-import { formatMoney, formatMembershipBenefit } from "@/lib/pricing";
+import { formatMoney, formatMembershipBenefit, previewWorkshopCredit } from "@/lib/pricing";
 import { attendeeMatchesBuyer, buyerNamedAttendeeCount, clearAttendeeName, copyBuyerNameToAttendee, readTicketCart, writeTicketCart, type TicketCartLine } from "@/lib/ticket-cart";
 import { ticketPricingType, trackEvent } from "@/lib/analytics";
 import { startTicketCheckoutBatch } from "@/lib/ticket-orders.functions";
@@ -65,6 +65,7 @@ function CartPage() {
   const [buyerLastName, setBuyerLastName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [selectedCreditSlug, setSelectedCreditSlug] = useState<string | null>(null);
   const cartViewSent = useRef(false);
   const cancelEventSent = useRef(false);
   const buyerName = [buyerFirstName.trim(), buyerLastName.trim()].join(" ");
@@ -78,7 +79,7 @@ function CartPage() {
   const [consentState, setConsentState] = useState<{ scope: string; accepted: Record<string, boolean> }>({ scope: "", accepted: {} });
   const acceptedConsents = consentState.scope === consentScope ? consentState.accepted : {};
   const consentComplete = requiredPoliciesAccepted(policies, acceptedConsents);
-  // TODO: Coupon/gift-card UI requires validated server quotes and redemption.
+  // Other coupon/gift-card UI still requires validated server quotes and redemption.
   // Show a reservation timer only for an actual server-issued hold + expiresAt;
   // browsing this cart does not reserve tickets. Never create a cosmetic timer.
 
@@ -115,9 +116,14 @@ function CartPage() {
       const eventLines = cartLines.filter((line) => line.eventSlug === slug);
       const rows = eventLines.map((line) => ({ line, ticket: detail?.tickets.find((item) => item.id === line.ticketId) }));
       if (!rows.length || !rows.every(({ ticket }) => ticket?.price.eligible)) continue;
-      const memberTicketId = rows.find(({ ticket }) => ticket && ticket.price.finalPrice < ticket.price.basePrice)?.line.ticketId;
+      const creditTicketId = selectedCreditSlug === slug && detail?.workshopCreditAvailable && detail.workshopCreditAmount
+        ? rows.find(({ ticket }) => ticket?.price.benefitType === "public" && ticket.price.basePrice > 0 && ticket.price.currency.toUpperCase() === "CHF")?.line.ticketId
+        : undefined;
+      const prices = rows.map(({ line, ticket }) => ({ ticketId: line.ticketId, quantity: line.quantity,
+        price: creditTicketId === line.ticketId ? previewWorkshopCredit(ticket!.price, detail!.workshopCreditAmount!) : ticket!.price }));
+      const memberTicketId = prices.find(({ price }) => price.finalPrice < price.basePrice)?.ticketId;
       try {
-        quotes.set(slug, quoteTicketOrder(rows.map(({ line, ticket }) => ({ ticketId: line.ticketId, quantity: line.quantity, price: ticket!.price })), { scope: "one", memberTicketId }));
+        quotes.set(slug, quoteTicketOrder(prices, { scope: "one", ...(memberTicketId ? { memberTicketId } : {}) }));
       } catch {
         // The server quote remains authoritative; withhold a misleading estimate.
       }
@@ -188,7 +194,9 @@ function CartPage() {
   const currencyCompatible = cartCurrencies.size <= 1;
   const checkoutMutation = useMutation({
     mutationFn: () => {
-      const events = groups.map((slug) => ({ eventSlug: slug, lines: lines.filter((line) => line.eventSlug === slug).map((line) => ({
+      const events = groups.map((slug) => ({ eventSlug: slug,
+        useWorkshopCredit: selectedCreditSlug === slug && !!eventQueries[groups.indexOf(slug)]?.data?.workshopCreditAvailable,
+        lines: lines.filter((line) => line.eventSlug === slug).map((line) => ({
         ticketId: line.ticketId, quantity: line.quantity,
         attendees: Array.from({ length: line.quantity }, (_, index) => {
           const attendee = line.attendees?.[index];
@@ -355,6 +363,7 @@ function CartPage() {
             const currencies = new Set(ticketRows.flatMap(({ ticket }) => ticket ? [ticket.price.currency] : []));
             const sameCurrency = currencies.size <= 1;
             const purchasable = sameCurrency && ticketRows.every(({ ticket, availability }) => ticket && availability === "available");
+            const creditable = detail.event.eventType === "workshop" && ticketRows.some(({ ticket }) => ticket?.price.benefitType === "public" && ticket.price.basePrice > 0 && ticket.price.currency.toUpperCase() === "CHF");
             return <article key={slug} className="rounded-[1.5rem] bg-card/55 p-3 sm:p-4">
               <div className="mb-2 hidden grid-cols-[minmax(0,1fr)_6.25rem_7.5rem_6rem_1.5rem] items-center gap-3 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground xl:grid">
                 <span>{cs ? "Akce / vstupenka" : "Event / ticket"}</span>
@@ -408,6 +417,14 @@ function CartPage() {
               </div>
               {!sameCurrency && <p className="mt-3 text-sm text-destructive">{cs ? "V jedné objednávce nelze kombinovat různé měny. Odeberte některý typ vstupenky." : "Ticket types in one order must use the same currency. Remove one currency type."}</p>}
               {!purchasable && <p className="mt-3 text-sm text-destructive">{cs ? "Některé vstupenky nejsou dostupné. Upravte košík nebo vyberte jinou akci." : "Some tickets are unavailable. Update your cart or choose another event."}</p>}
+              {creditable && detail.workshopCreditAmount && <div className="mt-4 rounded-2xl border border-accent/40 bg-accent/10 p-4">
+                {detail.workshopCreditAvailable ? <label className="flex cursor-pointer items-start gap-3">
+                  <input type="checkbox" className="mt-1 size-4 accent-accent" checked={selectedCreditSlug === slug}
+                    onChange={(event) => setSelectedCreditSlug(event.target.checked ? slug : null)} />
+                  <span><span className="block font-semibold">{cs ? `Použít jednorázový kredit CHF ${detail.workshopCreditAmount} na tento workshop` : `Use my one-time CHF ${detail.workshopCreditAmount} credit on this workshop`}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">{cs ? "Kredit se použije na jednu vstupenku. Můžete si ho nechat na jiný workshop; uplatní se až při dokončení nákupu." : "The credit applies to one ticket. Leave it unused for another workshop; it is redeemed when your purchase completes."}</span></span>
+                </label> : <p className="text-sm text-muted-foreground">{cs ? "Workshopový kredit tohoto členství už byl použit nebo je rezervován v jiné platbě." : "This membership's workshop credit has already been used or is reserved in another checkout."}</p>}
+              </div>}
               {buyerNameConflicts.has(slug) && <p className="mt-3 text-sm text-destructive">{cs ? "Kupující může být uveden jen na jedné vstupence pro tuto akci. Upravte dalšího účastníka nebo zvolte, která vstupenka je pro kupujícího." : "The buyer can be named on only one ticket for this event. Edit the other attendee or choose which ticket is for the buyer."}</p>}
               <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-foreground/10 pt-4">
                 <p className="font-semibold">{cs ? "Mezisoučet akce" : "Event subtotal"}: {sameCurrency && eventQuotes.get(slug) && ticketRows.every(({ ticket }) => ticket) ? formatMoney(eventQuotes.get(slug)!.amount / 100, eventQuotes.get(slug)!.currency) : "—"}</p>

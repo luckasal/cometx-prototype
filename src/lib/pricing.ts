@@ -176,6 +176,14 @@ export function formatMoney(amount: number, currency = "CHF"): string {
   return `${currency} ${amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)}`;
 }
 
+/** Cart estimate only; the database independently validates and prices redemption. */
+export function previewWorkshopCredit(price: PriceResult, credit: number): PriceResult {
+  if (price.currency.toUpperCase() !== "CHF" || price.benefitType !== "public" || !Number.isFinite(credit) || credit <= 0) return price;
+  const discount = Math.min(price.basePrice, credit);
+  return { ...price, discount, finalPrice: round2(price.basePrice - discount),
+    reason: `Workshop credit −CHF ${discount}`, benefitType: "workshop_credit", benefitValue: discount };
+}
+
 export function formatMembershipBenefit(price: PriceResult, czech: boolean): string {
   switch (price.benefitType) {
     case "free": return czech ? "V ceně členství" : "Included with membership";

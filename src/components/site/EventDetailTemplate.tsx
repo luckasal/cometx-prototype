@@ -373,6 +373,8 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                             <p className="mt-2 text-sm font-medium text-accent">{formatMembershipBenefit(ticket.price, cs)}</p>
                             <p className="mt-1 text-xs text-muted-foreground">{cs ? "Členská výhoda platí na jednu vstupenku na akci; další jsou za běžnou cenu." : "Member benefits apply to one ticket per event; additional tickets are full price."}</p>
                           </>}
+                          {data.workshopCreditAvailable && data.workshopCreditAmount && ticket.price.benefitType === "public" && ticket.price.basePrice > 0 &&
+                            <p className="mt-2 text-sm text-accent">{cs ? `Členský kredit CHF ${data.workshopCreditAmount} si můžete zvolit v košíku.` : `Choose whether to use your CHF ${data.workshopCreditAmount} member credit in the cart.`}</p>}
                         </div>
                         {availabilityMessage && !(earlyBirdBeforeRegular && availability === "sale_not_started") &&
                           <p className="mx-5 mt-4 rounded-xl bg-background px-3 py-2 text-sm font-medium text-muted-foreground" role="status">{availabilityMessage}</p>}

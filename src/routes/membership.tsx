@@ -43,12 +43,14 @@ const englishBenefits: Record<string, string> = {
   symposium_free_ticket: "Free admission to the upcoming SCAS",
   other_events_discount: "50% off all other events except workshops",
   potlach_free_ticket: "Free admission to every Beer POTLA.CH",
-  workshop_credit: "Credit for any CometX workshop",
+  workshop_credit: "One-time credit for a CometX workshop",
 };
 
 function benefitLabel(benefit: { key: string; name: string; value: number | null }, cs: boolean) {
   const name = cs ? benefit.name : (englishBenefits[benefit.key] ?? benefit.name);
-  if (benefit.key === "workshop_credit") return `${name}: CHF ${benefit.value}`;
+  if (benefit.key === "workshop_credit") return cs
+    ? `Jednorázový kredit CHF ${benefit.value} na workshop`
+    : `${name}: CHF ${benefit.value}`;
   return name;
 }
 

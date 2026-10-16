@@ -23,6 +23,7 @@ export const Route = createFileRoute("/account/membership")({
 
 function benefitLabel(b: { key: string; name: string; value: number | null }) {
   if (b.value === null) return b.name;
+  if (b.key === "workshop_credit") return `One-time workshop credit: CHF ${b.value}`;
   if (b.key.endsWith("_discount")) return `${b.name}: ${b.value}%`;
   if (b.key.endsWith("_credit")) return `${b.name}: CHF ${b.value}`;
   return b.name;

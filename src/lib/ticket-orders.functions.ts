@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const attendeeInput = z.object({ firstName: z.string().trim().min(1).max(120), lastName: z.string().trim().min(1).max(120) });
 const batchCheckoutInput = z.object({
-  events: z.array(z.object({ eventSlug: z.string().min(1).max(200), lines: z.array(z.object({ ticketId: z.string().uuid(), quantity: z.number().int().min(1).max(10), attendees: z.array(attendeeInput).min(1).max(10) })).min(1).max(10) })).min(1).max(10),
+  events: z.array(z.object({ eventSlug: z.string().min(1).max(200), useWorkshopCredit: z.boolean().optional(), lines: z.array(z.object({ ticketId: z.string().uuid(), quantity: z.number().int().min(1).max(10), attendees: z.array(attendeeInput).min(1).max(10) })).min(1).max(10) })).min(1).max(10),
   buyerName: z.string().trim().max(240).optional(), buyerEmail: z.string().email().max(320).optional(), termsAccepted: z.literal(true),
 });
 

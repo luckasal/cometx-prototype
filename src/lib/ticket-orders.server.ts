@@ -18,6 +18,7 @@ const checkoutBatchSchema = z.object({
 });
 const batchLinesSchema = z.array(z.object({
   eventSlug: z.string().min(1).max(200),
+  useWorkshopCredit: z.boolean().optional(),
   lines: z.array(z.object({
     ticketId: z.string().uuid(), quantity: z.number().int().min(1).max(10),
     attendees: z.array(z.object({ firstName: z.string().trim().min(1).max(120), lastName: z.string().trim().min(1).max(120) })).min(1).max(10),
@@ -36,6 +37,8 @@ export async function startTicketCheckoutBatch(input: {
 }) {
   const events = batchLinesSchema.parse(input.events);
   if (new Set(events.map((event) => event.eventSlug)).size !== events.length) throw new Error("Each event must appear once.");
+  if (events.filter((event) => event.useWorkshopCredit).length > 1) throw new Error("Choose one workshop for your membership credit.");
+  if (!input.userId && events.some((event) => event.useWorkshopCredit)) throw new Error("Sign in to use your workshop credit.");
   for (const event of events) {
     if (event.lines.reduce((sum, line) => sum + line.quantity, 0) > 10) throw new Error("Choose up to 10 tickets per event.");
     if (event.lines.some((line) => line.attendees.length !== line.quantity)) throw new Error("Add an attendee name for every ticket.");
@@ -51,6 +54,12 @@ export async function startTicketCheckoutBatch(input: {
     p_events: events, p_terms_accepted: input.termsAccepted, p_payments_ready: paymentsReady,
     p_guest_token_hash: tokenHash, p_guest_token_ciphertext: tokenCiphertext,
   });
+  if (error?.message.includes("membership workshop credit has already been used")) {
+    throw new Error("Your workshop credit has already been used or is reserved in another checkout. Remove it from this order and try again.");
+  }
+  if (error?.message.includes("Workshop credit could not be applied")) {
+    throw new Error("This workshop credit cannot be applied to the selected tickets. Leave it unused and try again.");
+  }
   check(error);
   const batch = checkoutBatchSchema.parse(data);
   const accessUrl = token && appUrl ? `${checkoutOrigin(appUrl)}/tickets/guest?batch=${encodeURIComponent(batch.id)}&token=${encodeURIComponent(token)}` : null;

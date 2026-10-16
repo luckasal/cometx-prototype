@@ -78,6 +78,8 @@ export type EventDetail = {
   spotsLeft: number | null;
   membershipName: string | null;
   isSignedIn: boolean;
+  workshopCreditAmount: number | null;
+  workshopCreditAvailable: boolean;
 };
 
 export const getEventDetail = createServerFn({ method: "GET" })
@@ -163,6 +165,21 @@ export const getEventDetail = createServerFn({ method: "GET" })
     const openQuantity = openOrderItems.reduce((sum, item) => sum + Number(item.quantity), 0);
     const membership = await getCurrentMembership(user?.userId);
     const entitlements = membership ? await getPlanEntitlements(membership.plan.id) : {};
+    const expectedCredit = membership?.plan.slug === "cometxxl" ? 100 : membership?.plan.slug === "ambasador" ? 300 : null;
+    const workshopCreditAmount = event.event_type === "workshop" && expectedCredit !== null && entitlements["workshop_credit"] === expectedCredit
+      ? expectedCredit : null;
+    let workshopCreditAvailable = false;
+    if (workshopCreditAmount && user && membership && canReadAllRegistrations) {
+      const usage = await (supabaseAdmin as SupabaseClient).rpc("workshop_credit_is_used", {
+        p_user_id: user.userId, p_membership_start: membership.startsAt,
+      });
+      assertDatabaseResult(usage);
+      workshopCreditAvailable = usage.data === false;
+    }
+    // The voucher is a choice at checkout, not an automatic ticket discount.
+    const automaticEntitlements = event.event_type === "workshop"
+      ? Object.fromEntries(Object.entries(entitlements).filter(([key]) => key !== "workshop_credit"))
+      : entitlements;
 
     const tickets: EventTicketOption[] = (ticketsRes.data ?? []).map((ticket) => {
       const taken = registrations.filter((r) => r.ticket_type_id === ticket.id).length
@@ -173,7 +190,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
         { basePrice:Number(ticket.base_price),currency:ticket.currency,requiredEntitlement:ticket.required_entitlement,
           discountEntitlement:ticket.discount_entitlement,freeEntitlement:ticket.free_entitlement,
           memberPrice: ticket.member_price == null ? null : Number(ticket.member_price) },
-        entitlements, event.event_type, membership?.plan.slug ?? null);
+        automaticEntitlements, event.event_type, membership?.plan.slug ?? null);
       return {
         id: ticket.id,
         name: ticket.name,
@@ -247,6 +264,8 @@ export const getEventDetail = createServerFn({ method: "GET" })
       spotsLeft: !canReadAllRegistrations || event.capacity === null ? null : Math.max(event.capacity - registrations.length - issuedAttendees.length - openQuantity, 0),
       membershipName: membership?.plan.name ?? null,
       isSignedIn: !!user,
+      workshopCreditAmount,
+      workshopCreditAvailable,
     };
   });
 
