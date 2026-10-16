@@ -2,12 +2,18 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-16: My CometX workshop-credit status and Back Office timing
+
+- Added a signed-in, server-only workshop-credit status read for the active membership term. `/account/membership` shows available versus used/temporarily reserved; pending checkout is not falsely called a completed redemption. No cart or admin query was added.
+- Focused account-credit tests and Production build pass. Full typecheck still has pre-existing errors; the new RPC call introduces none. Online signed-in `/admin/members` cold navigation showed `Checking your access` then the populated table in roughly 2–3 seconds. The path restores the browser session, verifies the token remotely, reads roles, and performs an independently authorized list read (prefetched alongside the access check). No broad performance change was made in this task.
+- Not yet deployed at this handoff point; hosted status display and a paid sandbox redemption remain to be checked. Preserve unrelated dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
+
 ## 2026-10-16: optional one-time workshop credit
 
 - Task `WORKSHOP-CREDIT-OPT-IN-01`; implementation commit `04490db` on `codex/annual-membership-release-20261009`. Eligible CometXXL/Ambasador members now choose in the cart whether to use their CHF 100/300 workshop credit. Event prices stay public until that choice; the cart previews one discounted ticket and sends only the selection, never a client price. Membership/account copy calls the benefit one-time.
 - Migration `0021_optional_one_time_workshop_credit.sql` makes checkout authoritative: inactive/unentitled buyers cannot redeem, a pending Checkout reserves the credit, and a confirmed/free/manual-review purchase consumes it across workshops for the membership. Expired/failed holds release it. The membership row lock serializes competing checkouts. Existing Stripe split-line totals and one-benefit-ticket-per-event behavior remain.
 - Checks: isolated PostgreSQL voucher regression passes, migration parses against the isolated schema, Production build passes; changed files have no TypeScript diagnostics. The older full ticket database test stops on unrelated missing `select_prototype_membership` in migration `0016` before reaching this change.
-- Not deployed. Apply `0021` and release the matching app as one coordinated change, then perform a signed-in Stripe sandbox purchase/webhook acceptance. Preserve unrelated dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
+- Released on 2026-10-16: hosted migration `optional_one_time_workshop_credit` applied and service-only RPC grant checked; commit `1cce479` was rebuilt as Vercel Production `kQHPQSjpAhhtWDrVGvSiEt9yoMW4` (Ready) and assigned to `cometx-prototype.vercel.app`. Signed-in Stripe sandbox purchase/webhook acceptance remains pending. Preserve unrelated dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
 - Release compatibility: migration `0021` treats legacy checkout requests without a credit flag as the old automatic workshop price; the new app requires an explicit true/false choice. Isolated PostgreSQL regression now covers this handoff, so migration-first deployment does not show a discounted old-page price and charge full price.
 
 ## 2026-10-15: hide known internal demo event from public discovery

@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 export type PlanSummary = {
@@ -68,6 +69,36 @@ export type AccountOverview = {
     benefits: { key: string; name: string; value: number | null }[];
   } | null;
 };
+
+export type WorkshopCreditStatus = {
+  amount: number;
+  state: "available" | "used_or_reserved";
+} | null;
+
+/** The private order lookup is scoped to the signed-in member and current membership term. */
+export const getMyWorkshopCreditStatus = createServerFn({ method: "GET" }).handler(
+  async (): Promise<WorkshopCreditStatus> => {
+    const { requireUser } = await import("./auth.server");
+    const { getCurrentMembership, getPlanEntitlements } = await import("./membership.server");
+    const { assertDatabaseResult } = await import("./database.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const user = await requireUser();
+    const membership = await getCurrentMembership(user.userId);
+    if (!membership) return null;
+
+    const amount = membership.plan.slug === "cometxxl" ? 100 : membership.plan.slug === "ambasador" ? 300 : null;
+    if (!amount) return null;
+    const benefits = await getPlanEntitlements(membership.plan.id);
+    if (benefits["workshop_credit"] !== amount) return null;
+
+    const usage = await (supabaseAdmin as SupabaseClient).rpc("workshop_credit_is_used", {
+      p_user_id: user.userId,
+      p_membership_start: membership.startsAt,
+    });
+    assertDatabaseResult(usage);
+    return { amount, state: usage.data === true ? "used_or_reserved" : "available" };
+  },
+);
 
 export const getAccountOverview = createServerFn({ method: "GET" }).handler(
   async (): Promise<AccountOverview> => {

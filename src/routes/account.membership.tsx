@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
-import { getAccountOverview, startMembershipBillingPortal } from "@/lib/membership.functions";
+import { getAccountOverview, getMyWorkshopCreditStatus, startMembershipBillingPortal } from "@/lib/membership.functions";
 import { Button } from "@/components/ui/button";
 import {
   EmptyBlock,
@@ -32,6 +32,7 @@ function benefitLabel(b: { key: string; name: string; value: number | null }) {
 function AccountMembershipPage() {
   const { checkout } = Route.useSearch();
   const fetchOverview = useServerFn(getAccountOverview);
+  const fetchWorkshopCredit = useServerFn(getMyWorkshopCreditStatus);
   const createBillingPortal = useServerFn(startMembershipBillingPortal);
   const portalMutation = useMutation({
     mutationFn: () => createBillingPortal(),
@@ -41,6 +42,10 @@ function AccountMembershipPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["account"],
     queryFn: () => fetchOverview(),
+  });
+  const { data: workshopCredit, isLoading: creditLoading, error: creditError } = useQuery({
+    queryKey: ["account", "workshop-credit"],
+    queryFn: () => fetchWorkshopCredit(),
   });
 
   useEffect(() => {
@@ -122,6 +127,19 @@ function AccountMembershipPage() {
               {data.membership.benefits.map((benefit) => (
                 <li key={benefit.key} className="py-4 text-sm">
                   {benefitLabel(benefit)}
+                  {benefit.key === "workshop_credit" && (
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      {creditLoading
+                        ? "Checking your workshop credit…"
+                        : creditError
+                          ? "Credit status is unavailable right now. Please refresh to try again."
+                          : workshopCredit?.state === "available"
+                            ? `Available — choose when to use your CHF ${workshopCredit.amount} credit in the ticket cart.`
+                            : workshopCredit?.state === "used_or_reserved"
+                              ? "Already used, or reserved by a pending checkout. If payment is not completed, it becomes available again when the checkout expires."
+                              : "This credit is not available with your current membership."}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
