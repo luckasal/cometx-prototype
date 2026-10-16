@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-16: optional one-time workshop credit
+
+- Task `WORKSHOP-CREDIT-OPT-IN-01`; implementation commit `04490db` on `codex/annual-membership-release-20261009`. Eligible CometXXL/Ambasador members now choose in the cart whether to use their CHF 100/300 workshop credit. Event prices stay public until that choice; the cart previews one discounted ticket and sends only the selection, never a client price. Membership/account copy calls the benefit one-time.
+- Migration `0021_optional_one_time_workshop_credit.sql` makes checkout authoritative: inactive/unentitled buyers cannot redeem, a pending Checkout reserves the credit, and a confirmed/free/manual-review purchase consumes it across workshops for the membership. Expired/failed holds release it. The membership row lock serializes competing checkouts. Existing Stripe split-line totals and one-benefit-ticket-per-event behavior remain.
+- Checks: isolated PostgreSQL voucher regression passes, migration parses against the isolated schema, Production build passes; changed files have no TypeScript diagnostics. The older full ticket database test stops on unrelated missing `select_prototype_membership` in migration `0016` before reaching this change.
+- Not deployed. Apply `0021` and release the matching app as one coordinated change, then perform a signed-in Stripe sandbox purchase/webhook acceptance. Preserve unrelated dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
+
 ## 2026-10-15: hide known internal demo event from public discovery
 
 - The published `new-demo-event` record is excluded from the public `/events` listing and homepage event selections. Its Back Office record and ticket/order logic are unchanged.
