@@ -18,7 +18,7 @@ const checkoutBatchSchema = z.object({
 });
 const batchLinesSchema = z.array(z.object({
   eventSlug: z.string().min(1).max(200),
-  useWorkshopCredit: z.boolean().optional(),
+  useWorkshopCredit: z.boolean(),
   lines: z.array(z.object({
     ticketId: z.string().uuid(), quantity: z.number().int().min(1).max(10),
     attendees: z.array(z.object({ firstName: z.string().trim().min(1).max(120), lastName: z.string().trim().min(1).max(120) })).min(1).max(10),

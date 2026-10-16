@@ -196,9 +196,15 @@ begin
     raise exception 'Choose only one workshop for this membership credit'; end if;
   if p_user_id is null and exists(select 1 from jsonb_array_elements(p_events) e where e->>'useWorkshopCredit'='true') then
     raise exception 'Sign in to use a membership workshop credit'; end if;
+  -- Older app deployments omit the choice. Preserve their advertised automatic
+  -- workshop price until the matching opt-in app is promoted. New clients send
+  -- an explicit boolean for every event, including false when saving credit.
   perform set_config('cometx.workshop_credit_events',coalesce((
     select jsonb_agg(e->>'eventSlug')::text from jsonb_array_elements(p_events) e
-      where e->>'useWorkshopCredit'='true'),'[]'),true);
+      where e->>'useWorkshopCredit'='true'
+        or (not (e ? 'useWorkshopCredit') and exists(
+          select 1 from public.events ev where ev.slug=e->>'eventSlug' and ev.event_type='workshop'
+        ))),'[]'),true);
   result := public.begin_ticket_checkout_batch_legacy(p_user_id,p_guest_name,p_guest_email,p_events,p_terms_accepted,
     p_payments_ready,p_guest_token_hash,p_guest_token_ciphertext);
   batch_id := (result->>'id')::uuid;

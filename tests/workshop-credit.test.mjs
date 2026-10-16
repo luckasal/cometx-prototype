@@ -46,6 +46,12 @@ test('workshop voucher is opt-in and reserved only once across events', async ()
     assert.equal(retry.amount_minor, 16500);
     await db.query("update ticket_orders set status='confirmed' where id=$1", [retry.order_id]);
     await assert.rejects(checkout(select(events[1], true)), /workshop credit has already been used/);
+
+    const legacyUser = (await db.query("insert into auth.users(id,email) values(gen_random_uuid(),'legacy-credit@example.invalid') returning id")).rows[0].id;
+    await db.query("insert into memberships(user_id,membership_plan_id,status) values($1,$2,'active')", [legacyUser, planId]);
+    const legacyInput = select(events[0], false).map(({ useWorkshopCredit, ...event }) => event);
+    const legacy = (await db.query('select begin_ticket_checkout_batch($1,null,null,$2::jsonb,true,true) as result', [legacyUser, JSON.stringify(legacyInput)])).rows[0].result;
+    assert.equal(legacy.amount_minor, 16500, 'old app remains price-compatible during migration-first release');
   } finally {
     await db.close();
   }

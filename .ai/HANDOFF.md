@@ -8,6 +8,7 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 - Migration `0021_optional_one_time_workshop_credit.sql` makes checkout authoritative: inactive/unentitled buyers cannot redeem, a pending Checkout reserves the credit, and a confirmed/free/manual-review purchase consumes it across workshops for the membership. Expired/failed holds release it. The membership row lock serializes competing checkouts. Existing Stripe split-line totals and one-benefit-ticket-per-event behavior remain.
 - Checks: isolated PostgreSQL voucher regression passes, migration parses against the isolated schema, Production build passes; changed files have no TypeScript diagnostics. The older full ticket database test stops on unrelated missing `select_prototype_membership` in migration `0016` before reaching this change.
 - Not deployed. Apply `0021` and release the matching app as one coordinated change, then perform a signed-in Stripe sandbox purchase/webhook acceptance. Preserve unrelated dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
+- Release compatibility: migration `0021` treats legacy checkout requests without a credit flag as the old automatic workshop price; the new app requires an explicit true/false choice. Isolated PostgreSQL regression now covers this handoff, so migration-first deployment does not show a discounted old-page price and charge full price.
 
 ## 2026-10-15: hide known internal demo event from public discovery
 
