@@ -18,6 +18,7 @@ import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 import { formatMoney, isRegistrationOpen } from "@/lib/pricing";
 import { ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
 import { earliestTicketSaleStart, eventScheduleIssue } from "@/lib/event-admin";
+import { previewTicketByPlan, type PreviewPlan } from "@/lib/event-ticket-preview";
 
 export type EventFormValues = {
   id?: string;
@@ -116,11 +117,7 @@ const ticketBenefitKeys: Record<string, { discount?: string; free?: string }> = 
   workshop: {},
 };
 
-type EventBenefitPlan = {
-  id: string;
-  name: string;
-  plan_entitlements: { value: number | null; entitlements: { key: string; name: string } | null }[];
-};
+type EventBenefitPlan = PreviewPlan;
 
 function describePlanBenefit(key: string, value: number | null): string {
   if (key === "workshop_credit" && value !== null) return `CHF ${value} workshop credit`;
@@ -633,7 +630,7 @@ export function EventForm({
                 </select>
               </Field>
               {ticket.required_entitlement && benefitsLoading && <p className="text-xs text-muted-foreground">Checking which active plans include this benefit…</p>}
-              {ticket.required_entitlement && !benefitsError && !benefitsLoading && <p className="text-xs text-muted-foreground">Eligible active plans: {benefitMatrix.filter((plan) => plan.plan_entitlements?.some((benefit) => benefit.entitlements?.key === ticket.required_entitlement)).map((plan) => plan.name).join(", ") || "none of the active plans — check before publishing"}.</p>}
+              {ticket.required_entitlement && !benefitsError && !benefitsLoading && <p className="text-xs text-muted-foreground">Eligible active plans: {benefitMatrix.filter((plan: EventBenefitPlan) => plan.plan_entitlements?.some((benefit: EventBenefitPlan["plan_entitlements"][number]) => benefit.entitlements?.key === ticket.required_entitlement)).map((plan: EventBenefitPlan) => plan.name).join(", ") || "none of the active plans — check before publishing"}.</p>}
             </div>
             <div className="space-y-3 rounded-xl border border-border bg-background p-4">
               <h3 className="font-semibold">What does a member pay?</h3>
@@ -661,6 +658,31 @@ export function EventForm({
                 </div>
                 {ticket.discount_entitlement && ticket.free_entitlement && <p className="mt-2 text-xs text-accent">Both are set. For members with both benefits, the free ticket takes priority.</p>}
               </details>
+              <div className="rounded-lg border border-border p-3 text-sm" aria-label={`Membership price preview for ${ticket.name || "ticket"}`}>
+                <h4 className="font-semibold">Buyer and price preview</h4>
+                <p className="mt-1 text-xs text-muted-foreground">Estimate for one ticket and an active membership. Checkout checks eligibility, previous benefit use, capacity and final price again.</p>
+                {benefitsLoading && <p className="mt-2 text-muted-foreground">Loading membership plans…</p>}
+                {benefitsError && <p className="mt-2 text-destructive">Could not load plan benefits. Check them before publishing.</p>}
+                {!benefitsLoading && !benefitsError && benefitMatrix.length === 0 && <p className="mt-2 text-destructive">No active membership plans were loaded. Check plans before publishing.</p>}
+                {!benefitsLoading && !benefitsError && (ticket.base_price.trim() === "" || !Number.isFinite(Number(ticket.base_price)) || Number(ticket.base_price) < 0 || (ticket.member_price.trim() !== "" && (!Number.isFinite(Number(ticket.member_price)) || Number(ticket.member_price) < 0))) && <p className="mt-2 text-muted-foreground">Enter a valid public and optional member price to see the preview.</p>}
+                {!benefitsLoading && !benefitsError && <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                  {ticket.base_price.trim() !== "" && Number.isFinite(Number(ticket.base_price)) && Number(ticket.base_price) >= 0 && <div className="rounded-lg bg-card p-3">
+                    <p className="font-medium">Public visitor</p>
+                    {ticket.required_entitlement ? <p className="mt-1 text-xs text-destructive">Cannot buy — membership benefit required</p> : <p className="mt-1 font-semibold">{formatMoney(Number(ticket.base_price), ticket.currency)}</p>}
+                  </div>}
+                  {previewTicketByPlan(ticket, event.event_type, benefitMatrix).map((preview) => (
+                    <div key={preview.name} className="rounded-lg bg-card p-3">
+                      <p className="font-medium">{preview.name}</p>
+                      {preview.eligible && preview.price ? <>
+                        <p className="mt-1 font-semibold">{formatMoney(preview.price.finalPrice, ticket.currency)}</p>
+                        <p className="text-xs text-muted-foreground">{preview.price.reason}</p>
+                        {preview.optionalWorkshopCredit !== null && <p className="mt-1 text-xs text-accent">Optional CHF {preview.optionalWorkshopCredit} workshop credit in cart, if unused</p>}
+                      </> : <p className="mt-1 text-xs text-destructive">Cannot buy — required benefit missing</p>}
+                    </div>
+                  ))}
+                </div>}
+                {ticket.required_entitlement && !benefitsLoading && !benefitsError && benefitMatrix.length > 0 && !benefitMatrix.some((plan: EventBenefitPlan) => plan.plan_entitlements.some((item: EventBenefitPlan["plan_entitlements"][number]) => item.entitlements?.key === ticket.required_entitlement)) && <p className="mt-2 font-medium text-destructive">No active plan includes the required benefit. This ticket will not be purchasable by members until the assignment is changed.</p>}
+              </div>
             </div>
           </div>
         ))}

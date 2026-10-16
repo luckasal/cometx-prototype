@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-16: event ticket entitlement and price preview
+
+- Task `BOSS-P0-ENTITLEMENT-EDITOR-01`: the local event ticket editor now shows one-ticket estimated prices and required-benefit eligibility for public visitors and each active plan. The Admin matrix includes plan slugs so it can use the same pure pricing function as the customer page. Workshop credit is shown as optional in the cart, not silently deducted from the default preview.
+- Added isolated preview tests and an SQL order test proving a guest and an expired member cannot buy a ticket requiring an entitlement. Seven focused preview/pricing/availability tests pass; new helper/test lint and changed-file TypeScript diagnostics pass. No schema, plan assignments, payment or ticket rules changed.
+- This is local and not deployed. The full build remains unverified because Nitro/Rolldown hit Windows `EPERM` while resolving the existing `tslib` dependency; focused tests and changed-file diagnostics passed. Hosted signed-in editor and public ineligible-visitor CTA acceptance, plus full Stripe sandbox payment acceptance, remain open. Preserve unrelated dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
+
 ## 2026-10-16: first feedback task — membership pricing acceptance, partial
 
 - Read-only hosted Supabase check confirmed the three active-plan entitlement assignments; no plan or customer data was changed. Isolated quote/order/cart/credit/webhook-format checks pass (17/17) across guest, Fanoušek, CometXXL and Ambasador cases, including only one benefit ticket per event and one-time opt-in workshop credit.

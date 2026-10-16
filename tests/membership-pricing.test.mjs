@@ -118,5 +118,12 @@ test('event-category pricing agrees with server SQL quotes', async () => {
     const expiredLine=(await db.query(`select benefit_type,membership_tier from ticket_order_items where order_id=$1`,[expired.id])).rows[0];
     assert.equal(expiredLine.benefit_type,'public');
     assert.equal(expiredLine.membership_tier,null);
+    await db.query(`update ticket_types set required_entitlement='symposium_free_ticket' where id=$1`,[secondTicket]);
+    await assert.rejects(db.query(`select begin_ticket_order(null,'Guest Buyer','guest@example.invalid',$1::jsonb,true,$2,$3)`,
+      [JSON.stringify([{ticket_id:secondTicket,quantity:1}]),'a'.repeat(64),'b'.repeat(64)]),
+      /requires its listed CometX membership benefit/, 'server rejects a guest even when the event remains public');
+    await assert.rejects(db.query(`select begin_ticket_order($1,null,null,$2::jsonb,true)`,
+      [user,JSON.stringify([{ticket_id:secondTicket,quantity:1}])]),
+      /requires its listed CometX membership benefit/, 'expired membership cannot buy a restricted ticket');
   } finally { await db.close(); }
 });

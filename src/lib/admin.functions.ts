@@ -954,7 +954,7 @@ export const adminListEventBenefitMatrix = createServerFn({ method: "GET" }).han
   const db = await admin("events.read");
   const { data, error } = await db
     .from("membership_plans")
-    .select("id,name,plan_entitlements(value,entitlements(key,name))")
+    .select("id,name,slug,plan_entitlements(value,entitlements(key,name))")
     .eq("active", true)
     .order("sort_order");
   if (error) throw new Error("Membership benefits could not be loaded.");
