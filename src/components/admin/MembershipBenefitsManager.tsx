@@ -67,16 +67,8 @@ export function MembershipBenefitsManager() {
     <section className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
       <div>
         <h2 className="font-display text-xl font-bold">Membership benefits</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Edit the benefit wording and decide which plans include it. Stable keys stay fixed because
-          events and member content can rely on them. Changes apply to future checkouts and access
-          checks; past orders are unchanged.
-        </p>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Percentages can be changed from 0–100. Workshop credits remain CHF 100 for CometXXL and
-          CHF 300 for Ambasador to match the current checkout rules. New benefits grant access only;
-          they do not create a new discount or free-ticket rule.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">Open a benefit to edit its wording or which plans receive it. The plan cards above show the current customer-facing offer. Changes affect future checkouts, never past orders.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Workshop credit is fixed at CHF 100 / CHF 300 by the current checkout rules. Newly created benefits grant access only; they do not create ticket discounts automatically.</p>
       </div>
 
       {benefits.isError && (
@@ -90,7 +82,14 @@ export function MembershipBenefitsManager() {
         </p>
       )}
       {benefitRows.map((benefit) => (
-        <div key={benefit.key} className="rounded-xl border border-border/60 p-4">
+        <details key={benefit.key} className="rounded-xl border border-border/60 p-4">
+          <summary className="cursor-pointer font-medium">
+            {benefit.name}
+            <span className="ml-3 text-xs font-normal text-muted-foreground">
+              {planRows.filter((plan) => plan.plan_entitlements?.some((entry) => entry.entitlements?.key === benefit.key)).map((plan) => plan.name).join(" · ") || "No plans"}
+            </span>
+          </summary>
+          <div className="mt-4 border-t border-border/60 pt-4">
           <form
             className="grid gap-3 md:grid-cols-[1fr_1fr_auto]"
             onSubmit={(event) => {
@@ -130,9 +129,7 @@ export function MembershipBenefitsManager() {
               </Button>
             </div>
           </form>
-          <p className="mt-2 break-all font-mono text-xs text-muted-foreground">
-            Key: {benefit.key} · fixed
-          </p>
+          <p className="mt-2 text-xs text-muted-foreground">Internal key: {benefit.key} (fixed)</p>
           <div className="mt-4 grid gap-3 lg:grid-cols-3">
             {planRows.map((plan) => {
               const assignment = plan.plan_entitlements?.find(
@@ -244,7 +241,8 @@ export function MembershipBenefitsManager() {
               );
             })}
           </div>
-        </div>
+          </div>
+        </details>
       ))}
 
       <details className="rounded-xl border border-border/60 p-4">

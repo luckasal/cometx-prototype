@@ -33,6 +33,16 @@ const empty: PlanForm = {
   sort_order: "0",
 };
 
+function planBenefitLabel(key: string, name: string, value: number | null): string {
+  if (key === "workshop_credit") return `One-time workshop credit · CHF ${value ?? 0}`;
+  if (key === "symposium_half_price") return `Symposium tickets · ${value ?? 0}% off`;
+  if (key === "other_events_discount") return `Other events · ${value ?? 0}% off (not workshops)`;
+  if (key === "potlach_discount") return `POTLA.CH tickets · ${value ?? 0}% off`;
+  if (key === "symposium_free_ticket") return "One Symposium ticket included";
+  if (key === "potlach_free_ticket") return "One POTLA.CH ticket per event included";
+  return name;
+}
+
 function AdminPlansPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<PlanForm>(empty);
@@ -108,11 +118,11 @@ function AdminPlansPage() {
               {plan.description && (
                 <p className="mt-3 text-sm text-muted-foreground">{plan.description}</p>
               )}
-              <ul className="mt-4 space-y-1 text-xs text-muted-foreground">
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Included benefits</p>
+              <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
                 {(plan.plan_entitlements ?? []).map((pe, i) => (
                   <li key={i}>
-                    {pe.entitlements?.name}
-                    {pe.value !== null ? `: ${pe.value}` : ""}
+                    {planBenefitLabel(pe.entitlements?.key ?? "", pe.entitlements?.name ?? "Benefit", pe.value)}
                   </li>
                 ))}
               </ul>
