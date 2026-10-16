@@ -2,6 +2,10 @@
 
 Status: local rule verification passed; hosted purchase acceptance **not complete**. No charges, refunds, membership edits or customer-data writes were made for this audit.
 
+## Hosted acceptance availability check
+
+On 16 October, read-only aggregate queries found **0 active Fanoušek, 4 active CometXXL and 0 active Ambasador memberships**. Upcoming open sales currently include regular-event and workshop ticket types, but no Symposium or POTLA.CH ticket types. Therefore the full tier/category matrix cannot be run against existing hosted accounts/events. Existing CometXXL members must not be used to spend a one-time benefit without their informed agreement.
+
 ## Hosted benefit assignments (read-only)
 
 | Tier | Relevant event benefits currently assigned |
@@ -34,4 +38,4 @@ Focused command: `node --experimental-strip-types --test tests/membership-pricin
 
 ## Required to close this task
 
-Use designated Fanoušek, CometXXL and Ambasador sandbox accounts, with a controlled test-card purchase and agreed refund/cleanup. For each tier, observe the live event quote, cart total, Stripe Checkout amount, webhook delivery, confirmed order/ticket, My CometX credit state and post-refund behavior. Include guest, two-ticket and repeated-event cases. Record actual event/ticket IDs and CHF totals without publishing personal data. Do not mark this task done until these hosted observations match the rule matrix.
+Use designated Fanoušek, CometXXL and Ambasador sandbox accounts and suitable test tickets in each missing event category, with a controlled test-card purchase and agreed refund/cleanup. For each tier, observe the live event quote, cart total, Stripe Checkout amount, webhook delivery, confirmed order/ticket, My CometX credit state and post-refund behavior. Include guest, two-ticket and repeated-event cases. Record actual event/ticket IDs and CHF totals without publishing personal data. Do not mark this task done until these hosted observations match the rule matrix.
