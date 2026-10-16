@@ -6,7 +6,7 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 - Added a signed-in, server-only workshop-credit status read for the active membership term. `/account/membership` shows available versus used/temporarily reserved; pending checkout is not falsely called a completed redemption. No cart or admin query was added.
 - Focused account-credit tests and Production build pass. Full typecheck still has pre-existing errors; the new RPC call introduces none. Online signed-in `/admin/members` cold navigation showed `Checking your access` then the populated table in roughly 2–3 seconds. The path restores the browser session, verifies the token remotely, reads roles, and performs an independently authorized list read (prefetched alongside the access check). No broad performance change was made in this task.
-- Not yet deployed at this handoff point; hosted status display and a paid sandbox redemption remain to be checked. Preserve unrelated dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
+- Deployed as Vercel Production `DMmrHtcJFkCZgU9iwvU8ayh2Bide` (Ready) on `cometx-prototype.vercel.app`; signed-in CometXXL account displayed CHF 100 Available after a full reload. A used-credit account and paid sandbox redemption remain untested. Preserve unrelated dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
 
 ## 2026-10-16: optional one-time workshop credit
 
