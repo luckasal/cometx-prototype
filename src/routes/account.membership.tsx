@@ -135,8 +135,10 @@ function AccountMembershipPage() {
                           ? "Credit status is unavailable right now. Please refresh to try again."
                           : workshopCredit?.state === "available"
                             ? `Available — choose when to use your CHF ${workshopCredit.amount} credit in the ticket cart.`
-                            : workshopCredit?.state === "used_or_reserved"
-                              ? "Already used, or reserved by a pending checkout. If payment is not completed, it becomes available again when the checkout expires."
+                            : workshopCredit?.state === "used"
+                              ? "Used — your one-time workshop credit was applied to a completed ticket purchase."
+                              : workshopCredit?.state === "reserved"
+                                ? "Temporarily reserved by a checkout. If payment is not completed, the credit becomes available again when that checkout expires."
                               : "This credit is not available with your current membership."}
                     </span>
                   )}

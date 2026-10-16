@@ -72,7 +72,7 @@ export type AccountOverview = {
 
 export type WorkshopCreditStatus = {
   amount: number;
-  state: "available" | "used_or_reserved";
+  state: "available" | "reserved" | "used";
 } | null;
 
 /** The private order lookup is scoped to the signed-in member and current membership term. */
@@ -91,12 +91,15 @@ export const getMyWorkshopCreditStatus = createServerFn({ method: "GET" }).handl
     const benefits = await getPlanEntitlements(membership.plan.id);
     if (benefits["workshop_credit"] !== amount) return null;
 
-    const usage = await (supabaseAdmin as SupabaseClient).rpc("workshop_credit_is_used", {
-      p_user_id: user.userId,
-      p_membership_start: membership.startsAt,
-    });
-    assertDatabaseResult(usage);
-    return { amount, state: usage.data === true ? "used_or_reserved" : "available" };
+    const { workshopCreditState } = await import("./workshop-credit-status");
+    const orders = await (supabaseAdmin as SupabaseClient)
+      .from("ticket_orders")
+      .select("status,expires_at,ticket_order_items!inner(benefit_type)")
+      .eq("user_id", user.userId)
+      .gte("created_at", membership.startsAt)
+      .eq("ticket_order_items.benefit_type", "workshop_credit");
+    assertDatabaseResult(orders);
+    return { amount, state: workshopCreditState(orders.data ?? []) };
   },
 );
 
