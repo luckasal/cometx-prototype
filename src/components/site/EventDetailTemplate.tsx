@@ -326,13 +326,16 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                 aria-label={cs ? "Výběr vstupenky" : "Ticket options"}
                 className="mt-9 scroll-mt-28 rounded-3xl bg-background/40 p-5 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-4 focus:ring-offset-card"
               >
-                <h3 className="text-lg font-bold">{cs ? "Vstupenky" : "Tickets"}</h3>
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <h3 className="text-xl font-bold">{cs ? "Vyberte si vstupenku" : "Choose your ticket"}</h3>
+                  <span className="text-xs text-muted-foreground">{cs ? "Cena za osobu" : "Price per person"}</span>
+                </div>
                 {customerTickets.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
                     {cs ? "Vstupenky momentálně nejsou k dispozici." : "Tickets are not currently available."}
                   </p>
                 ) : (
-                  <div className="mt-5 space-y-6">
+                  <div className="mt-5 space-y-4">
                     {customerTickets.map((ticket) => {
                       const availability = availabilityFor(ticket);
                       const isEarlyBird = /early[\s-]?bird|předprodej|včasn/i.test(ticket.name);
@@ -344,33 +347,47 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                         Date.parse(ticket.saleEnd) <= Date.parse(event.registrationEnd ?? event.startDate) &&
                         Date.parse(ticket.saleEnd) <= Date.parse(event.startDate);
                       const maxQuantity=Math.max(0,Math.min(ticket.spotsLeft ?? 10,data.spotsLeft ?? 10,10));
-                      const quantity=quantities[ticket.id] ?? 0;
+                      const quantity=quantities[ticket.id] ?? (availability === "available" ? 1 : 0);
                       const otherQuantity=tickets.reduce((sum,other)=>sum+(other.id===ticket.id?0:quantities[other.id]??0),0);
                       const basketMax=Math.min(maxQuantity,Math.max(0,10-otherQuantity));
                       return (
-                      <div key={ticket.id} className="rounded-2xl bg-card/60 py-4">
-                        <h4 className="font-bold">{ticket.name}</h4>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {isEarlyBird ? (cs ? "Cena v předprodeji" : "Early-bird price") : (cs ? "Běžná cena" : "Regular price")}: {formatMoney(ticket.price.basePrice, ticket.price.currency)}
-                        </p>
-                        {ticket.price.benefitType !== "public" && <>
-                          <p className="mt-1 text-sm text-accent">{formatMembershipBenefit(ticket.price, cs)}</p>
-                          <p className="mt-1 text-lg font-bold text-accent">{cs ? "Členská cena" : "Member price"}: {formatMoney(ticket.price.finalPrice, ticket.price.currency)}</p>
-                        </>}
+                      <div key={ticket.id} className="overflow-hidden rounded-[1.5rem] border border-border/80 bg-card shadow-sm">
+                        <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {isEarlyBird && <span className="rounded-full bg-accent px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-accent-foreground">{cs ? "Předprodej" : "Early bird"}</span>}
+                              {availability === "available" && <span className="rounded-full border border-accent/50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-accent">{cs ? "K dispozici" : "Available"}</span>}
+                            </div>
+                            <h4 className="mt-3 text-lg font-bold leading-snug">{ticket.name}</h4>
+                            {ticket.description && <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{ticket.description}</p>}
+                          </div>
+                          {ticket.spotsLeft !== null && availability === "available" && <p className="text-xs text-muted-foreground">{cs ? `Zbývá ${ticket.spotsLeft} míst` : `${ticket.spotsLeft} places left`}</p>}
+                        </div>
+                        <div className="mx-5 mt-5 border-t border-border/70 pt-5">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{ticket.price.benefitType !== "public" ? (cs ? "Vaše členská cena" : "Your member price") : (cs ? "Cena vstupenky" : "Ticket price")}</p>
+                          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                            <p className="text-3xl font-bold tracking-tight text-foreground">{formatMoney(ticket.price.finalPrice, ticket.price.currency)}</p>
+                            {ticket.price.benefitType !== "public" && ticket.price.finalPrice < ticket.price.basePrice && <span className="text-sm text-muted-foreground line-through">{formatMoney(ticket.price.basePrice, ticket.price.currency)}</span>}
+                          </div>
+                          {ticket.price.benefitType !== "public" && <>
+                            <p className="mt-2 text-sm font-medium text-accent">{formatMembershipBenefit(ticket.price, cs)}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{cs ? "Členská výhoda platí na jednu vstupenku na akci; další jsou za běžnou cenu." : "Member benefits apply to one ticket per event; additional tickets are full price."}</p>
+                          </>}
+                        </div>
                         {availabilityMessage && !(earlyBirdBeforeRegular && availability === "sale_not_started") &&
-                          <p className="mt-3 text-sm font-medium text-accent" role="status">{availabilityMessage}</p>}
+                          <p className="mx-5 mt-4 rounded-xl bg-background px-3 py-2 text-sm font-medium text-muted-foreground" role="status">{availabilityMessage}</p>}
                         {priceEndsBeforeEvent && Date.parse(ticket.saleEnd!) > Date.now() && (
-                          <p className="mt-2 text-sm text-muted-foreground">
+                          <p className="mx-5 mt-3 text-xs text-muted-foreground">
                             {isEarlyBird ? (cs ? "Předprodej končí" : "Early bird ends") : (cs ? "Tato cena platí do" : "This price is available until")} {date(ticket.saleEnd!)} · {time(ticket.saleEnd!)} {cs ? "(čas ve Švýcarsku)" : "(Swiss time)"}
                           </p>
                         )}
                         {earlyBirdBeforeRegular && (
-                          <p className="mt-2 text-sm text-accent">
+                          <p className="mx-5 mt-3 text-xs text-accent">
                             {cs ? "Běžný prodej začne po skončení předprodeje" : "Regular tickets open when early bird ends"} {date(activeEarlyBird.saleEnd!)} · {time(activeEarlyBird.saleEnd!)} {cs ? "(čas ve Švýcarsku)" : "(Swiss time)"}
                           </p>
                         )}
                         {!data.isSignedIn && ticket.hasMemberPricing && (
-                          <button type="button" className="mt-2 text-sm underline underline-offset-2" onClick={() => {
+                          <button type="button" className="mx-5 mt-3 text-sm font-medium text-accent underline underline-offset-2" onClick={() => {
                             trackEvent("login_for_member_price", {
                               event_id: event.id,
                               event_slug: event.slug,
@@ -386,9 +403,9 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                             {cs ? "Přihlásit se pro členskou cenu" : "Log in for member pricing"}
                           </button>
                         )}
-                        <label className="mt-4 flex items-center justify-between gap-3 text-sm">
-                          <span>{cs ? "Počet vstupenek" : "Quantity"}</span>
-                          <select aria-label={cs ? `Počet vstupenek: ${ticket.name}` : `Ticket quantity: ${ticket.name}`} className="min-h-10 rounded-full bg-background px-4" value={quantity}
+                        <label className="mx-5 mt-5 flex items-center justify-between gap-3 border-t border-border/70 pt-4 text-sm">
+                          <span className="font-medium">{cs ? "Počet vstupenek" : "Quantity"}</span>
+                          <select aria-label={cs ? `Počet vstupenek: ${ticket.name}` : `Ticket quantity: ${ticket.name}`} className="min-h-11 min-w-20 rounded-xl border border-border bg-background px-3 text-center font-semibold" value={quantity}
                             disabled={availability !== "available"}
                             onChange={e => {
                               const next = Math.min(Number(e.target.value), Math.max(0, 10 - otherQuantity));
@@ -409,11 +426,13 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                             {Array.from({length:basketMax + 1},(_,i)=>i).map(n=><option key={n} value={n}>{n}</option>)}
                           </select>
                         </label>
-                        <Button variant="signal" data-analytics-cta="event_add_ticket" className="mt-4 w-full" disabled={quantity < 1 || availability !== "available"}
-                          onClick={() => onAddToCart(ticket.id, quantity)}>
-                          {cs ? "Přidat do košíku" : "Add to cart"}
-                          <ArrowRight className="size-4" />
-                        </Button>
+                        <div className="px-5 pb-5 pt-4">
+                          <Button variant="signal" data-analytics-cta="event_add_ticket" className="min-h-12 w-full text-base" disabled={quantity < 1 || availability !== "available" || maxQuantity < 1}
+                            onClick={() => onAddToCart(ticket.id, quantity)}>
+                            {cs ? "Přidat do košíku" : "Add to cart"}
+                            <ArrowRight className="size-4" />
+                          </Button>
+                        </div>
                       </div>
                     )})}
                   </div>
