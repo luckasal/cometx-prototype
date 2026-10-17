@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-17: task 3 deployed to the single working domain
+
+- Pushed commit `e00d1a2` and redeployed that source with Vercel **Production** settings. Deployment `DeSZCEz9PfJbREJy2fvRPrmSSMur` is Ready and assigned to `cometx-prototype.vercel.app`; the Preview build was not promoted with Preview environment settings.
+- On the canonical domain, signed-in Admin loaded an existing event's Tickets tab and its public/Fanoušek/CometXXL/Ambasador price rows. An unsaved change to `Členství v komunitě` showed eligible plans and `Cannot buy — membership benefit required` for a public visitor. Restored `Anyone (public ticket)` without saving; no hosted event data changed.
+- Eight focused tests and a production build pass. Public guest/member checkout acceptance remains open because no active restricted ticket is available; do not publish a temporary fixture without explicit approval. Task remains in review rather than fully accepted.
+
 ## 2026-10-16: task 3 follow-up — restricted-ticket CTA
 
 - Local signed-in Back Office acceptance: opened an existing event's Tickets tab, observed public and all three active-plan price rows, changed Buyer eligibility *without saving* to `Členství v komunitě`, saw the three eligible plan names and `Cannot buy — membership benefit required` for a public visitor, then restored `Anyone (public ticket)` without saving. Existing event data was not changed.
