@@ -10,6 +10,7 @@ import {
 } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
+import { benefitKind, benefitKindLabel, formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
 
 type BenefitDefinition = { key: string; name: string; description: string | null };
 type PlanSummary = {
@@ -23,7 +24,7 @@ type PlanSummary = {
 };
 
 function benefitValueHint(key: string, slug: string) {
-  if (["symposium_half_price", "other_events_discount", "potlach_discount"].includes(key))
+  if (benefitKind(key) === "percentage")
     return "Discount percent";
   if (key === "workshop_credit")
     return slug === "cometxxl"
@@ -31,7 +32,7 @@ function benefitValueHint(key: string, slug: string) {
       : slug === "ambasador"
         ? "CHF credit · fixed at 300"
         : "Not supported for this plan";
-  return "Included / access benefit · value 1";
+  return benefitKind(key) === "free_ticket" ? "One eligible ticket per event" : "Grants access; no ticket discount";
 }
 
 export function MembershipBenefitsManager() {
@@ -69,6 +70,7 @@ export function MembershipBenefitsManager() {
         <h2 className="font-display text-xl font-bold">Membership benefits</h2>
         <p className="mt-2 text-sm text-muted-foreground">Open a benefit to edit its wording or which plans receive it. The plan cards above show the current customer-facing offer. Changes affect future checkouts, never past orders.</p>
         <p className="mt-2 text-xs text-muted-foreground">Workshop credit is fixed at CHF 100 / CHF 300 by the current checkout rules. Newly created benefits grant access only; they do not create ticket discounts automatically.</p>
+        <p className="mt-2 text-xs text-muted-foreground">For a new partner benefit: create it unassigned, confirm its terms with the partner, then assign it to a plan. To end it, remove the assignment after honouring existing commitments. There is no automatic expiry or coupon redemption for custom benefits yet.</p>
       </div>
 
       {benefits.isError && (
@@ -84,9 +86,9 @@ export function MembershipBenefitsManager() {
       {benefitRows.map((benefit) => (
         <details key={benefit.key} className="rounded-xl border border-border/60 p-4">
           <summary className="cursor-pointer font-medium">
-            {benefit.name}
+            {benefit.name} <span className="text-xs font-normal text-muted-foreground">· {benefitKindLabel(benefitKind(benefit.key))}</span>
             <span className="ml-3 text-xs font-normal text-muted-foreground">
-              {planRows.filter((plan) => plan.plan_entitlements?.some((entry) => entry.entitlements?.key === benefit.key)).map((plan) => plan.name).join(" · ") || "No plans"}
+              {planRows.filter((plan) => plan.plan_entitlements?.some((entry) => entry.entitlements?.key === benefit.key)).map((plan) => plan.name).join(" · ") || "Unassigned · not offered to members"}
             </span>
           </summary>
           <div className="mt-4 border-t border-border/60 pt-4">
@@ -106,7 +108,7 @@ export function MembershipBenefitsManager() {
               );
             }}
           >
-            <Field label="Benefit name">
+            <Field label="Benefit name" hint="Shown on Czech member pages. Built-in English benefit labels are maintained in the app translation catalogue.">
               <input
                 name="name"
                 defaultValue={benefit.name}
@@ -135,6 +137,7 @@ export function MembershipBenefitsManager() {
               const assignment = plan.plan_entitlements?.find(
                 (entry) => entry.entitlements?.key === benefit.key,
               );
+              const kind = benefitKind(benefit.key);
               const fixedWorkshop =
                 benefit.key === "workshop_credit" && !["cometxxl", "ambasador"].includes(plan.slug);
               return (
@@ -157,7 +160,7 @@ export function MembershipBenefitsManager() {
                       return;
                     }
                     const rawValue = String(form.get("value") ?? "").trim();
-                    const value = rawValue === "" ? null : Number(rawValue);
+                    const value = kind === "access" || kind === "free_ticket" ? 1 : rawValue === "" ? null : Number(rawValue);
                     if (rawValue !== "" && !Number.isFinite(value)) {
                       toast.error("Enter a valid benefit value.");
                       return;
@@ -197,19 +200,11 @@ export function MembershipBenefitsManager() {
                     {plan.name}
                   </label>
                   <div className="mt-2 flex items-center gap-2">
-                    <input
+                    {(kind === "percentage" || kind === "credit") && <input
                       name="value"
                       type="number"
                       min={0}
-                      max={
-                        [
-                          "symposium_half_price",
-                          "other_events_discount",
-                          "potlach_discount",
-                        ].includes(benefit.key)
-                          ? 100
-                          : undefined
-                      }
+                      max={kind === "percentage" ? 100 : undefined}
                       step="any"
                       aria-label={`${plan.name} benefit value`}
                       defaultValue={
@@ -225,7 +220,7 @@ export function MembershipBenefitsManager() {
                       disabled={fixedWorkshop}
                       readOnly={benefit.key === "workshop_credit"}
                       className={inputClass}
-                    />
+                    />}
                     <Button
                       type="submit"
                       variant="outline"
@@ -235,7 +230,7 @@ export function MembershipBenefitsManager() {
                     </Button>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {benefitValueHint(benefit.key, plan.slug)}
+                    {assignment ? `${formatMembershipBenefit({ key: benefit.key, name: benefit.name, value: assignment.value })} · ` : ""}{benefitValueHint(benefit.key, plan.slug)}
                   </p>
                 </form>
               );

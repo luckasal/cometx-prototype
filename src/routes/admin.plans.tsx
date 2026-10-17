@@ -9,6 +9,7 @@ import { ErrorBlock, LoadingBlock } from "@/components/site/Bits";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/pricing";
 import { MembershipBenefitsManager } from "@/components/admin/MembershipBenefitsManager";
+import { formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
 
 export const Route = createFileRoute("/admin/plans")({
   component: AdminPlansPage,
@@ -32,16 +33,6 @@ const empty: PlanForm = {
   active: true,
   sort_order: "0",
 };
-
-function planBenefitLabel(key: string, name: string, value: number | null): string {
-  if (key === "workshop_credit") return `One-time workshop credit · CHF ${value ?? 0}`;
-  if (key === "symposium_half_price") return `Symposium tickets · ${value ?? 0}% off`;
-  if (key === "other_events_discount") return `Other events · ${value ?? 0}% off (not workshops)`;
-  if (key === "potlach_discount") return `POTLA.CH tickets · ${value ?? 0}% off`;
-  if (key === "symposium_free_ticket") return "One Symposium ticket included";
-  if (key === "potlach_free_ticket") return "One POTLA.CH ticket per event included";
-  return name;
-}
 
 function AdminPlansPage() {
   const queryClient = useQueryClient();
@@ -122,7 +113,7 @@ function AdminPlansPage() {
               <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
                 {(plan.plan_entitlements ?? []).map((pe, i) => (
                   <li key={i}>
-                    {planBenefitLabel(pe.entitlements?.key ?? "", pe.entitlements?.name ?? "Benefit", pe.value)}
+                    {formatMembershipBenefit({ key: pe.entitlements?.key ?? "", name: pe.entitlements?.name ?? "Benefit", value: pe.value })}
                   </li>
                 ))}
               </ul>

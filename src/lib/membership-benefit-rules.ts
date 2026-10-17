@@ -1,15 +1,4 @@
-const percentageBenefits = new Set([
-  "symposium_half_price",
-  "other_events_discount",
-  "potlach_discount",
-]);
-
-const includedBenefits = new Set([
-  "member_content",
-  "community_membership",
-  "symposium_free_ticket",
-  "potlach_free_ticket",
-]);
+import { benefitKind, isCatalogBenefit } from "./membership-benefit-catalog.ts";
 
 /** Keep editable benefit values consistent with the current checkout implementation. */
 export function membershipBenefitValueIssue(
@@ -17,13 +6,13 @@ export function membershipBenefitValueIssue(
   planSlug: string,
   value: number | null,
 ): string | null {
-  if (percentageBenefits.has(key)) {
+  if (benefitKind(key) === "percentage") {
     return value === null || value > 100 ? "Percentage benefits must be from 0 to 100." : null;
   }
-  if (includedBenefits.has(key)) {
+  if (isCatalogBenefit(key) && (benefitKind(key) === "access" || benefitKind(key) === "free_ticket")) {
     return value !== 1 ? "Included benefits use the value 1." : null;
   }
-  if (key === "workshop_credit") {
+  if (benefitKind(key) === "credit") {
     const expected = planSlug === "cometxxl" ? 100 : planSlug === "ambasador" ? 300 : null;
     return expected === null || value !== expected
       ? "Workshop credit is currently supported only as CHF 100 for CometXXL or CHF 300 for Ambasador."

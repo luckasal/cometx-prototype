@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-17: boss-feedback task 4 — membership benefit catalogue
+
+- Added one value-aware benefit presentation catalogue for public membership plans, My CometX, Back Office plan cards and event ticket-plan explanations. It distinguishes access, free tickets, percentage discounts and one-time workshop credit; the plan editor no longer asks staff to type the internal `1` for access/free benefits. Unassigned benefits are explicitly labelled as not offered.
+- Read-only hosted Supabase audit confirmed the three active plan assignments and values match the original offer; `potlach_discount` is unassigned to every active plan and is not publicly promised. Existing plan assignments, checkout pricing, Stripe state and database schema were not changed. Custom partner benefits remain access-only. Their manual lifecycle and the absence of automatic expiry/redemption are documented in `docs/MEMBERSHIP_BENEFITS_CATALOG_2026-10-17.md`.
+- Seven focused benefit/preview tests pass. Production build passes outside the restricted Windows filesystem sandbox (the default build hit Nitro `tslib` EPERM). Repository-wide TypeScript check still has widespread pre-existing dependency/type errors. Task 4 implementation and data audit are complete locally; these changes are not deployed, and online visual acceptance should follow release.
+
 ## 2026-10-17: hosted restricted-ticket acceptance
 
 - With user approval, created and briefly published isolated event `test-membership-eligibility-20261017` (`9c839aaf-518a-477e-bb8d-c577d0828cae`) with one CHF 10 ticket restricted to `Členství v komunitě`. The signed-in CometXXL public page showed the ticket on sale, CHF 5 member price, 50% discount, one-ticket benefit note, and Add to cart. No checkout or order was created.

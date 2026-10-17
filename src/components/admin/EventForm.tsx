@@ -19,6 +19,7 @@ import { formatMoney, isRegistrationOpen } from "@/lib/pricing";
 import { ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
 import { earliestTicketSaleStart, eventScheduleIssue } from "@/lib/event-admin";
 import { previewTicketByPlan, type PreviewPlan } from "@/lib/event-ticket-preview";
+import { formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
 
 export type EventFormValues = {
   id?: string;
@@ -118,12 +119,6 @@ const ticketBenefitKeys: Record<string, { discount?: string; free?: string }> = 
 };
 
 type EventBenefitPlan = PreviewPlan;
-
-function describePlanBenefit(key: string, value: number | null): string {
-  if (key === "workshop_credit" && value !== null) return `CHF ${value} workshop credit`;
-  if (["symposium_half_price", "other_events_discount", "potlach_discount"].includes(key) && value !== null) return `${value}% off`;
-  return "Included";
-}
 
 type EventSpeakerOption = { id: string; name: string; event_id: string | null; job_title: string | null; company: string | null; bio: string | null; photo_url: string | null };
 
@@ -535,7 +530,7 @@ export function EventForm({
                 <div key={plan.id} className="rounded-lg border border-border p-3">
                   <p className="font-medium">{plan.name}</p>
                   <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
-                    {(plan.plan_entitlements ?? []).map((benefit: EventBenefitPlan["plan_entitlements"][number]) => <li key={benefit.entitlements?.key ?? "unknown"}>{benefit.entitlements?.name ?? "Benefit"} · {describePlanBenefit(benefit.entitlements?.key ?? "", benefit.value)}</li>)}
+                    {(plan.plan_entitlements ?? []).map((benefit: EventBenefitPlan["plan_entitlements"][number]) => <li key={benefit.entitlements?.key ?? "unknown"}>{formatMembershipBenefit({ key: benefit.entitlements?.key ?? "", name: benefit.entitlements?.name ?? "Benefit", value: benefit.value })}</li>)}
                   </ul>
                 </div>
               ))}

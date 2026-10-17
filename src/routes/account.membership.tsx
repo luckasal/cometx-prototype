@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
+import { formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
 import { getAccountOverview, getMyWorkshopCreditStatus, startMembershipBillingPortal } from "@/lib/membership.functions";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,17 +21,6 @@ export const Route = createFileRoute("/account/membership")({
   validateSearch: z.object({ checkout: z.enum(["success", "cancelled"]).optional() }),
   component: AccountMembershipPage,
 });
-
-function benefitLabel(b: { key: string; name: string; value: number | null }) {
-  if (b.value === null) return b.name;
-  if (b.key === "workshop_credit") return `One-time workshop credit: CHF ${b.value}`;
-  if (b.key === "symposium_half_price") return `Sleva ${b.value}% na SCAS Symposium`;
-  if (b.key === "other_events_discount") return `Sleva ${b.value}% na další akce (mimo workshopy)`;
-  if (b.key === "potlach_discount") return `Sleva ${b.value}% na POTLA.CH`;
-  if (b.key.endsWith("_discount")) return `${b.name}: ${b.value}%`;
-  if (b.key.endsWith("_credit")) return `${b.name}: CHF ${b.value}`;
-  return b.name;
-}
 
 function AccountMembershipPage() {
   const { checkout } = Route.useSearch();
@@ -129,7 +119,7 @@ function AccountMembershipPage() {
             <ul className="mt-5 divide-y divide-border border-y border-border">
               {data.membership.benefits.map((benefit) => (
                 <li key={benefit.key} className="py-4 text-sm">
-                  {benefitLabel(benefit)}
+                  {formatMembershipBenefit(benefit)}
                   {benefit.key === "workshop_credit" && (
                     <span className="mt-1 block text-xs text-muted-foreground">
                       {creditLoading

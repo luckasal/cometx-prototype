@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Check } from "lucide-react";
 import { getMembershipPlans, startMembershipCheckout } from "@/lib/membership.functions";
 import { formatMoney } from "@/lib/pricing";
+import { formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
 import { Button } from "@/components/ui/button";
 import { ErrorBlock, LoadingBlock, PageHero, Section } from "@/components/site/Bits";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,24 +36,6 @@ export const Route = createFileRoute("/membership")({
   }),
   component: MembershipPage,
 });
-
-const englishBenefits: Record<string, string> = {
-  member_content: "Talks, videos, interviews and articles in the members section",
-  community_membership: "CometX community membership",
-  symposium_half_price: "50% off the upcoming SCAS Symposium",
-  symposium_free_ticket: "Free admission to the upcoming SCAS",
-  other_events_discount: "50% off all other events except workshops",
-  potlach_free_ticket: "Free admission to every Beer POTLA.CH",
-  workshop_credit: "One-time credit for a CometX workshop",
-};
-
-function benefitLabel(benefit: { key: string; name: string; value: number | null }, cs: boolean) {
-  const name = cs ? benefit.name : (englishBenefits[benefit.key] ?? benefit.name);
-  if (benefit.key === "workshop_credit") return cs
-    ? `Jednorázový kredit CHF ${benefit.value} na workshop`
-    : `${name}: CHF ${benefit.value}`;
-  return name;
-}
 
 function MembershipPage() {
   useEffect(() => { trackEvent("membership_view"); }, []);
@@ -128,7 +111,7 @@ function MembershipPage() {
                   {plan.benefits.map((benefit) => (
                     <li key={benefit.key} className="flex gap-3 text-sm">
                       <Check className="mt-0.5 size-4 shrink-0 text-accent-foreground" />
-                      <span>{benefitLabel(benefit, cs)}</span>
+                      <span>{formatMembershipBenefit(benefit, cs ? "cs" : "en")}</span>
                     </li>
                   ))}
                 </ul>

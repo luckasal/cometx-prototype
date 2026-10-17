@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getAccountOverview } from "@/lib/membership.functions";
 import { getMyPurchasedTickets } from "@/lib/ticket-orders.functions";
 import { formatMoney } from "@/lib/pricing";
+import { formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
 import { isIssuedTicketStatus, isOwnedOrderLine, isUpcomingEvent } from "@/lib/ticket-status";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,13 +19,6 @@ import {
 export const Route = createFileRoute("/account/")({
   component: AccountOverviewPage,
 });
-
-function benefitLabel(b: { key: string; name: string; value: number | null }) {
-  if (b.value === null) return b.name;
-  if (b.key.endsWith("_discount")) return `${b.name}: ${b.value}%`;
-  if (b.key.endsWith("_credit")) return `${b.name}: CHF ${b.value}`;
-  return b.name;
-}
 
 function AccountOverviewPage() {
   const fetchOverview = useServerFn(getAccountOverview);
@@ -145,7 +139,7 @@ function AccountOverviewPage() {
                   )}
                   <ul className="space-y-2 border-t border-border pt-4 text-sm">
                     {data.membership.benefits.map((benefit) => (
-                      <li key={benefit.key}>{benefitLabel(benefit)}</li>
+                      <li key={benefit.key}>{formatMembershipBenefit(benefit)}</li>
                     ))}
                   </ul>
                   <Button asChild variant="outlineInk" className="w-full">
