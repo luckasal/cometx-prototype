@@ -400,7 +400,7 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                             {cs ? "Běžný prodej začne po skončení předprodeje" : "Regular tickets open when early bird ends"} {date(activeEarlyBird.saleEnd!)} · {time(activeEarlyBird.saleEnd!)} {cs ? "(čas ve Švýcarsku)" : "(Swiss time)"}
                           </p>
                         )}
-                        {!data.isSignedIn && ticket.hasMemberPricing && (
+                        {!data.isSignedIn && ticket.hasMemberPricing && availability !== "membership_required" && (
                           <button type="button" className="mx-5 mt-3 text-sm font-medium text-accent underline underline-offset-2" onClick={() => {
                             trackEvent("login_for_member_price", {
                               event_id: event.id,

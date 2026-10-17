@@ -2,11 +2,18 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-16: task 3 follow-up — restricted-ticket CTA
+
+- Local signed-in Back Office acceptance: opened an existing event's Tickets tab, observed public and all three active-plan price rows, changed Buyer eligibility *without saving* to `Členství v komunitě`, saw the three eligible plan names and `Cannot buy — membership benefit required` for a public visitor, then restored `Anyone (public ticket)` without saving. Existing event data was not changed.
+- `BOSS-P0-ENTITLEMENT-EDITOR-01` remains in review, not complete. Removed a duplicate guest login prompt when a ticket requires membership; the restricted ticket still offers membership comparison and sign-in, and Add to cart remains disabled. Added `tests/restricted-ticket-cta.test.mjs`.
+- Focused preview, availability, pricing and CTA checks pass (8/8). The production Vite build also passes. No event, membership, payment, or database record changed; this work is local, not deployed.
+- Online acceptance is blocked: the hosted Back Office is signed out and the public database query found no active restricted ticket. Need a staff sign-in and approval to briefly publish a clearly labeled isolated restricted fixture before testing the public guest/member flow. Do not claim hosted acceptance or deploy until reviewed.
+
 ## 2026-10-16: event ticket entitlement and price preview
 
 - Task `BOSS-P0-ENTITLEMENT-EDITOR-01`: the local event ticket editor now shows one-ticket estimated prices and required-benefit eligibility for public visitors and each active plan. The Admin matrix includes plan slugs so it can use the same pure pricing function as the customer page. Workshop credit is shown as optional in the cart, not silently deducted from the default preview.
 - Added isolated preview tests and an SQL order test proving a guest and an expired member cannot buy a ticket requiring an entitlement. Seven focused preview/pricing/availability tests pass; new helper/test lint and changed-file TypeScript diagnostics pass. No schema, plan assignments, payment or ticket rules changed.
-- This is local and not deployed. The full build remains unverified because Nitro/Rolldown hit Windows `EPERM` while resolving the existing `tslib` dependency; focused tests and changed-file diagnostics passed. Hosted signed-in editor and public ineligible-visitor CTA acceptance, plus full Stripe sandbox payment acceptance, remain open. Preserve unrelated dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
+- This is local and not deployed. The first build attempt hit Windows `EPERM`; a later production build passed. Hosted signed-in editor and public ineligible-visitor CTA acceptance, plus full Stripe sandbox payment acceptance, remain open. Preserve unrelated dirty `src/routeTree.gen.ts` and `supabase/.temp/`.
 
 ## 2026-10-16: first feedback task — membership pricing acceptance, partial
 
