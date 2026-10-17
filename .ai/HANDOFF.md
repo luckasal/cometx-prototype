@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-17: hosted restricted-ticket acceptance
+
+- With user approval, created and briefly published isolated event `test-membership-eligibility-20261017` (`9c839aaf-518a-477e-bb8d-c577d0828cae`) with one CHF 10 ticket restricted to `Členství v komunitě`. The signed-in CometXXL public page showed the ticket on sale, CHF 5 member price, 50% discount, one-ticket benefit note, and Add to cart. No checkout or order was created.
+- Unpublished the fixture and verified Back Office publication is `DRAFT`, with zero confirmed tickets and no orders. The draft remains for audit; do not publish it as a real event.
+- An anonymous customer UI acceptance is still open because the available browser shares the signed-in session. Do not claim guest behavior was host-verified. Existing focused guest CTA tests passed locally.
+
 ## 2026-10-17: task 3 deployed to the single working domain
 
 - Pushed commit `e00d1a2` and redeployed that source with Vercel **Production** settings. Deployment `DeSZCEz9PfJbREJy2fvRPrmSSMur` is Ready and assigned to `cometx-prototype.vercel.app`; the Preview build was not promoted with Preview environment settings.
