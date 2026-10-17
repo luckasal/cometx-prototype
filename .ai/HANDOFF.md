@@ -2,6 +2,11 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-17: boss-feedback task 5 — event media and speakers
+
+- Audited the existing Storage policy, photo upload, saved event references, one-off speaker create/edit/delete, workshop guard, and guarded unused-media deletion path. Added a generated-path regression test and `docs/EVENT_MEDIA_SPEAKER_ACCEPTANCE_2026-10-17.md` with ownership, orphan limitations, and exact hosted acceptance steps.
+- Hosted browser control was disabled for this session. No hosted data was changed and no real upload/speaker CRUD was claimed as passed. The staff-facing orphan-file cleanup workflow remains missing; task stays in review.
+
 ## 2026-10-17: boss-feedback task 4 — membership benefit catalogue
 
 - Added one value-aware benefit presentation catalogue for public membership plans, My CometX, Back Office plan cards and event ticket-plan explanations. It distinguishes access, free tickets, percentage discounts and one-time workshop credit; the plan editor no longer asks staff to type the internal `1` for access/free benefits. Unassigned benefits are explicitly labelled as not offered.
