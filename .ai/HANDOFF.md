@@ -5,7 +5,7 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 ## 2026-10-17: boss-feedback task 5 — event media and speakers
 
 - Audited the existing Storage policy, photo upload, saved event references, one-off speaker create/edit/delete, workshop guard, and guarded unused-media deletion path. Added a generated-path regression test and `docs/EVENT_MEDIA_SPEAKER_ACCEPTANCE_2026-10-17.md` with ownership, orphan limitations, and exact hosted acceptance steps.
-- Hosted browser control was disabled for this session. No hosted data was changed and no real upload/speaker CRUD was claimed as passed. The staff-facing orphan-file cleanup workflow remains missing; task stays in review.
+- Added a collapsed **Advanced** cleanup panel to the event content editor. It lists uploaded hero, gallery and speaker files, disables deletion of a currently selected unsaved reference, confirms one-file deletion, and calls the existing server action that rejects saved references. Three focused media tests and the Production build pass. Hosted browser control was disabled for this session. No hosted data was changed; actual upload/speaker CRUD/cleanup and role-denial acceptance are still unverified. Task stays in review.
 
 ## 2026-10-17: boss-feedback task 4 — membership benefit catalogue
 

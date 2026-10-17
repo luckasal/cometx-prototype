@@ -12,6 +12,7 @@ import {
   adminListEventBenefitMatrix,
 } from "@/lib/admin.functions";
 import { AdminImageUpload } from "@/components/admin/AdminImageUpload";
+import { AdminMediaLibrary } from "@/components/admin/AdminMediaLibrary";
 import { EventOwnedSpeakerEditor } from "@/components/admin/EventOwnedSpeakerEditor";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
@@ -363,6 +364,15 @@ export function EventForm({
           </div>}
           <AdminImageUpload scope="event-gallery" label="Add a gallery photo from your computer" onUploaded={(url) => set("gallery_urls", [...galleryPhotos, url].join("\n"))} />
         </div>
+        <details className="rounded-xl border border-border bg-background p-4">
+          <summary className="cursor-pointer text-sm font-medium">Advanced: clean up unused uploaded photos</summary>
+          <p className="mt-3 text-sm text-muted-foreground">Removing or replacing a photo above changes the event when you save, but keeps its stored file. After saving, delete only files you no longer need. Photos used by any saved event or speaker cannot be deleted.</p>
+          <div className="mt-4 grid gap-3 lg:grid-cols-3">
+            <AdminMediaLibrary scope="event-heroes" selectedUrls={event.hero_image_url ? [event.hero_image_url] : []} />
+            <AdminMediaLibrary scope="event-gallery" selectedUrls={galleryPhotos} />
+            <AdminMediaLibrary scope="speaker-photos" selectedUrls={[speakerDraft.photo_url, ...newSpeakers.map((speaker) => speaker.photo_url)].filter(Boolean)} />
+          </div>
+        </details>
         <label className="flex items-center gap-3 text-sm">
           <input
             type="checkbox"

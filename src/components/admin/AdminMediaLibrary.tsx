@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/button";
 
 type MediaItem = { path: string; url: string; createdAt: string };
 
-export function AdminMediaLibrary({ scope, onChoose, selectedUrls }: {
+export function AdminMediaLibrary({ scope, selectedUrls }: {
   scope: EventMediaScope;
-  onChoose: (url: string) => void;
   selectedUrls: string[];
 }) {
   const [page, setPage] = useState(0);
@@ -33,7 +32,7 @@ export function AdminMediaLibrary({ scope, onChoose, selectedUrls }: {
   });
 
   return <details className="rounded-xl border border-border p-4" onToggle={(event) => setOpen(event.currentTarget.open)}>
-    <summary className="cursor-pointer text-sm font-medium">Browse uploaded CometX photos</summary>
+    <summary className="cursor-pointer text-sm font-medium">{scope === "event-heroes" ? "Main photos" : scope === "event-gallery" ? "Gallery photos" : "Speaker portraits"}</summary>
     {isPending && <p className="mt-3 text-sm text-muted-foreground">Loading photos…</p>}
     {error && <p className="mt-3 text-sm text-destructive">Photos could not be loaded. Try reopening this section.</p>}
     {!isPending && !error && items.length === 0 && <p className="mt-3 text-sm text-muted-foreground">No uploaded photos in this section.</p>}
@@ -42,7 +41,6 @@ export function AdminMediaLibrary({ scope, onChoose, selectedUrls }: {
         <img src={item.url} alt="Uploaded CometX event media" className="h-28 w-full rounded-md object-cover" />
         <p className="truncate text-xs text-muted-foreground" title={item.path}>{item.path}</p>
         <div className="flex gap-2">
-          <Button type="button" size="sm" variant="outlineInk" onClick={() => onChoose(item.url)}>Use photo</Button>
           <Button type="button" size="sm" variant="ghost" disabled={selectedUrls.includes(item.url) || deleteMutation.isPending} onClick={() => {
             if (window.confirm("Permanently delete this unused uploaded photo? A photo attached to a saved event or speaker cannot be deleted.")) deleteMutation.mutate(item.path);
           }}>Delete unused</Button>
@@ -53,6 +51,6 @@ export function AdminMediaLibrary({ scope, onChoose, selectedUrls }: {
       {page > 0 && <Button type="button" size="sm" variant="outlineInk" onClick={() => setPage((current) => current - 1)}>Previous</Button>}
       {items.length === 100 && <Button type="button" size="sm" variant="outlineInk" onClick={() => setPage((current) => current + 1)}>More photos</Button>}
     </div>
-    <p className="mt-3 text-xs text-muted-foreground">Remove a photo from the event and save before deleting its stored file. Photos still referenced by saved content are protected.</p>
+    <p className="mt-3 text-xs text-muted-foreground">To remove a photo permanently, first remove it from the event or speaker and save. Photos still selected in this form or referenced by saved content are protected.</p>
   </details>;
 }
