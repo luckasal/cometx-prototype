@@ -729,13 +729,16 @@ export const adminListRegistrations = createServerFn({ method: "GET" }).handler(
 });
 
 export const adminListMembers = createServerFn({ method: "GET" }).handler(async () => {
+  const startedAt = performance.now();
   const db = await admin("members.read");
+  const authorizedAt = performance.now();
   const { data: profiles, error: profilesError } = await db
     .from("profiles")
     .select("id,first_name,last_name,email,company,country,created_at")
     .order("created_at", { ascending: false })
     .limit(200);
   if (profilesError) throw new Error(profilesError.message);
+  const profilesLoadedAt = performance.now();
 
   const userIds = ((profiles ?? []) as { id: string }[]).map((profile) => profile.id);
   if (!userIds.length) return [];
@@ -752,6 +755,14 @@ export const adminListMembers = createServerFn({ method: "GET" }).handler(async 
   ]);
   if (membershipsError) throw new Error(membershipsError.message);
   if (rolesError) throw new Error(rolesError.message);
+  const relatedLoadedAt = performance.now();
+  if (relatedLoadedAt - startedAt > 1000) {
+    console.info("[admin latency] members", {
+      authorizationMs: Math.round(authorizedAt - startedAt),
+      profilesMs: Math.round(profilesLoadedAt - authorizedAt),
+      relatedMs: Math.round(relatedLoadedAt - profilesLoadedAt),
+    });
+  }
 
   type MemberProfile = {
     id: string;

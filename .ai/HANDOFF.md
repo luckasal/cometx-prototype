@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-18: Back Office latency measured; stage trace prepared locally
+
+- After admin sign-in, observed one hosted navigation: admin shell ~2.8s; Events table ~3.8s; Members table ~10.8s; Contacts table ~3.8s; warm Members ~0.6s. Vercel Production request details show a Members `/_serverFn` invocation running 8.92s (response 9.0s), so the slow cold read is server-side rather than only the access gate.
+- Added thresholded, PII-free stage timings to `getAdminAccess` (authentication vs roles) and `adminListMembers` (authorization vs profiles vs related membership/role reads). This is diagnostic only, not a speed fix. Seven focused tests and Production build pass; default Windows sandbox build hit EPERM, escalated build succeeded.
+- Not deployed: local browser use became disabled before a new hosted trace or deployment. Do not change region, cache or security guards based on one sample. Exact next: deploy stage trace through Production settings, capture repeated cold/warm timings and stage logs, then fix the measured slow operation and verify.
+
 ## 2026-10-18: Back Office latency task — authenticated measurement pending
 
 - Inspected access gate, Auth initialization, Events/Members/Contacts reads, React Query defaults and focused performance tests. The gate is independent of membership/profile reads; data prefetch runs alongside access; requests time out with retry UI. Existing seven focused tests pass.
