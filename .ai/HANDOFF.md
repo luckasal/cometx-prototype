@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-18: task 5 hosted media/speaker acceptance blocked at upload permission
+
+- Inspected the signed-in hosted New event editor: PC pickers, one-off speaker form and cleanup panel render. Prepared an unpublished QA form, but did not save it. Browser permission for uploading an official local CometX image was declined; no file or hosted record was changed, and no alternate upload method was attempted.
+- Local media, content and schedule checks pass (10/10). Files: `.ai/TASKS.md`, `.ai/HANDOFF.md`, `docs/EVENT_MEDIA_SPEAKER_ACCEPTANCE_2026-10-17.md`. Existing generated `src/routeTree.gen.ts` remains untouched.
+- Task 5 remains blocked for hosted write-path acceptance. Exact next step: if the user chooses, they can perform the PC upload themselves in an unpublished QA event and ask us to verify persistence; otherwise obtain a new explicit authorization before any upload. Restricted-role acceptance separately needs designated accounts.
+
 ## 2026-10-18: simplify event ticket editor and remove price preview
 
 - Updated `src/components/admin/EventForm.tsx`: the normal ticket controls are grouped, optional sale dates and membership overrides are collapsible, and the redundant Buyer and price preview was removed at the user's request. No pricing, checkout, Supabase, or Stripe logic changed.

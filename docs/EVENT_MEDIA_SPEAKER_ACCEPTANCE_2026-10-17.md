@@ -2,6 +2,8 @@
 
 Task: `BOSS-P1-EVENT-MEDIA-SPEAKERS-01`. This is a code-path audit and partial hosted visual check, **not** a completed hosted write-path acceptance test. Commit `eba7cff` is live on the canonical Production domain. The signed-in admin editor shows the Advanced cleanup panel and its Main photos list loads. No hosted event, speaker, or photo was created or modified.
 
+On 18 October, the signed-in hosted New event editor again showed the three PC image pickers and inline speaker fields. An unpublished QA form was filled but **not saved**. The browser's file-upload permission was declined before any file transfer; do not retry via another browser, tool or API. Ten local media/content/schedule checks passed. Hosted upload, speaker CRUD, cleanup and role-denial acceptance remain unverified.
+
 ## Current ownership and safeguards
 
 - PC uploads go to the public `cometx-event-media` Supabase Storage bucket, under `event-heroes/`, `event-gallery/`, or `speaker-photos/` with generated UUID names. The bucket limits files to JPEG, PNG, or WebP at 5 MB; the client checks the same limits. Public reads are intentional for public event pages. Only authenticated Admin/Event manager may insert through the storage policy.
