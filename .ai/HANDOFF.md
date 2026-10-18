@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-18: simplify event ticket editor and remove price preview
+
+- Updated `src/components/admin/EventForm.tsx`: the normal ticket controls are grouped, optional sale dates and membership overrides are collapsible, and the redundant Buyer and price preview was removed at the user's request. No pricing, checkout, Supabase, or Stripe logic changed.
+- Focused schedule/benefit tests passed. The changed file has no TypeScript diagnostics; repository-wide TypeScript remains red with existing errors. Local only, not deployed. Existing generated `src/routeTree.gen.ts` remains untouched.
+- Exact next task: complete hosted media/speaker write-path acceptance under `BOSS-P1-EVENT-MEDIA-SPEAKERS-01`, using an unpublished draft and approved image.
+
 ## 2026-10-17: boss-feedback task 5 — event media and speakers
 
 - Audited the existing Storage policy, photo upload, saved event references, one-off speaker create/edit/delete, workshop guard, and guarded unused-media deletion path. Added a generated-path regression test and `docs/EVENT_MEDIA_SPEAKER_ACCEPTANCE_2026-10-17.md` with ownership, orphan limitations, and exact hosted acceptance steps.

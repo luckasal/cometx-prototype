@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
 import {
   adminSaveEvent,
   adminDeleteEvent,
@@ -19,8 +18,7 @@ import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 import { formatMoney, isRegistrationOpen } from "@/lib/pricing";
 import { ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
 import { earliestTicketSaleStart, eventScheduleIssue } from "@/lib/event-admin";
-import { previewTicketByPlan, type PreviewPlan } from "@/lib/event-ticket-preview";
-import { formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
+import type { PreviewPlan } from "@/lib/event-ticket-preview";
 
 export type EventFormValues = {
   id?: string;
@@ -421,8 +419,8 @@ export function EventForm({
 
       <section hidden={!!section && section !== "tickets"} className="rounded-2xl border border-border/60 bg-card p-6">
         <details className="rounded-xl border border-border bg-background p-4">
-          <summary className="cursor-pointer font-semibold">Event-wide ticket sales settings · {event.event_status === "registration_open" ? "Open" : event.event_status === "upcoming" ? "Not open yet" : event.event_status === "registration_closed" ? "Closed" : event.event_status.replace(/_/g, " ")}</summary>
-          <p className="mt-3 text-sm text-muted-foreground">Buying a ticket registers its attendee. Publish the event, set sales to Open, and add at least one ticket type below. Ticket-specific dates and eligibility are set on each ticket.</p>
+          <summary className="cursor-pointer font-semibold">Event sales · {event.event_status === "registration_open" ? "Open" : event.event_status === "upcoming" ? "Not open yet" : event.event_status === "registration_closed" ? "Closed" : event.event_status.replace(/_/g, " ")}</summary>
+          <p className="mt-3 text-sm text-muted-foreground">A purchased ticket is the attendee’s registration. Publish the event and open sales to make eligible tickets available.</p>
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Field label="Overall event capacity" hint="Across all ticket types. Leave empty for unlimited.">
             <input
@@ -447,7 +445,7 @@ export function EventForm({
               <option value="cancelled">Event cancelled</option>
             </select>
           </Field>
-          <Field label="Sales open from" hint={openingTicket ? `Automatically follows the earliest scheduled ticket: ${openingTicket.name}. Change that ticket's Sales open date below.` : "Optional event-wide start. Individual tickets can have their own sale dates below."}>
+          <Field label="Sales open from" hint={openingTicket ? `Set by the earliest ticket: ${openingTicket.name}. Change its date below.` : "Optional. Leave blank to open sales immediately when published."}>
             <input
               type="datetime-local"
               className={inputClass}
@@ -456,7 +454,7 @@ export function EventForm({
               onChange={(e) => set("registration_start", e.target.value)}
             />
           </Field>
-          <Field label="Sales close at" hint="Optional event-wide cutoff for every ticket. Individual tickets may close sooner.">
+          <Field label="Sales close at" hint="Optional cutoff for all tickets. A ticket may close earlier.">
             <input
               type="datetime-local"
               className={inputClass}
@@ -530,27 +528,24 @@ export function EventForm({
             No ticket types yet. Add one to let attendees buy tickets and register.
           </p>
         )}
-        <p className="text-sm text-muted-foreground">Saved ticket types shown here are active. Removing a saved type archives it when you save. Archived types cannot yet be restored here.</p>
-        <details className="rounded-xl border border-border bg-background p-4 text-sm">
-          <summary className="cursor-pointer font-semibold">Which benefits belong to each membership?</summary>
-          <p className="mt-2 text-muted-foreground">These benefits belong to the plans, not this event. Ticket settings below can check or use an existing benefit; they cannot create one or change a plan.</p>
-          {benefitsError ? <p className="mt-2 text-destructive">Membership-plan benefits could not be loaded. Check plan assignments before setting a restricted ticket.</p> : benefitMatrix.length > 0 && (
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              {benefitMatrix.map((plan: EventBenefitPlan) => (
-                <div key={plan.id} className="rounded-lg border border-border p-3">
-                  <p className="font-medium">{plan.name}</p>
-                  <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
-                    {(plan.plan_entitlements ?? []).map((benefit: EventBenefitPlan["plan_entitlements"][number]) => <li key={benefit.entitlements?.key ?? "unknown"}>{formatMembershipBenefit({ key: benefit.entitlements?.key ?? "", name: benefit.entitlements?.name ?? "Benefit", value: benefit.value })}</li>)}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
-          <p className="mt-3 text-xs text-muted-foreground">Admins can <a href="/admin/plans" className="underline underline-offset-4">review and edit membership benefits</a> in Back Office. Confirm any change to promised benefits before saving it; existing orders keep their recorded prices.</p>
-        </details>
+        <p className="text-sm text-muted-foreground">Set the public price for each ticket. Existing membership benefits apply automatically. Remove a saved ticket only if you intend to archive it on save.</p>
+        <p className="text-sm text-muted-foreground">Membership benefits are managed under <a href="/admin/plans" className="underline underline-offset-4">Memberships</a>, not on this event.</p>
         {tickets.map((ticket, index) => (
-          <div key={index} className="space-y-4 border-t border-border pt-5">
-            <p className="text-xs text-muted-foreground">{ticket.id ? "Active ticket type" : "New ticket type · not saved"}</p>
+          <div key={ticket.id ?? index} className="space-y-4 rounded-xl border border-border bg-background p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="font-display text-lg font-semibold">{ticket.name.trim() || `Ticket ${index + 1}`}</h3>
+                <p className="text-xs text-muted-foreground">{ticket.id ? "Saved ticket" : "New ticket · not saved"}</p>
+              </div>
+              <button
+                type="button"
+                className="text-sm text-destructive underline underline-offset-4"
+                aria-label={ticket.id ? `Archive ${ticket.name || "ticket"} on save` : "Remove unsaved ticket"}
+                onClick={() => setTickets((prev) => prev.filter((_, i) => i !== index))}
+              >
+                {ticket.id ? "Archive ticket" : "Remove ticket"}
+              </button>
+            </div>
             {ticket.id && <p className="text-sm text-muted-foreground" role="status">
               {initialTicketStats === null
                 ? "Ticket sales statistics are unavailable."
@@ -574,7 +569,7 @@ export function EventForm({
                     eligible: true,
                   }), ticket.sale_start || null, false) ?? "On sale now (subject to capacity and buyer eligibility)."}
             </p>
-            <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr_auto]">
+            <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr_1fr]">
               <Field label="Name">
                 <input
                   className={inputClass}
@@ -601,14 +596,7 @@ export function EventForm({
                   onChange={(e) => setTicket(index, "capacity", e.target.value)}
                 />
               </Field>
-              <button
-                type="button"
-                className="mt-7 text-destructive"
-                aria-label={ticket.id ? "Archive ticket on save" : "Remove unsaved ticket"}
-                onClick={() => setTickets((prev) => prev.filter((_, i) => i !== index))}
-              >
-                <Trash2 className="size-4" />
-              </button>
+              <Field label="Currency"><select className={inputClass} value={ticket.currency} onChange={e=>setTicket(index,"currency",e.target.value)}>{["CHF","EUR","USD","GBP","CZK"].map(c=><option key={c}>{c}</option>)}</select></Field>
             </div>
             <Field label="Description">
               <input
@@ -617,36 +605,31 @@ export function EventForm({
                 onChange={(e) => setTicket(index, "description", e.target.value)}
               />
             </Field>
-            <div className="space-y-3 rounded-xl border border-border bg-background p-4">
-              <h3 className="font-semibold">When can people buy this ticket?</h3>
-              <p className="text-xs text-muted-foreground">Leave both dates empty to use the event-wide sales dates in the dropdown above. The earliest ticket start also sets the event-wide sales opening.</p>
+            <details className="rounded-xl border border-border bg-card p-4">
+              <summary className="cursor-pointer font-semibold">Ticket sale dates {ticket.sale_start || ticket.sale_end ? "· custom" : "· use event dates"}</summary>
+              <p className="mt-3 text-xs text-muted-foreground">Optional. Leave blank to use the event sales window above. The earliest ticket opening also sets the event opening.</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Sales open"><input type="datetime-local" className={inputClass} value={ticket.sale_start} onChange={e=>setTicket(index,"sale_start",e.target.value)} /></Field>
                 <Field label="Sales close"><input type="datetime-local" className={inputClass} value={ticket.sale_end} onChange={e=>setTicket(index,"sale_end",e.target.value)} /></Field>
               </div>
-            </div>
-            <div className="space-y-3 rounded-xl border border-border bg-background p-4">
-              <h3 className="font-semibold">Who can buy this ticket?</h3>
-              <p className="text-xs text-muted-foreground">The event can stay public while a particular ticket is reserved for eligible members.</p>
-              <Field label="Buyer eligibility">
+            </details>
+            <details className="rounded-xl border border-border bg-card p-4">
+              <summary className="cursor-pointer font-semibold">Membership options {ticket.required_entitlement || ticket.member_price || ticket.discount_entitlement || ticket.free_entitlement ? "· customized" : "· automatic benefits"}</summary>
+              <p className="mt-3 text-sm text-muted-foreground">Normally leave these at their defaults. Active members receive the benefits assigned to their plan automatically.</p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label="Who can buy?" hint="A members-only ticket can still appear on a public event page.">
                 <select className={inputClass} value={ticket.required_entitlement} onChange={e=>setTicket(index,"required_entitlement",e.target.value)}>
                   <option value="">Anyone (public ticket)</option>
                   {entitlements.map((ent: { key: string; name: string }) => <option key={ent.key} value={ent.key}>Only members with: {ent.name}</option>)}
                 </select>
               </Field>
+              <Field label="Fixed member price" hint="Optional; leave blank for automatic plan benefits."><input type="number" min="0" step="0.01" className={inputClass} value={ticket.member_price} onChange={e=>setTicket(index,"member_price",e.target.value)} /></Field>
+              </div>
               {ticket.required_entitlement && benefitsLoading && <p className="text-xs text-muted-foreground">Checking which active plans include this benefit…</p>}
               {ticket.required_entitlement && !benefitsError && !benefitsLoading && <p className="text-xs text-muted-foreground">Eligible active plans: {benefitMatrix.filter((plan: EventBenefitPlan) => plan.plan_entitlements?.some((benefit: EventBenefitPlan["plan_entitlements"][number]) => benefit.entitlements?.key === ticket.required_entitlement)).map((plan: EventBenefitPlan) => plan.name).join(", ") || "none of the active plans — check before publishing"}.</p>}
-            </div>
-            <div className="space-y-3 rounded-xl border border-border bg-background p-4">
-              <h3 className="font-semibold">What does a member pay?</h3>
-              <p className="text-xs text-muted-foreground">Existing plan benefits are applied automatically for the event type. Outside workshops, an optional fixed member price is used only when it is better than the applicable percentage discount; free admission takes priority.</p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Fixed member price (optional)"><input type="number" min="0" step="0.01" className={inputClass} value={ticket.member_price} onChange={e=>setTicket(index,"member_price",e.target.value)} /></Field>
-                <Field label="Currency"><select className={inputClass} value={ticket.currency} onChange={e=>setTicket(index,"currency",e.target.value)}>{["CHF","EUR","USD","GBP","CZK"].map(c=><option key={c}>{c}</option>)}</select></Field>
-              </div>
-              <details className="rounded-lg border border-border p-3">
-                <summary className="cursor-pointer text-sm font-medium">Advanced: add a specific discount or free-ticket benefit{ticket.discount_entitlement || ticket.free_entitlement ? " · configured" : ""}</summary>
-                <p className="mt-2 text-xs text-muted-foreground">Usually leave these empty. Only benefits relevant to this event type are offered. The member must have the selected benefit; workshop credit is handled automatically.</p>
+              <details className="mt-4 rounded-lg border border-border p-3">
+                <summary className="cursor-pointer text-sm font-medium">Advanced benefit override{ticket.discount_entitlement || ticket.free_entitlement ? " · configured" : ""}</summary>
+                <p className="mt-2 text-xs text-muted-foreground">Use only when this ticket needs a specific discount or free-entry rule. Workshop credit is handled automatically.</p>
                 <div className="mt-3 grid gap-4 sm:grid-cols-2">
                   <Field label="Extra percentage discount benefit">
                     <select className={inputClass} value={ticket.discount_entitlement} onChange={e=>setTicket(index,"discount_entitlement",e.target.value)}>
@@ -663,32 +646,7 @@ export function EventForm({
                 </div>
                 {ticket.discount_entitlement && ticket.free_entitlement && <p className="mt-2 text-xs text-accent">Both are set. For members with both benefits, the free ticket takes priority.</p>}
               </details>
-              <div className="rounded-lg border border-border p-3 text-sm" aria-label={`Membership price preview for ${ticket.name || "ticket"}`}>
-                <h4 className="font-semibold">Buyer and price preview</h4>
-                <p className="mt-1 text-xs text-muted-foreground">Estimate for one ticket and an active membership. Checkout checks eligibility, previous benefit use, capacity and final price again.</p>
-                {benefitsLoading && <p className="mt-2 text-muted-foreground">Loading membership plans…</p>}
-                {benefitsError && <p className="mt-2 text-destructive">Could not load plan benefits. Check them before publishing.</p>}
-                {!benefitsLoading && !benefitsError && benefitMatrix.length === 0 && <p className="mt-2 text-destructive">No active membership plans were loaded. Check plans before publishing.</p>}
-                {!benefitsLoading && !benefitsError && (ticket.base_price.trim() === "" || !Number.isFinite(Number(ticket.base_price)) || Number(ticket.base_price) < 0 || (ticket.member_price.trim() !== "" && (!Number.isFinite(Number(ticket.member_price)) || Number(ticket.member_price) < 0))) && <p className="mt-2 text-muted-foreground">Enter a valid public and optional member price to see the preview.</p>}
-                {!benefitsLoading && !benefitsError && <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                  {ticket.base_price.trim() !== "" && Number.isFinite(Number(ticket.base_price)) && Number(ticket.base_price) >= 0 && <div className="rounded-lg bg-card p-3">
-                    <p className="font-medium">Public visitor</p>
-                    {ticket.required_entitlement ? <p className="mt-1 text-xs text-destructive">Cannot buy — membership benefit required</p> : <p className="mt-1 font-semibold">{formatMoney(Number(ticket.base_price), ticket.currency)}</p>}
-                  </div>}
-                  {previewTicketByPlan(ticket, event.event_type, benefitMatrix).map((preview) => (
-                    <div key={preview.name} className="rounded-lg bg-card p-3">
-                      <p className="font-medium">{preview.name}</p>
-                      {preview.eligible && preview.price ? <>
-                        <p className="mt-1 font-semibold">{formatMoney(preview.price.finalPrice, ticket.currency)}</p>
-                        <p className="text-xs text-muted-foreground">{preview.price.reason}</p>
-                        {preview.optionalWorkshopCredit !== null && <p className="mt-1 text-xs text-accent">Optional CHF {preview.optionalWorkshopCredit} workshop credit in cart, if unused</p>}
-                      </> : <p className="mt-1 text-xs text-destructive">Cannot buy — required benefit missing</p>}
-                    </div>
-                  ))}
-                </div>}
-                {ticket.required_entitlement && !benefitsLoading && !benefitsError && benefitMatrix.length > 0 && !benefitMatrix.some((plan: EventBenefitPlan) => plan.plan_entitlements.some((item: EventBenefitPlan["plan_entitlements"][number]) => item.entitlements?.key === ticket.required_entitlement)) && <p className="mt-2 font-medium text-destructive">No active plan includes the required benefit. This ticket will not be purchasable by members until the assignment is changed.</p>}
-              </div>
-            </div>
+            </details>
           </div>
         ))}
       </section>
