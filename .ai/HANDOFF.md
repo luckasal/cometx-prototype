@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-18: Back Office latency task — authenticated measurement pending
+
+- Inspected access gate, Auth initialization, Events/Members/Contacts reads, React Query defaults and focused performance tests. The gate is independent of membership/profile reads; data prefetch runs alongside access; requests time out with retry UI. Existing seven focused tests pass.
+- The available hosted browser session redirects `/admin/events` to `/login`, so no authenticated cold/warm timing or server-request waterfall can be measured yet. Asked user to sign in; no credentials were handled. Do not weaken server guards or claim a speed fix without a measured bottleneck.
+- No application code or live data changed. Exact next: after admin sign-in, time access vs Events/Members/Contacts cold and warm loads, inspect slow server operation, then implement and verify a focused fix.
+
 ## 2026-10-18: ticket-editor deployment and task 6 start
 
 - Pushed `e584e20` and redeployed with Vercel Production settings. Deployment `3UPeCpMmGM2RW6QGzECEefwckQNv` is Ready and assigned to `cometx-prototype.vercel.app`. The signed-in hosted Tickets tab shows the simplified controls and no Buyer and price preview. No event data was saved.
