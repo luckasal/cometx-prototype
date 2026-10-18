@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-18: ticket-editor deployment and task 6 start
+
+- Pushed `e584e20` and redeployed with Vercel Production settings. Deployment `3UPeCpMmGM2RW6QGzECEefwckQNv` is Ready and assigned to `cometx-prototype.vercel.app`. The signed-in hosted Tickets tab shows the simplified controls and no Buyer and price preview. No event data was saved.
+- Began staff-role acceptance. Local permission/integration checks pass (10/10). The database isolation test did not run because ignored `.test-runtime/@electric-sql/pglite` is missing. No roles or accounts were changed. Hosted Event manager, Data analyst and Marketing allowed/denied tests still require designated accounts and a rollback plan; do not borrow a real staff login.
+- Pre-existing dirty generated `src/routeTree.gen.ts` remains untouched. Media/speaker upload acceptance remains blocked by declined browser upload permission; do not bypass it.
+
 ## 2026-10-18: task 5 hosted media/speaker acceptance blocked at upload permission
 
 - Inspected the signed-in hosted New event editor: PC pickers, one-off speaker form and cleanup panel render. Prepared an unpublished QA form, but did not save it. Browser permission for uploading an official local CometX image was declined; no file or hosted record was changed, and no alternate upload method was attempted.
