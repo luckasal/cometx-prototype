@@ -1,6 +1,6 @@
 # Event photos and one-off speakers: acceptance record
 
-Task: `BOSS-P1-EVENT-MEDIA-SPEAKERS-01`. This is a code-path audit, **not** a completed hosted acceptance test. Browser control was unavailable in this session, so no hosted event, speaker, or photo was created or modified.
+Task: `BOSS-P1-EVENT-MEDIA-SPEAKERS-01`. This is a code-path audit and partial hosted visual check, **not** a completed hosted write-path acceptance test. Commit `eba7cff` is live on the canonical Production domain. The signed-in admin editor shows the Advanced cleanup panel and its Main photos list loads. No hosted event, speaker, or photo was created or modified.
 
 ## Current ownership and safeguards
 
