@@ -2,6 +2,11 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-19: Dublin function placement prepared
+
+- Supabase reports `eu-west-1` Ireland; Vercel Production Members executed in `iad1` Washington. Commit `65e7e6f` sets the default function region to `dub1` in `vercel.json`; pushed on the existing branch. JSON and diff checks pass.
+- Browser use was disabled immediately after push. Build, Production deployment, actual `dub1` execution, and latency improvement are unverified. See `docs/BACKOFFICE_LATENCY_2026-10-19.md` for exact measurement and next verification steps. Pre-existing generated route-tree modification preserved.
+
 ## 2026-10-19: Back Office stage diagnostics deployed and measured
 
 - Continued existing branch; pushed diagnostic commit `7cd5e4d`. Vercel Production deployment `GspTzEbbf7goxfdPYRqZNmCrWqKH` is Ready on the public alias; Preview and Production builds succeeded.

@@ -44,3 +44,23 @@ separate remote authorization/database delays from startup time outside the hand
 Keep live authorization checks; do not widen caching or bypass guards to improve timings.
 Existing trace only logs successful paths exceeding one second, and groups the two
 related reads. Missing logs do not establish that every request is fast.
+
+## 2026-10-19 follow-up: region alignment prepared, verification blocked
+
+Supabase project `vlcssswzlvamtscyobbv` reports primary region `eu-west-1`
+(Ireland). The selected Vercel Production Members invocation executed in `iad1`
+(Washington, D.C.) after receipt in `fra1`. Vercel documents `dub1` as Dublin,
+Ireland, and recommends placing functions in the same region as the database.
+
+Commit `65e7e6f` adds `"regions": ["dub1"]` to `vercel.json` and was pushed to
+`codex/benefit-catalog-release-20261017`. JSON validation and `git diff --check`
+passed. The connected browser was disabled immediately after push, before the new
+Preview build or a Production redeployment could be inspected. This commit is not
+yet verified as running in Production. The current Production deployment remains
+`GspTzEbbf7goxfdPYRqZNmCrWqKH` from `7cd5e4d` unless another actor changed it.
+
+Exact next: inspect the build of `65e7e6f`, redeploy that source with Production
+settings, confirm a Members request executes in `dub1`, then compare several
+signed-in cold/warm loads and the stage logs. Do not claim a speedup from the
+configuration change alone. If `dub1` is unavailable for the plan, use the
+nearest supported European region after checking the deployment settings.
