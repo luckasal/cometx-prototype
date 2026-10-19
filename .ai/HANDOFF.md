@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-19: Back Office stage diagnostics deployed and measured
+
+- Continued existing branch; pushed diagnostic commit `7cd5e4d`. Vercel Production deployment `GspTzEbbf7goxfdPYRqZNmCrWqKH` is Ready on the public alias; Preview and Production builds succeeded.
+- Three authenticated Members reloads: 2527/1957/1836 ms. Successful stage traces: authorization 423/426 ms, profiles 310/355 ms, related reads 349/356 ms. Selected request execution 1.08s, response 1.2s; entered fra1 and executed iad1.
+- No root-cause fix claimed: the earlier 8.92s invocation did not recur. See `docs/BACKOFFICE_LATENCY_2026-10-19.md` for measurement limitations and next steps. Verify Supabase region and capture slow trace before tuning placement/queries. No migrations or business-data writes. Existing generated route-tree modification preserved.
+
 ## 2026-10-18: Back Office latency measured; stage trace prepared locally
 
 - After admin sign-in, observed one hosted navigation: admin shell ~2.8s; Events table ~3.8s; Members table ~10.8s; Contacts table ~3.8s; warm Members ~0.6s. Vercel Production request details show a Members `/_serverFn` invocation running 8.92s (response 9.0s), so the slow cold read is server-side rather than only the access gate.
