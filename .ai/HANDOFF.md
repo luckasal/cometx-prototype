@@ -2,6 +2,11 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-19: Dublin config Preview build confirmed
+
+- GitHub Vercel check passed for `65e7e6f`; deployment `39jheeS4a9yKXEhtsnMNngmzh222` built with `regions: ["dub1"]`. This confirms Preview build acceptance only; Production execution is still unverified.
+- Local build attempts hit sandbox `EPERM` realpath errors (pnpm before Vite, then Nitro external tracing). Browser remains disabled in Work settings, so no Production redeploy/region timing verification. See `docs/BACKOFFICE_LATENCY_2026-10-19.md`. Do not claim a speed fix yet.
+
 ## 2026-10-19: Dublin function placement prepared
 
 - Supabase reports `eu-west-1` Ireland; Vercel Production Members executed in `iad1` Washington. Commit `65e7e6f` sets the default function region to `dub1` in `vercel.json`; pushed on the existing branch. JSON and diff checks pass.

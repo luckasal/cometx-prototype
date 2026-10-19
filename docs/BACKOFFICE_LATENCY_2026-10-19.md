@@ -64,3 +64,17 @@ settings, confirm a Members request executes in `dub1`, then compare several
 signed-in cold/warm loads and the stage logs. Do not claim a speedup from the
 configuration change alone. If `dub1` is unavailable for the plan, use the
 nearest supported European region after checking the deployment settings.
+
+## Preview build confirmation — 2026-10-19
+
+GitHub reports the Vercel check for `65e7e6f407292440e53a09cbb873583d05d0cece`
+passed. Vercel created deployment `39jheeS4a9yKXEhtsnMNngmzh222` from the branch
+with `regions: ["dub1"]`. This confirms Vercel accepted the config and completed
+the Preview build. It does not establish Production rollout or actual execution in
+Dublin; the Production redeploy/browser logs remain unavailable from this task.
+
+A local `pnpm build` attempt failed before Vite started with sandbox `EPERM`
+realpath on the worktree. Direct Vite build transformed client and server bundles
+then failed in Nitro external tracing with `EPERM` realpath inside pnpm's shared
+`tslib` store. Treat these as environment permission failures; Vercel Preview is
+the successful build evidence.
