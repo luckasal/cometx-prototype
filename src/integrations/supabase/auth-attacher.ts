@@ -6,8 +6,18 @@ import { supabase } from './client'
 // the browser never attaches the bearer token to serverFn RPCs.
 export const attachSupabaseAuth = createMiddleware({ type: 'function' }).client(
   async ({ next }) => {
-    const { data } = await supabase.auth.getSession()
-    const token = data.session?.access_token
+    // A stale browser session can leave getSession waiting on token refresh.
+    // Public server functions must still be able to run anonymously; private
+    // functions remain protected by their server-side authorization checks.
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), 5000)
+    })
+    const session = await Promise.race([
+      supabase.auth.getSession().then(({ data }) => data.session).catch(() => null),
+      timeout,
+    ]).finally(() => clearTimeout(timer))
+    const token = session?.access_token
     return next({
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
