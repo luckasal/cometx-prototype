@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-19: Production auth hydration loading fix
+
+- Task `VERCEL-AUTH-LOADING-20261019`; implementation commit `269b681` on `codex/production-auth-timeout-20261019`.
+- `src/hooks/useAuth.tsx` preserves active queries during initial session hydration and resets them on later identity changes. The earlier session-timeout attempt in `8ce12e5` was removed after Vercel request logs showed the event server function already returned 200 in 239 ms.
+- Vercel Production deployment `Ctc9UZ53FxMvEVvNu1L3WuSKNAQG` is Ready and assigned to `cometx-prototype.vercel.app`. Read-only signed-in browser verification: `/events` renders published records on the canonical domain; `/community` loads its page (currently reports no published stories). `git diff --check` passed; no automated tests were run.
+- Next: routine editorial publishing of community stories through Back Office, and separate checkout/payment acceptance before enabling live charges.
+
 ## 2026-10-19: Partner filters Preview deployment
 
 - Pushed `codex/partner-filters-20261019`; GitHub's Vercel check for `fa801c6` is successful at deployment `2AZ2srKwQK4uHnK6UXJiY3C6xiPz`.
