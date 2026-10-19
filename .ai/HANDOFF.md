@@ -2,6 +2,11 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-19: Partner filters Preview deployment
+
+- Pushed `codex/partner-filters-20261019`; GitHub's Vercel check for `fa801c6` is successful at deployment `2AZ2srKwQK4uHnK6UXJiY3C6xiPz`.
+- Production promotion and authenticated visual review remain open. Browser control reports local browser use disabled in Work settings, and no Vercel CLI credentials are available in this worktree. Do not describe the prototype's Production domain as updated.
+
 ## 2026-10-19: Back Office partner filters
 
 - Task `BOSS-P2-PARTNER-FILTER-01`; branch `codex/partner-filters-20261019`; implementation commit `c7dc930`.
