@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-19: Back Office partner filters
+
+- Task `BOSS-P2-PARTNER-FILTER-01`; branch `codex/partner-filters-20261019`; implementation commit `c7dc930`.
+- Changed `src/routes/admin.partners.tsx` and `.ai/TASKS.md`: search existing partner name, website and description; filter by the tiers in current records and public visibility; show filtered count, empty state and clear action. Existing editor and server functions are unchanged.
+- Checks: TSX parser syntax and `git diff --check` pass. No automated tests or authenticated browser review were run in this isolated worktree.
+- Known issue: this branch has not been merged or deployed. Exact next task: authenticated visual review of the partner list, then review/merge this branch; handle remaining `BOSS-P2-PARTNERS-CONTENT-01` fields after content and visibility decisions.
+
 ## 2026-10-19: Dublin config Preview build confirmed
 
 - GitHub Vercel check passed for `65e7e6f`; deployment `39jheeS4a9yKXEhtsnMNngmzh222` built with `regions: ["dub1"]`. This confirms Preview build acceptance only; Production execution is still unverified.
