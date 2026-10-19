@@ -30,6 +30,7 @@ const AuthContext = createContext<AuthContextValue>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const currentUserId = useRef<string | null>(null);
+  const authInitialized = useRef(false);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -47,10 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authEventReceived = true;
       clearTimeout(timer);
       const nextUserId = nextSession?.user.id ?? null;
-      if (nextUserId !== currentUserId.current) {
-        queryClient.clear();
-        currentUserId.current = nextUserId;
+      if (authInitialized.current && nextUserId !== currentUserId.current) {
+        // Reset active queries so they refetch under the new identity. Clearing
+        // them during hydration leaves mounted public pages stuck on loading.
+        void queryClient.resetQueries();
       }
+      currentUserId.current = nextUserId;
+      authInitialized.current = true;
       setSession(nextSession);
       setError(null);
       setLoading(false);
@@ -62,6 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!active || authEventReceived) return;
         clearTimeout(timer);
         if (sessionError) throw sessionError;
+        currentUserId.current = data.session?.user.id ?? null;
+        authInitialized.current = true;
         setSession(data.session);
         setError(null);
         setLoading(false);
