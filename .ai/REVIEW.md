@@ -1,5 +1,19 @@
 # CometX review log
 
+## 2026-10-19 hosted Supabase Security Advisor scope
+
+Reviewed project `vlcssswzlvamtscyobbv` read-only; details and remediation order in `docs/DATABASE_SECURITY_ADVISOR_2026-10-19.md`.
+
+### IMPORTANT
+
+- `public.has_role(user_id, role)` is an executable `postgres`-owned definer RPC for anonymous and signed-in callers and accepts an arbitrary user ID. This can disclose whether a known ID has a named role. Replace with a caller-bound helper in a non-exposed schema, while preserving the 30 live `is_admin()` policy dependencies through coordinated migration and allow/deny verification.
+- `public.subscribe_newsletter(...)` is intentionally public, but its conflict branch re-subscribes an existing contact and resets `consent_at`. Review opt-out and consent provenance with the contact-security owner before changing the signup flow.
+- Leaked-password protection is disabled per the hosted Auth advisor. Check plan availability, enable it, and verify controlled signup/password-reset behavior.
+
+### NICE TO HAVE
+
+- Trigger-only and disabled legacy checkout functions retain public execution grants; `touch_updated_at()` has no pinned search path. Review and narrow them in a tested migration, then rerun the advisor. Do not revoke grants blindly from the live database.
+
 Thread C (or an assigned reviewer) records findings against a branch and commit. Use **BLOCKER** for unsafe or broken behavior that prevents release, **IMPORTANT** for significant defects or maintainability/security risks to fix before merge, and **NICE TO HAVE** for non-blocking improvements. Include file/line, evidence, impact, and recommended fix. Mark resolved findings with the fixing commit; do not erase historical findings.
 
 ## Historical self-review (predates the multi-Codex-thread workflow)
