@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-19: Hosted database security-advisor review
+
+- Task `DATABASE-SECURITY-ADVISOR-01`; branch `codex/security-advisor-review-20261019`; review commit `025207e`.
+- Changed `docs/DATABASE_SECURITY_ADVISOR_2026-10-19.md`, `.ai/REVIEW.md`, and `.ai/TASKS.md`. Live read-only advisor and catalog queries identified eight definer functions, one search-path warning, and disabled leaked-password protection; mapped triggers, RLS dependencies and repository caller.
+- Check: `git diff --check` passed. No database/Auth changes or customer data writes. Exact next task: prepare an isolated grant/helper migration with anonymous, signed-in, Admin and trigger allow/deny checks before any hosted change; coordinate the public newsletter consent behavior with the contact-security owner.
+- Partner-filter branch `codex/partner-filters-20261019` has a successful Vercel Preview check, but Production promotion and signed-in visual acceptance remain open because browser control is disabled in Work settings and this session has no Vercel CLI authentication.
+
 ## 2026-10-19: Partner filters Preview deployment
 
 - Pushed `codex/partner-filters-20261019`; GitHub's Vercel check for `fa801c6` is successful at deployment `2AZ2srKwQK4uHnK6UXJiY3C6xiPz`.
