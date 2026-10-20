@@ -1,6 +1,6 @@
 # CometX Resend sender setup (20 October 2026)
 
-Resend domain `mail.cometx.ch` was added in the signed-in Resend account with sending on and receiving off. Domain verification is pending. `cometx.ch` uses Wix nameservers (`ns6.wixdns.net`, `ns7.wixdns.net`), so these records belong in the Wix DNS zone. Do not change existing MX, SPF, or website records.
+Resend domain `mail.cometx.ch` was added in the signed-in Resend account with sending on and receiving off. Domain verification is pending. The user confirmed Swisscom manages the domain registration. Public DNS resolves `cometx.ch` to Wix nameservers (`ns6.wixdns.net`, `ns7.wixdns.net`), so Wix currently hosts the active DNS zone and these records belong there. Do not change the nameservers or existing MX, SPF, or website records.
 
 | Type | Host in `cometx.ch` zone | Value |
 | --- | --- | --- |
