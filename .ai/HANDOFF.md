@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-20: Resend sender preparation and test-only cancellation check
+
+- Task `RESEND-TEST-CANCELLATION-20261020` on `codex/resend-test-readiness-20261020`. Created pending Resend sending domain `mail.cometx.ch`; Wix is authoritative DNS but its account is signed out. Required records and exact activation steps are in `docs/RESEND_SENDER_SETUP_2026-10-20.md`. No API key was created, no email was sent, and Vercel email mode remains disabled.
+- Added focused cancellation mapper cases in `tests/membership-renewal.test.mjs`, documented `RESEND_FROM_EMAIL` in `.env.example`, and clarified guest-email setup in `CMS_SETUP.md`. `node --experimental-strip-types --test tests/membership-renewal.test.mjs tests/deployment.test.mjs` passed 5/5; diff check passed.
+- End-to-end hosted cancellation remains open: the connected Stripe account is an unrelated live account, and no CometX test account or disposable subscription is accessible. Do not mutate the existing member's subscription. Next: sign in to the CometX Wix DNS dashboard, add the documented records, verify the Resend domain, create a sending-only key restricted to it, configure Vercel and redeploy; then verify with a designated test guest order. Separately connect the CometX Stripe test account for disposable-subscription cancellation acceptance.
+
 ## 2026-10-20: Membership billing status Production release
 
 - Task `BOSS-P0-MEMBERSHIP-BILLING-STATUS-01`; implementation commit `2ffa910` on `codex/membership-billing-release-20261019`. The signed-in account reads its current Stripe test subscription and shows the next billing date or scheduled cancellation end date. Membership checkout uses the signed-in account email and rejects mismatches on the server.

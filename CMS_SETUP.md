@@ -11,7 +11,7 @@ Set these in Vercel for the production and preview environments:
 - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_DB_URL` for Drizzle migration tooling; keep this database connection string server-side
 - `CRON_SECRET` and optionally `CRON_SECRET_PREVIOUS` for authenticated scheduled requests
-- `RESEND_API_KEY` when newsletter delivery is ready
+- `RESEND_API_KEY` for guest ticket confirmations after the sender domain is verified; newsletter broadcast delivery is a separate workflow
 - `RESEND_FROM_EMAIL` with a sender/domain verified in Resend, for guest ticket confirmations
 - `GUEST_TICKET_TOKEN_SECRET` (at least 32 random characters) to sign/encrypt private guest ticket access links
 - `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in **test mode only** for sandbox purchases
@@ -25,6 +25,8 @@ Migrations `0005_hidden_ticket_payments.sql` and `0006_ticket_orders_and_guests.
 All three tiers—Fanoušek, CometXXL and Ambasador—are CHF annual subscriptions with a CHF 1.99 one-time setup fee on the first invoice. Migration `0015_all_annual_memberships.sql` configures the three plans and reads subscription-item billing periods when extending access; `0016_disable_prototype_membership_grant.sql` revokes an obsolete client-callable free-membership RPC. Both were applied to the CometX sandbox-backed Supabase project on 9 October 2026. The Back Office catalogue refresh created/associated annual and setup Stripe **test-mode** Prices for all three; a read-only database check verified six price IDs are present. Existing manually assigned memberships were not converted to Stripe subscriptions. The application requires email, nationality, motivation and feedback before recurring Checkout. Before claiming the flow production-ready, verify a designated sandbox purchase for each tier, webhook fulfillment, Billing Portal cancellation, renewal period update and webhook replay. The Stripe test webhook must include `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.updated`, and `customer.subscription.deleted`; live keys remain prohibited. Renewal invoice payment-ledger coverage and partial refunds still require their separate release checks.
 
 Guest checkout uses a secure return link even while `TICKET_EMAIL_MODE=disabled`. To email that link after paid/free issuance, verify a sending domain and configure `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and the enabled ticket-email mode. Keep `GUEST_TICKET_TOKEN_SECRET` stable: rotating it does not invalidate existing access links (the database stores a token hash), but it prevents email delivery for older unmailed orders whose token was encrypted with the previous key.
+
+The pending CometX sender verification and DNS records are tracked in `docs/RESEND_SENDER_SETUP_2026-10-20.md`. Do not turn on delivery or reuse another project's API key before that verification is complete.
 
 For optional guest-to-account linking, allow the deployed `/tickets/guest` return URL in Supabase Auth's redirect URL allowlist so new-account confirmation can return to the secure order link.
 
