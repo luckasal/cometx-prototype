@@ -6,7 +6,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
 import { formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
-import { getAccountOverview, getMyWorkshopCreditStatus, startMembershipBillingPortal } from "@/lib/membership.functions";
+import { getAccountOverview, getMyMembershipRenewalStatus, getMyWorkshopCreditStatus, startMembershipBillingPortal } from "@/lib/membership.functions";
 import { Button } from "@/components/ui/button";
 import {
   EmptyBlock,
@@ -26,6 +26,7 @@ function AccountMembershipPage() {
   const { checkout } = Route.useSearch();
   const fetchOverview = useServerFn(getAccountOverview);
   const fetchWorkshopCredit = useServerFn(getMyWorkshopCreditStatus);
+  const fetchRenewalStatus = useServerFn(getMyMembershipRenewalStatus);
   const createBillingPortal = useServerFn(startMembershipBillingPortal);
   const portalMutation = useMutation({
     mutationFn: () => createBillingPortal(),
@@ -39,6 +40,13 @@ function AccountMembershipPage() {
   const { data: workshopCredit, isLoading: creditLoading, error: creditError } = useQuery({
     queryKey: ["account", "workshop-credit"],
     queryFn: () => fetchWorkshopCredit(),
+  });
+  const { data: renewalStatus, isLoading: renewalLoading, error: renewalError } = useQuery({
+    queryKey: ["account", "membership-renewal", data?.profile.id, data?.membership?.membershipId],
+    queryFn: () => fetchRenewalStatus(),
+    enabled: !!data?.membership?.canManageBilling,
+    retry: false,
+    refetchOnMount: "always",
   });
 
   useEffect(() => {
@@ -91,8 +99,22 @@ function AccountMembershipPage() {
               <p className="mt-1 font-display text-2xl font-extrabold">{data.membership.planName}</p>
             </div>
             <div className="space-y-4 p-6">
-              <StatusPill tone="success">{data.membership.status}</StatusPill>
-              {data.membership.endsAt && (
+              <StatusPill tone="success">{renewalStatus?.renewalCancelled ? "Active · renewal cancelled" : data.membership.status}</StatusPill>
+              {renewalStatus?.renewalCancelled && (
+                <p className="text-sm text-muted-foreground">
+                  Your membership stays active until {renewalStatus.cancelsAt
+                    ? new Date(renewalStatus.cancelsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+                    : "the end of your paid period"}. It will not renew automatically.
+                </p>
+              )}
+              {renewalStatus?.nextBillingAt && (
+                <p className="text-sm text-muted-foreground">
+                  Next billing date: {new Date(renewalStatus.nextBillingAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.
+                </p>
+              )}
+              {renewalLoading && <p className="text-xs text-muted-foreground">Checking renewal status…</p>}
+              {renewalError && <p className="text-xs text-muted-foreground">Renewal status is unavailable right now. Refresh this page or contact CometX.</p>}
+              {data.membership.endsAt && !renewalStatus?.renewalCancelled && !renewalStatus?.nextBillingAt && (
                 <p className="text-sm text-muted-foreground">
                   Valid until{" "}
                   {new Date(data.membership.endsAt).toLocaleDateString("en-GB", {

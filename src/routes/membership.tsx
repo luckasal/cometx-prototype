@@ -50,11 +50,7 @@ function MembershipPage() {
     currency: string;
     setupFee: number;
   } | null>(null);
-  const [application, setApplication] = useState({ email: "", nationality: "", motivation: "", missingFromSubscription: "" });
-
-  useEffect(() => {
-    if (user?.email) setApplication((current) => ({ ...current, email: current.email || user.email! }));
-  }, [user?.email]);
+  const [application, setApplication] = useState({ nationality: "", motivation: "", missingFromSubscription: "" });
   const fetchPlans = useServerFn(getMembershipPlans);
   const startCheckout = useServerFn(startMembershipCheckout);
 
@@ -125,7 +121,6 @@ function MembershipPage() {
                       disabled={checkoutMutation.isPending}
                       onClick={() => {
                         trackEvent("membership_cta_click", { plan: plan.slug, membership_tier: plan.slug, value: plan.annualPrice + plan.setupFee, currency: plan.currency });
-                        setApplication((current) => ({ ...current, email: user.email ?? current.email }));
                         setSelectedPlan(plan);
                       }}
                     >
@@ -190,10 +185,10 @@ function MembershipPage() {
               className="space-y-5"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (!application.email || !application.nationality || !application.motivation.trim() || !application.missingFromSubscription.trim()) return;
+                if (!user?.email || !application.nationality || !application.motivation.trim() || !application.missingFromSubscription.trim()) return;
                 checkoutMutation.mutate({
                   planSlug: selectedPlan.slug,
-                  email: application.email,
+                  email: user.email,
                   nationality: application.nationality as "slovak" | "czech" | "other",
                   motivation: application.motivation,
                   missingFromSubscription: application.missingFromSubscription,
@@ -202,7 +197,8 @@ function MembershipPage() {
             >
               <div className="space-y-2">
                 <Label htmlFor="membership-email">Email *</Label>
-                <Input id="membership-email" type="email" autoComplete="email" required value={application.email} onChange={(event) => setApplication((current) => ({ ...current, email: event.target.value }))} />
+                <Input id="membership-email" type="email" autoComplete="email" required readOnly value={user?.email ?? ""} />
+                <p className="text-xs text-muted-foreground">{cs ? "Členství bude přiřazeno k tomuto přihlášenému účtu. Pro jiný e-mail se nejprve přihlaste k odpovídajícímu účtu." : "Membership is assigned to this signed-in account. To use another email, sign in to that account first."}</p>
               </div>
 
               <fieldset className="space-y-2">

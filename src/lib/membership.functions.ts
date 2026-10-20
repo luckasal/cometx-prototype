@@ -63,12 +63,31 @@ export type AccountOverview = {
   membership: {
     planName: string;
     planSlug: string;
+    membershipId: string;
     status: string;
     endsAt: string | null;
     canManageBilling: boolean;
     benefits: { key: string; name: string; value: number | null }[];
   } | null;
 };
+
+/** Read only the signed-in member's test subscription for current billing dates. */
+export const getMyMembershipRenewalStatus = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireUser } = await import("./auth.server");
+  const { getCurrentMembership } = await import("./membership.server");
+  const { stripeRequest } = await import("./stripe.server");
+  const { membershipRenewalStatus } = await import("./membership-renewal");
+  const user = await requireUser();
+  const membership = await getCurrentMembership(user.userId);
+  if (!membership?.stripeSubscriptionId) return null;
+  const subscription = await stripeRequest<Record<string, unknown>>(
+    `/subscriptions/${encodeURIComponent(membership.stripeSubscriptionId)}`,
+  );
+  if (subscription["id"] !== membership.stripeSubscriptionId || subscription["livemode"] !== false) {
+    throw new Error("Membership billing status could not be verified.");
+  }
+  return membershipRenewalStatus(subscription);
+});
 
 export type WorkshopCreditStatus = {
   amount: number;
@@ -153,6 +172,7 @@ export const getAccountOverview = createServerFn({ method: "GET" }).handler(
         ? {
             planName: membership.plan.name,
             planSlug: membership.plan.slug,
+            membershipId: membership.id,
             status: membership.status,
             endsAt: membership.endsAt,
             canManageBilling: membership.hasStripeSubscription,
@@ -190,7 +210,7 @@ export const updateMyProfile = createServerFn({ method: "POST" })
 export const startMembershipCheckout = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({
     planSlug: z.string().min(1).max(80),
-    email: z.string().email().max(320).optional(),
+    email: z.string().email().max(320),
     nationality: z.enum(["slovak", "czech", "other"]).optional(),
     motivation: z.string().trim().min(1).max(3000).optional(),
     missingFromSubscription: z.string().trim().min(1).max(3000).optional(),
@@ -204,6 +224,9 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
     const { configuredAppUrl } = await import("./deployment");
     const { checkoutOrigin } = await import("./checkout");
     const user = await requireUser();
+    if (!user.email || !data.email || data.email.trim().toLowerCase() !== user.email.trim().toLowerCase()) {
+      throw new Error("Membership checkout must use the email of your signed-in account. Sign in with the correct account to continue.");
+    }
     if (await getCurrentMembership(user.userId)) {
       throw new Error("You already have an active membership. Please contact CometX to change your plan.");
     }
@@ -221,7 +244,7 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
     if (plan.billing_interval !== "year" || Number(plan.setup_fee) !== 1.99) {
       throw new Error("This membership is not configured for annual renewal. Please contact CometX.");
     }
-    if (!data.email || !data.nationality || !data.motivation || !data.missingFromSubscription) {
+    if (!data.nationality || !data.motivation || !data.missingFromSubscription) {
       throw new Error("Complete all required membership details before continuing.");
     }
     const lines = await getMembershipCheckoutPrices({
@@ -241,7 +264,7 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
       .insert({
         user_id: user.userId,
         membership_plan_id: plan.id,
-        email: data.email,
+        email: user.email,
         nationality: data.nationality,
         motivation: data.motivation,
         missing_from_subscription: data.missingFromSubscription,
@@ -263,7 +286,7 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
     const session = await stripeRequest<{ id: string; url: string; livemode: boolean; mode: string }>("/checkout/sessions", {
       mode,
       line_items: lines,
-      customer_email: data.email ?? user.email ?? undefined,
+      customer_email: user.email,
       subscription_data: { metadata: {
         kind: "cometx_membership",
         membership_application_id: applicationId,

@@ -8,6 +8,7 @@ export type CurrentMembership = {
   startsAt: string;
   endsAt: string | null;
   hasStripeSubscription: boolean;
+  stripeSubscriptionId: string | null;
   plan: {
     id: string;
     name: string;
@@ -48,6 +49,7 @@ export async function getCurrentMembership(
     startsAt: data.starts_at,
     endsAt: data.ends_at,
     hasStripeSubscription: !!data.stripe_subscription_id,
+    stripeSubscriptionId: data.stripe_subscription_id,
     plan: {
       id: plan.id,
       name: plan.name,
