@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-20: Membership billing status Production release
+
+- Task `BOSS-P0-MEMBERSHIP-BILLING-STATUS-01`; implementation commit `2ffa910` on `codex/membership-billing-release-20261019`. The signed-in account reads its current Stripe test subscription and shows the next billing date or scheduled cancellation end date. Membership checkout uses the signed-in account email and rejects mismatches on the server.
+- Vercel Preview `3e58FAnX41mKz7YZbqZeMeRhRfxi` and Production `F4nCHzRQoiM3bk3T91Rg6bhQTYsT` are Ready; Production is assigned to `cometx-prototype.vercel.app`. Hosted signed-in CometXXL page displayed next billing date 8 October 2027; membership form email was read-only. No payment, cancellation, or subscription mutation was performed.
+- `git -c core.whitespace=cr-at-eol diff --check` passed. No automated tests were added or run. A scheduled-cancellation UI state still needs acceptance with a designated disposable Stripe test subscription; do not cancel the existing member's subscription for this check. The other annual-membership worktree's unfinished changes remain untouched.
+
 ## 2026-10-19: Production auth hydration loading fix
 
 - Task `VERCEL-AUTH-LOADING-20261019`; implementation commit `269b681` on `codex/production-auth-timeout-20261019`.
