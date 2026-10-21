@@ -6,8 +6,9 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 - Task `ADMIN-LEGACY-REGISTRATIONS-HIDE-20261021`; implementation commit `3bbe2de` on `codex/hide-legacy-registrations-20261021` in `cometx-hide-registrations`.
 - Removed Registrations from the Admin menu and dashboard; `/admin/registrations` now redirects to `/admin/orders`. Kept registration data, member event history, event reporting, and server functions unchanged.
-- `git diff --check` passed. `pnpm build` could not run because Windows returned `EPERM` resolving the new worktree path before dependency installation. Push was rejected by automatic approval review due to private source transmission and deployment side effects. No remote branch or Production deployment was created.
-- Next: with explicit approval, push the branch and deploy the verified change; otherwise leave it local for review.
+- `git diff --check` passed. `pnpm build` could not run because Windows returned `EPERM` resolving the new worktree path before dependency installation. User approved pushing and deployment. Branch is pushed; Vercel Production redeploy `34Y6SiqkDHntF98umSV1imj4p8wo` is Ready and assigned to `cometx-prototype.vercel.app`.
+- The Preview deployment lacked Supabase configuration, so it was not promoted. Production URL `/admin/registrations` was verified to redirect to `/admin/orders`; the Orders & attendees page loaded and the admin navigation no longer lists Registrations. Registration records and server functions remain intact.
+- No database changes or automated tests were run. Local build remained blocked by the worktree path EPERM; Vercel Production build succeeded.
 
 ## 2026-10-20: Resend sender preparation and test-only cancellation check
 
