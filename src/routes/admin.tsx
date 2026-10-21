@@ -31,7 +31,6 @@ const nav = [
   { to: "/admin/events", label: "Events", exact: false },
   { to: "/admin/members", label: "Members", exact: false },
   { to: "/admin/contacts", label: "Contacts", exact: false },
-  { to: "/admin/registrations", label: "Registrations", exact: false },
   { to: "/admin/orders", label: "Orders & attendees", exact: false },
   { to: "/admin/plans", label: "Memberships", exact: false },
   { to: "/admin/newsletter", label: "Newsletter", exact: false },
