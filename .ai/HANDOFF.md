@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-21: hide legacy admin Registrations page
+
+- Task `ADMIN-LEGACY-REGISTRATIONS-HIDE-20261021`; implementation commit `3bbe2de` on `codex/hide-legacy-registrations-20261021` in `cometx-hide-registrations`.
+- Removed Registrations from the Admin menu and dashboard; `/admin/registrations` now redirects to `/admin/orders`. Kept registration data, member event history, event reporting, and server functions unchanged.
+- `git diff --check` passed. `pnpm build` could not run because Windows returned `EPERM` resolving the new worktree path before dependency installation. Push was rejected by automatic approval review due to private source transmission and deployment side effects. No remote branch or Production deployment was created.
+- Next: with explicit approval, push the branch and deploy the verified change; otherwise leave it local for review.
+
 ## 2026-10-20: Resend sender preparation and test-only cancellation check
 
 - Task `RESEND-TEST-CANCELLATION-20261020` on `codex/resend-test-readiness-20261020`. Created pending Resend sending domain `mail.cometx.ch`; Wix is authoritative DNS but its account is signed out. Required records and exact activation steps are in `docs/RESEND_SENDER_SETUP_2026-10-20.md`. No API key was created, no email was sent, and Vercel email mode remains disabled.
