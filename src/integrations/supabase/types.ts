@@ -382,31 +382,40 @@ export type Database = {
       partners: {
         Row: {
           active: boolean
+          collaboration_end_date: string | null
+          collaboration_start_date: string | null
           created_at: string
           description: string | null
           id: string
           logo_url: string | null
           name: string
+          sector: string | null
           tier: string | null
           website_url: string | null
         }
         Insert: {
           active?: boolean
+          collaboration_end_date?: string | null
+          collaboration_start_date?: string | null
           created_at?: string
           description?: string | null
           id?: string
           logo_url?: string | null
           name: string
+          sector?: string | null
           tier?: string | null
           website_url?: string | null
         }
         Update: {
           active?: boolean
+          collaboration_end_date?: string | null
+          collaboration_start_date?: string | null
           created_at?: string
           description?: string | null
           id?: string
           logo_url?: string | null
           name?: string
+          sector?: string | null
           tier?: string | null
           website_url?: string | null
         }

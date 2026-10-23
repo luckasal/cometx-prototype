@@ -976,11 +976,20 @@ const partnerSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(2).max(200),
   tier: z.string().max(100).nullable().default(null),
+  sector: z.string().max(120).nullable().default(null),
+  collaboration_start_date: z.string().date().nullable().default(null),
+  collaboration_end_date: z.string().date().nullable().default(null),
   website_url: z.string().url().nullable().default(null),
   logo_url: z.string().url().nullable().default(null),
   description: z.string().max(3000).nullable().default(null),
   active: z.boolean().default(true),
-});
+}).refine(
+  (partner) =>
+    !partner.collaboration_start_date ||
+    !partner.collaboration_end_date ||
+    partner.collaboration_start_date <= partner.collaboration_end_date,
+  { message: "The collaboration end date must be on or after the start date.", path: ["collaboration_end_date"] },
+);
 
 export const adminSavePartner = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => partnerSchema.parse(d))
