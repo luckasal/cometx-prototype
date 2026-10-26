@@ -1022,3 +1022,9 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - `pnpm build` passes with the partner follow-up change. Full TypeScript check still reports pre-existing errors in staff/admin/route/Stripe webhook code; it was not treated as a release gate for this change.
 - Next: commit/push the partner follow-up, explicitly redeploy its commit to Vercel Production (Preview lacks Supabase settings), verify the canonical URL and the admin forms, then mark the task done.
 
+## Final release verification
+
+- Follow-up commit `fe598cc` was pushed and redeployed to Vercel Production as `FvRwVjJojT13BY4hs5fGNEuxrUhq`; deployment status is Ready and `cometx-prototype.vercel.app` is assigned.
+- Live `events/co-ai-nevyresi?preview=false` displayed English title, descriptions, venue, ticket name, speaker role and speaker bio. Live admin creation forms showed CZ/EN fields for events and speakers, tickets, articles, structured content, plans, and partner descriptions. Workshop English copy is available in its expandable editor section.
+- No active partner descriptions or existing articles/structured content rows require backfill. The user can create and publish those records with CZ and EN copy from the live admin.
+
