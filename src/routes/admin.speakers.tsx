@@ -17,19 +17,23 @@ type SpeakerForm = {
   name: string;
   slug: string;
   job_title: string;
+  job_title_en: string;
   company: string;
   bio: string;
+  bio_en: string;
   photo_url: string;
 };
 
-type SpeakerRow = { id: string; name: string; slug: string; job_title: string | null; company: string | null; bio: string | null; photo_url: string | null };
+type SpeakerRow = { id: string; name: string; slug: string; job_title: string | null; job_title_en: string | null; company: string | null; bio: string | null; bio_en: string | null; photo_url: string | null };
 
 const empty: SpeakerForm = {
   name: "",
   slug: "",
   job_title: "",
+  job_title_en: "",
   company: "",
   bio: "",
+  bio_en: "",
   photo_url: "",
 };
 
@@ -56,8 +60,10 @@ function AdminSpeakersPage() {
           name: form.name.trim(),
           slug: form.slug.trim(),
           job_title: nullable(form.job_title),
+          job_title_en: nullable(form.job_title_en),
           company: nullable(form.company),
           bio: nullable(form.bio),
+          bio_en: nullable(form.bio_en),
           photo_url: nullable(form.photo_url),
           linkedin_url: null,
           website_url: null,
@@ -108,8 +114,10 @@ function AdminSpeakersPage() {
                           name: speaker.name,
                           slug: speaker.slug,
                           job_title: speaker.job_title ?? "",
+                          job_title_en: speaker.job_title_en ?? "",
                           company: speaker.company ?? "",
                           bio: speaker.bio ?? "",
+                          bio_en: speaker.bio_en ?? "",
                           photo_url: speaker.photo_url ?? "",
                         })
                       }
@@ -168,12 +176,15 @@ function AdminSpeakersPage() {
             <input className={inputClass} value={form.slug} onChange={(e) => set("slug", e.target.value)} />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Job title">
+            <Field label="Job title (CZ)">
               <input
                 className={inputClass}
                 value={form.job_title}
                 onChange={(e) => set("job_title", e.target.value)}
               />
+            </Field>
+            <Field label="Job title (EN)">
+              <input className={inputClass} value={form.job_title_en} onChange={(e) => set("job_title_en", e.target.value)} />
             </Field>
             <Field label="Company">
               <input
@@ -183,12 +194,15 @@ function AdminSpeakersPage() {
               />
             </Field>
           </div>
-          <Field label="Bio">
+          <Field label="Bio (CZ)">
             <textarea
               className={textareaClass}
               value={form.bio}
               onChange={(e) => set("bio", e.target.value)}
             />
+          </Field>
+          <Field label="Bio (EN)">
+            <textarea className={textareaClass} value={form.bio_en} onChange={(e) => set("bio_en", e.target.value)} />
           </Field>
           <Field label="Photo URL">
             <input

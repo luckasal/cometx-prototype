@@ -54,6 +54,9 @@ function ArticlePage() {
     );
 
   const { article, locked, lockReason } = data;
+  const title = !cs && article.titleEn?.trim() ? article.titleEn : article.title;
+  const excerpt = !cs && article.excerptEn?.trim() ? article.excerptEn : article.excerpt;
+  const body = !cs && article.bodyEn?.trim() ? article.bodyEn : article.body;
 
   return (
     <article>
@@ -61,8 +64,8 @@ function ArticlePage() {
         <Link to="/community" className="eyebrow text-muted-foreground hover:text-foreground">
           &larr; {cs ? "Komunita" : "Community"}
         </Link>
-        <h1 className="display-lg mt-6">{article.title}</h1>
-        {article.excerpt && <p className="mt-5 text-lg text-muted-foreground">{article.excerpt}</p>}
+        <h1 className="display-lg mt-6">{title}</h1>
+        {excerpt && <p className="mt-5 text-lg text-muted-foreground">{excerpt}</p>}
         <p className="mt-5 text-xs text-muted-foreground">
           {article.publishedAt
             ? new Date(article.publishedAt).toLocaleDateString(cs ? "cs-CZ" : "en-GB", {
@@ -76,12 +79,12 @@ function ArticlePage() {
 
       {article.heroImageUrl && (
         <div className="mx-auto mt-10 max-w-5xl px-5">
-          <img src={article.heroImageUrl} alt={article.title} className="w-full rounded-3xl object-cover" />
+          <img src={article.heroImageUrl} alt={title} className="w-full rounded-3xl object-cover" />
         </div>
       )}
 
       <div className="relative mx-auto max-w-3xl px-5 py-14">
-        <Prose text={article.body} />
+        <Prose text={body} />
 
         {locked && (
           <>

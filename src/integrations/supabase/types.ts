@@ -17,8 +17,10 @@ export type Database = {
       articles: {
         Row: {
           body: string | null
+          body_en: string | null
           created_at: string
           excerpt: string | null
+          excerpt_en: string | null
           hero_image_url: string | null
           id: string
           published_at: string | null
@@ -26,13 +28,16 @@ export type Database = {
           slug: string
           status: Database["public"]["Enums"]["article_status"]
           title: string
+          title_en: string | null
           updated_at: string
           visibility: Database["public"]["Enums"]["article_visibility"]
         }
         Insert: {
           body?: string | null
+          body_en?: string | null
           created_at?: string
           excerpt?: string | null
+          excerpt_en?: string | null
           hero_image_url?: string | null
           id?: string
           published_at?: string | null
@@ -40,13 +45,16 @@ export type Database = {
           slug: string
           status?: Database["public"]["Enums"]["article_status"]
           title: string
+          title_en?: string | null
           updated_at?: string
           visibility?: Database["public"]["Enums"]["article_visibility"]
         }
         Update: {
           body?: string | null
+          body_en?: string | null
           created_at?: string
           excerpt?: string | null
+          excerpt_en?: string | null
           hero_image_url?: string | null
           id?: string
           published_at?: string | null
@@ -54,6 +62,7 @@ export type Database = {
           slug?: string
           status?: Database["public"]["Enums"]["article_status"]
           title?: string
+          title_en?: string | null
           updated_at?: string
           visibility?: Database["public"]["Enums"]["article_visibility"]
         }
@@ -248,9 +257,9 @@ export type Database = {
         Relationships: []
       }
       content_entries: {
-        Row: { id: string; content_type: Database["public"]["Enums"]["content_type"]; title: string; slug: string; summary: string | null; body: string | null; hero_image_url: string | null; media_urls: Json; status: Database["public"]["Enums"]["article_status"]; published_at: string | null; created_at: string; updated_at: string }
-        Insert: { id?: string; content_type: Database["public"]["Enums"]["content_type"]; title: string; slug: string; summary?: string | null; body?: string | null; hero_image_url?: string | null; media_urls?: Json; status?: Database["public"]["Enums"]["article_status"]; published_at?: string | null; created_at?: string; updated_at?: string }
-        Update: { content_type?: Database["public"]["Enums"]["content_type"]; title?: string; slug?: string; summary?: string | null; body?: string | null; hero_image_url?: string | null; media_urls?: Json; status?: Database["public"]["Enums"]["article_status"]; published_at?: string | null; updated_at?: string }
+        Row: { id: string; content_type: Database["public"]["Enums"]["content_type"]; title: string; title_en: string | null; slug: string; summary: string | null; summary_en: string | null; body: string | null; body_en: string | null; hero_image_url: string | null; media_urls: Json; status: Database["public"]["Enums"]["article_status"]; published_at: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; content_type: Database["public"]["Enums"]["content_type"]; title: string; title_en?: string | null; slug: string; summary?: string | null; summary_en?: string | null; body?: string | null; body_en?: string | null; hero_image_url?: string | null; media_urls?: Json; status?: Database["public"]["Enums"]["article_status"]; published_at?: string | null; created_at?: string; updated_at?: string }
+        Update: { content_type?: Database["public"]["Enums"]["content_type"]; title?: string; title_en?: string | null; slug?: string; summary?: string | null; summary_en?: string | null; body?: string | null; body_en?: string | null; hero_image_url?: string | null; media_urls?: Json; status?: Database["public"]["Enums"]["article_status"]; published_at?: string | null; updated_at?: string }
         Relationships: []
       }
       payments: {
@@ -267,8 +276,10 @@ export type Database = {
           created_at: string
           currency: string
           description: string | null
+          description_en: string | null
           id: string
           name: string
+          name_en: string | null
           setup_fee: number
           slug: string
           sort_order: number
@@ -283,8 +294,10 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          description_en?: string | null
           id?: string
           name: string
+          name_en?: string | null
           setup_fee?: number
           slug: string
           sort_order?: number
@@ -299,8 +312,10 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          description_en?: string | null
           id?: string
           name?: string
+          name_en?: string | null
           setup_fee?: number
           slug?: string
           sort_order?: number
@@ -574,11 +589,13 @@ export type Database = {
       speakers: {
         Row: {
           bio: string | null
+          bio_en: string | null
           company: string | null
           created_at: string
           event_id: string | null
           id: string
           job_title: string | null
+          job_title_en: string | null
           linkedin_url: string | null
           name: string
           photo_url: string | null
@@ -587,11 +604,13 @@ export type Database = {
         }
         Insert: {
           bio?: string | null
+          bio_en?: string | null
           company?: string | null
           created_at?: string
           event_id?: string | null
           id?: string
           job_title?: string | null
+          job_title_en?: string | null
           linkedin_url?: string | null
           name: string
           photo_url?: string | null
@@ -600,11 +619,13 @@ export type Database = {
         }
         Update: {
           bio?: string | null
+          bio_en?: string | null
           company?: string | null
           created_at?: string
           event_id?: string | null
           id?: string
           job_title?: string | null
+          job_title_en?: string | null
           linkedin_url?: string | null
           name?: string
           photo_url?: string | null

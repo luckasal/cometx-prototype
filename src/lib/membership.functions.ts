@@ -5,8 +5,10 @@ import { z } from "zod";
 export type PlanSummary = {
   id: string;
   name: string;
+  nameEn: string | null;
   slug: string;
   description: string | null;
+  descriptionEn: string | null;
   annualPrice: number;
   currency: string;
   billingInterval: string | null;
@@ -21,7 +23,7 @@ export const getMembershipPlans = createServerFn({ method: "GET" }).handler(
     const { data } = await supabaseAdmin
       .from("membership_plans")
       .select(
-        "id,name,slug,description,annual_price,currency,billing_interval,setup_fee,sort_order,plan_entitlements(value,entitlements(key,name,description))",
+        "id,name,name_en,slug,description,description_en,annual_price,currency,billing_interval,setup_fee,sort_order,plan_entitlements(value,entitlements(key,name,description))",
       )
       .eq("active", true)
       .order("sort_order");
@@ -29,8 +31,10 @@ export const getMembershipPlans = createServerFn({ method: "GET" }).handler(
     return (data ?? []).map((plan) => ({
       id: plan.id,
       name: plan.name,
+      nameEn: plan.name_en,
       slug: plan.slug,
       description: plan.description,
+      descriptionEn: plan.description_en,
       annualPrice: Number(plan.annual_price),
       currency: plan.currency,
       billingInterval: plan.billing_interval,

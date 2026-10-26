@@ -4,15 +4,17 @@ import { z } from "zod";
 export type ArticleCard = {
   id: string;
   title: string;
+  titleEn: string | null;
   slug: string;
   excerpt: string | null;
+  excerptEn: string | null;
   heroImageUrl: string | null;
   publishedAt: string | null;
   visibility: string;
 };
 
 export type ArticleView = {
-  article: ArticleCard & { body: string | null };
+  article: ArticleCard & { body: string | null; bodyEn: string | null };
   locked: boolean;
   lockReason: string | null;
 };
@@ -25,7 +27,7 @@ export const listArticles = createServerFn({ method: "GET" }).handler(
       : getReadClient();
     const { data, error } = await supabaseAdmin
       .from("articles")
-      .select("id,title,slug,excerpt,hero_image_url,published_at,visibility")
+      .select("id,title,title_en,slug,excerpt,excerpt_en,hero_image_url,published_at,visibility")
       .eq("status", "published")
       .order("published_at", { ascending: false });
 
@@ -33,8 +35,10 @@ export const listArticles = createServerFn({ method: "GET" }).handler(
     return (data ?? []).map((a) => ({
       id: a.id,
       title: a.title,
+      titleEn: a.title_en,
       slug: a.slug,
       excerpt: a.excerpt,
+      excerptEn: a.excerpt_en,
       heroImageUrl: a.hero_image_url,
       publishedAt: a.published_at,
       visibility: a.visibility,
@@ -95,12 +99,15 @@ export const getArticle = createServerFn({ method: "GET" })
       article: {
         id: article.id,
         title: article.title,
+        titleEn: article.title_en,
         slug: article.slug,
         excerpt: article.excerpt,
+        excerptEn: article.excerpt_en,
         heroImageUrl: article.hero_image_url,
         publishedAt: article.published_at,
         visibility: article.visibility,
         body: locked ? article.excerpt : body,
+        bodyEn: locked ? article.excerpt_en : article.body_en,
       },
       locked,
       lockReason,

@@ -92,8 +92,8 @@ function MembershipPage() {
                 }
               >
                 {index === 1 && <p className="eyebrow mb-3 text-accent-foreground">{cs ? "Nejčastější volba" : "Most chosen"}</p>}
-                <h2 className="font-display text-3xl font-extrabold">{plan.name}</h2>
-                <p className="mt-3 text-sm text-muted-foreground">{plan.description}</p>
+                <h2 className="font-display text-3xl font-extrabold">{!cs && plan.nameEn?.trim() ? plan.nameEn : plan.name}</h2>
+                <p className="mt-3 text-sm text-muted-foreground">{!cs && plan.descriptionEn?.trim() ? plan.descriptionEn : plan.description}</p>
                 <p className="mt-6 font-display text-3xl font-extrabold">
                   {formatMoney(plan.annualPrice, plan.currency)}
                   <span className="text-sm font-normal text-muted-foreground"> {cs ? "/ rok" : "/ year"}</span>
@@ -124,7 +124,7 @@ function MembershipPage() {
                         setSelectedPlan(plan);
                       }}
                     >
-                      {checkoutMutation.isPending ? (cs ? "Připravujeme platbu…" : "Preparing payment...") : (cs ? `Zvolit ${plan.name}` : `Join ${plan.name}`)}
+                      {checkoutMutation.isPending ? (cs ? "Připravujeme platbu…" : "Preparing payment...") : (cs ? `Zvolit ${plan.name}` : `Join ${plan.nameEn?.trim() || plan.name}`)}
                     </Button>
                   ) : (
                     <Button

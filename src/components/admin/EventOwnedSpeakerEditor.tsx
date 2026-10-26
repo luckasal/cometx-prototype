@@ -11,8 +11,10 @@ type Speaker = {
   id: string;
   name: string;
   job_title: string | null;
+  job_title_en: string | null;
   company: string | null;
   bio: string | null;
+  bio_en: string | null;
   photo_url: string | null;
 };
 
@@ -27,16 +29,20 @@ export function EventOwnedSpeakerEditor({ eventId, speaker, onDeleted }: {
   const [draft, setDraft] = useState({
     name: speaker.name,
     job_title: speaker.job_title ?? "",
+    job_title_en: speaker.job_title_en ?? "",
     company: speaker.company ?? "",
     bio: speaker.bio ?? "",
+    bio_en: speaker.bio_en ?? "",
     photo_url: speaker.photo_url ?? "",
   });
   const saveMutation = useMutation({
     mutationFn: () => update({ data: {
       eventId, speakerId: speaker.id, name: draft.name.trim(),
       job_title: draft.job_title.trim() || null,
+      job_title_en: draft.job_title_en.trim() || null,
       company: draft.company.trim() || null,
       bio: draft.bio.trim() || null,
+      bio_en: draft.bio_en.trim() || null,
       photo_url: draft.photo_url.trim() || null,
     } }),
     onSuccess: () => {
@@ -61,12 +67,14 @@ export function EventOwnedSpeakerEditor({ eventId, speaker, onDeleted }: {
     <div className="mt-4 space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Name"><input className={inputClass} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></Field>
-        <Field label="Role or job title"><input className={inputClass} value={draft.job_title} onChange={(event) => setDraft((current) => ({ ...current, job_title: event.target.value }))} /></Field>
+        <Field label="Role or job title (CZ)"><input className={inputClass} value={draft.job_title} onChange={(event) => setDraft((current) => ({ ...current, job_title: event.target.value }))} /></Field>
+        <Field label="Role or job title (EN)"><input className={inputClass} value={draft.job_title_en} onChange={(event) => setDraft((current) => ({ ...current, job_title_en: event.target.value }))} /></Field>
         <Field label="Company"><input className={inputClass} value={draft.company} onChange={(event) => setDraft((current) => ({ ...current, company: event.target.value }))} /></Field>
       </div>
       {draft.photo_url && <div className="space-y-2"><img src={draft.photo_url} alt={`${draft.name} portrait`} className="h-32 w-32 rounded-xl object-cover" /><Button type="button" variant="outlineInk" size="sm" onClick={() => setDraft((current) => ({ ...current, photo_url: "" }))}>Remove portrait</Button></div>}
       <AdminImageUpload scope="speaker-photos" label="Choose a new portrait from your computer" saveLabel="save the speaker" onUploaded={(url) => setDraft((current) => ({ ...current, photo_url: url }))} />
-      <Field label="Short bio"><textarea className={textareaClass} value={draft.bio} onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))} /></Field>
+      <Field label="Short bio (CZ)"><textarea className={textareaClass} value={draft.bio} onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))} /></Field>
+      <Field label="Short bio (EN)"><textarea className={textareaClass} value={draft.bio_en} onChange={(event) => setDraft((current) => ({ ...current, bio_en: event.target.value }))} /></Field>
       <div className="flex gap-3">
         <Button type="button" disabled={saveMutation.isPending || draft.name.trim().length < 2} onClick={() => saveMutation.mutate()}>Save speaker</Button>
         <Button type="button" variant="outlineInk" disabled={deleteMutation.isPending} onClick={() => {

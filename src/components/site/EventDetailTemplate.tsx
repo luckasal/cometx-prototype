@@ -32,7 +32,11 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
   const [quantities,setQuantities]=useState<Record<string,number>>({});
   const memberPricesSent = useRef(new Set<string>());
   const localized = (cz: string | null, en: string | null) => !cs && en?.trim() ? en : cz;
-  const { speakers, partners } = data;
+  const { partners } = data;
+  const speakers = data.speakers.map((speaker) => ({ ...speaker,
+    jobTitle: localized(speaker.jobTitle, speaker.jobTitleEn),
+    bio: localized(speaker.bio, speaker.bioEn),
+  }));
   const event = {
     ...data.event,
     title: localized(data.event.title, data.event.titleEn) ?? data.event.title,

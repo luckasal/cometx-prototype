@@ -198,8 +198,8 @@ function Home() {
             <div className="grid gap-6 md:grid-cols-3">
               {data.plans.map((plan) => (
                 <div key={plan.slug} className="flex flex-col rounded-3xl border border-border/60 p-8">
-                  <h3 className="font-display text-2xl font-extrabold">{plan.name}</h3>
-                  <p className="mt-3 flex-1 text-sm text-muted-foreground">{plan.description}</p>
+                  <h3 className="font-display text-2xl font-extrabold">{!cs && plan.name_en?.trim() ? plan.name_en : plan.name}</h3>
+                  <p className="mt-3 flex-1 text-sm text-muted-foreground">{!cs && plan.description_en?.trim() ? plan.description_en : plan.description}</p>
                   <p className="mt-6 font-display text-xl font-bold">
                     {formatMoney(Number(plan.annual_price), plan.currency)}
                     <span className="text-sm font-normal text-muted-foreground"> {cs ? "/ rok" : "/ year"}</span>
@@ -237,7 +237,7 @@ function Home() {
                     {article.hero_image_url && (
                       <img
                         src={article.hero_image_url}
-                        alt={article.title}
+                        alt={!cs && article.title_en?.trim() ? article.title_en : article.title}
                         className="brand-photo size-full transition-transform duration-500 group-hover:scale-[1.03]"
                         loading="lazy"
                       />
@@ -246,10 +246,10 @@ function Home() {
                   <div className="p-6">
                     {article.visibility !== "public" && <StatusPill tone="muted">{cs ? "Pro členy" : "Members"}</StatusPill>}
                     <h3 className="mt-3 font-display text-lg font-bold leading-snug">
-                      {article.title}
+                      {!cs && article.title_en?.trim() ? article.title_en : article.title}
                     </h3>
                     <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                      {article.excerpt}
+                      {!cs && article.excerpt_en?.trim() ? article.excerpt_en : article.excerpt}
                     </p>
                   </div>
                 </Link>

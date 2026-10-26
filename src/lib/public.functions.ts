@@ -36,14 +36,14 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
       .maybeSingle(),
     supabaseAdmin
       .from("articles")
-      .select("title,slug,excerpt,hero_image_url,published_at,visibility")
+      .select("title,title_en,slug,excerpt,excerpt_en,hero_image_url,published_at,visibility")
       .eq("status", "published")
       .order("published_at", { ascending: false })
       .limit(3),
     supabaseAdmin.from("partners").select("name,tier,website_url").eq("active", true).order("name"),
     supabaseAdmin
       .from("membership_plans")
-      .select("name,slug,description,annual_price,currency")
+      .select("name,name_en,slug,description,description_en,annual_price,currency")
       .eq("active", true)
       .order("sort_order"),
   ]);

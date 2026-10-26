@@ -43,9 +43,12 @@ function EditArticlePage() {
         initial={{
           id: data.id,
           title: data.title,
+          title_en: data.title_en ?? "",
           slug: data.slug,
           excerpt: data.excerpt ?? "",
+          excerpt_en: data.excerpt_en ?? "",
           body: data.body ?? "",
+          body_en: data.body_en ?? "",
           hero_image_url: data.hero_image_url ?? "",
           status: data.status,
           visibility: data.visibility,

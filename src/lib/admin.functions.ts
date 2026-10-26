@@ -199,8 +199,10 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
         newSpeakers: z.array(z.object({
           name: z.string().trim().min(2).max(160),
           job_title: z.string().max(160).nullable().default(null),
+          job_title_en: z.string().max(160).nullable().default(null),
           company: z.string().max(160).nullable().default(null),
           bio: z.string().max(4000).nullable().default(null),
+          bio_en: z.string().max(4000).nullable().default(null),
           photo_url: z.string().url().nullable().default(null),
         })).max(30).default([]),
         tickets: z
@@ -305,7 +307,7 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
     // event link fails, remove the new rows so no detached speaker records remain.
     const newSpeakerIds: string[] = [];
     if (data.newSpeakers.length) {
-      const speakerRows = data.newSpeakers.map((draft: { name: string; job_title: string | null; company: string | null; bio: string | null; photo_url: string | null }) => {
+      const speakerRows = data.newSpeakers.map((draft: { name: string; job_title: string | null; job_title_en: string | null; company: string | null; bio: string | null; bio_en: string | null; photo_url: string | null }) => {
         const slugStem = draft.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "speaker";
         return { ...draft, event_id: saved.id, slug: `${slugStem.slice(0, 140)}-${crypto.randomUUID().slice(0, 8)}` };
       });
@@ -435,8 +437,10 @@ const speakerSchema = z.object({
     .max(160)
     .regex(/^[a-z0-9-]+$/),
   job_title: z.string().max(160).nullable().default(null),
+  job_title_en: z.string().max(160).nullable().default(null),
   company: z.string().max(160).nullable().default(null),
   bio: z.string().max(4000).nullable().default(null),
+  bio_en: z.string().max(4000).nullable().default(null),
   photo_url: z.string().url().nullable().default(null),
   linkedin_url: z.string().url().nullable().default(null),
   website_url: z.string().url().nullable().default(null),
@@ -444,7 +448,7 @@ const speakerSchema = z.object({
 
 export const adminListSpeakers = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ eventId: z.string().uuid().optional() }).parse(d ?? {}))
-  .handler(async ({ data: input }: { data: { eventId?: string } }) => {
+  .handler(async ({ data: input }: { data: { eventId?: string | undefined } }) => {
   const db = await admin("events.read");
   const query = db.from("speakers").select("*").order("name");
   const { data, error } = await (input.eventId ? query.or(`event_id.is.null,event_id.eq.${input.eventId}`) : query.is("event_id", null));
@@ -479,11 +483,13 @@ export const adminUpdateEventSpeaker = createServerFn({ method: "POST" })
     speakerId: z.string().uuid(),
     name: z.string().trim().min(2).max(160),
     job_title: z.string().max(160).nullable(),
+    job_title_en: z.string().max(160).nullable(),
     company: z.string().max(160).nullable(),
     bio: z.string().max(4000).nullable(),
+    bio_en: z.string().max(4000).nullable(),
     photo_url: z.string().url().nullable(),
   }).parse(d))
-  .handler(async ({ data: input }: { data: { eventId: string; speakerId: string; name: string; job_title: string | null; company: string | null; bio: string | null; photo_url: string | null } }) => {
+  .handler(async ({ data: input }: { data: { eventId: string; speakerId: string; name: string; job_title: string | null; job_title_en: string | null; company: string | null; bio: string | null; bio_en: string | null; photo_url: string | null } }) => {
     const db = await admin("events.write");
     const { eventId, speakerId, ...fields } = input;
     const { data, error } = await db.from("speakers").update(fields)
@@ -511,13 +517,16 @@ export const adminDeleteEventSpeaker = createServerFn({ method: "POST" })
 const articleSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().min(2).max(240),
+  title_en: z.string().max(240).nullable().default(null),
   slug: z
     .string()
     .min(2)
     .max(240)
     .regex(/^[a-z0-9-]+$/),
   excerpt: z.string().max(600).nullable().default(null),
+  excerpt_en: z.string().max(600).nullable().default(null),
   body: z.string().max(60000).nullable().default(null),
+  body_en: z.string().max(60000).nullable().default(null),
   hero_image_url: z.string().url().nullable().default(null),
   status: z.enum(["draft", "published"]),
   visibility: z.enum(["public", "registered", "members", "entitlement"]),
@@ -679,12 +688,14 @@ export const adminSavePlan = createServerFn({ method: "POST" })
       .object({
         id: z.string().uuid().optional(),
         name: z.string().min(2).max(120),
+        name_en: z.string().max(120).nullable().default(null),
         slug: z
           .string()
           .min(2)
           .max(120)
           .regex(/^[a-z0-9-]+$/),
         description: z.string().max(1000).nullable().default(null),
+        description_en: z.string().max(1000).nullable().default(null),
         annual_price: z.number().min(0),
         currency: z.string().length(3).default("CHF"),
         active: z.boolean().default(true),
@@ -1168,9 +1179,12 @@ const contentSchema = z.object({
   id: z.string().uuid().optional(),
   content_type: z.enum(["video", "gallery", "opinion", "open_position", "symposium"]),
   title: z.string().min(2).max(240),
+  title_en: z.string().max(240).nullable().default(null),
   slug: z.string().min(2).max(240).regex(/^[a-z0-9-]+$/),
   summary: z.string().max(600).nullable().default(null),
+  summary_en: z.string().max(600).nullable().default(null),
   body: z.string().max(60000).nullable().default(null),
+  body_en: z.string().max(60000).nullable().default(null),
   hero_image_url: z.string().url().nullable().default(null),
   media_urls: z.array(z.string().url()).default([]),
   status: z.enum(["draft", "published"]),

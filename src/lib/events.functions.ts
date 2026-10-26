@@ -65,9 +65,11 @@ export type EventDetail = {
     name: string;
     slug: string;
     jobTitle: string | null;
+    jobTitleEn: string | null;
     company: string | null;
     photoUrl: string | null;
     bio: string | null;
+    bioEn: string | null;
   }[];
   workshops: {
     id: string;
@@ -130,7 +132,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
     const [speakersRes, workshopsRes, partnersRes, ticketsRes, regsRes, attendeesRes] = await Promise.all([
       supabaseAdmin
         .from("event_speakers")
-        .select("sort_order,speakers(id,name,slug,job_title,company,photo_url,bio)")
+        .select("sort_order,speakers(id,name,slug,job_title,job_title_en,company,photo_url,bio,bio_en)")
         .eq("event_id", event.id)
         .order("sort_order"),
       supabaseAdmin
@@ -253,9 +255,11 @@ export const getEventDetail = createServerFn({ method: "GET" })
           name: s!.name,
           slug: s!.slug,
           jobTitle: s!.job_title,
+          jobTitleEn: s!.job_title_en,
           company: s!.company,
           photoUrl: s!.photo_url,
           bio: s!.bio,
+          bioEn: s!.bio_en,
         })),
       workshops: (workshopsRes.data ?? []).map((w) => ({
         id: w.id,

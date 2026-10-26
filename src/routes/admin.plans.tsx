@@ -18,8 +18,10 @@ export const Route = createFileRoute("/admin/plans")({
 type PlanForm = {
   id?: string;
   name: string;
+  name_en: string;
   slug: string;
   description: string;
+  description_en: string;
   annual_price: string;
   active: boolean;
   sort_order: string;
@@ -27,8 +29,10 @@ type PlanForm = {
 
 const empty: PlanForm = {
   name: "",
+  name_en: "",
   slug: "",
   description: "",
+  description_en: "",
   annual_price: "0",
   active: true,
   sort_order: "0",
@@ -53,8 +57,10 @@ function AdminPlansPage() {
         data: {
           ...(form.id ? { id: form.id } : {}),
           name: form.name.trim(),
+          name_en: form.name_en.trim() || null,
           slug: form.slug.trim(),
           description: form.description.trim() === "" ? null : form.description.trim(),
+          description_en: form.description_en.trim() || null,
           annual_price: Number(form.annual_price || 0),
           currency: "CHF",
           active: form.active,
@@ -123,8 +129,10 @@ function AdminPlansPage() {
                   setForm({
                     id: plan.id,
                     name: plan.name,
+                    name_en: plan.name_en ?? "",
                     slug: plan.slug,
                     description: plan.description ?? "",
+                    description_en: plan.description_en ?? "",
                     annual_price: String(Number(plan.annual_price)),
                     active: !!plan.active,
                     sort_order: String(plan.sort_order ?? 0),
@@ -149,19 +157,21 @@ function AdminPlansPage() {
           }}
         >
           <h2 className="font-display text-lg font-bold">{form.id ? "Edit plan" : "Add plan"}</h2>
-          <Field label="Name">
+          <Field label="Name (CZ)">
             <input className={inputClass} value={form.name} onChange={(e) => set("name", e.target.value)} />
           </Field>
+          <Field label="Name (EN)"><input className={inputClass} value={form.name_en} onChange={(e) => set("name_en", e.target.value)} /></Field>
           <Field label="Slug">
             <input className={inputClass} value={form.slug} onChange={(e) => set("slug", e.target.value)} />
           </Field>
-          <Field label="Description">
+          <Field label="Description (CZ)">
             <textarea
               className={textareaClass}
               value={form.description}
               onChange={(e) => set("description", e.target.value)}
             />
           </Field>
+          <Field label="Description (EN)"><textarea className={textareaClass} value={form.description_en} onChange={(e) => set("description_en", e.target.value)} /></Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Annual price (CHF)">
               <input

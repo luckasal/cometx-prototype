@@ -10,9 +10,12 @@ import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 export type ArticleFormValues = {
   id?: string;
   title: string;
+  title_en: string;
   slug: string;
   excerpt: string;
+  excerpt_en: string;
   body: string;
+  body_en: string;
   hero_image_url: string;
   status: string;
   visibility: string;
@@ -21,9 +24,12 @@ export type ArticleFormValues = {
 
 export const emptyArticle: ArticleFormValues = {
   title: "",
+  title_en: "",
   slug: "",
   excerpt: "",
+  excerpt_en: "",
   body: "",
+  body_en: "",
   hero_image_url: "",
   status: "draft",
   visibility: "public",
@@ -50,9 +56,12 @@ export function ArticleForm({ initial }: { initial: ArticleFormValues }) {
         data: {
           ...(form.id ? { id: form.id } : {}),
           title: form.title.trim(),
+          title_en: nullable(form.title_en),
           slug: form.slug.trim(),
           excerpt: nullable(form.excerpt),
+          excerpt_en: nullable(form.excerpt_en),
           body: nullable(form.body),
+          body_en: nullable(form.body_en),
           hero_image_url: nullable(form.hero_image_url),
           status: form.status,
           visibility: form.visibility,
@@ -87,7 +96,7 @@ export function ArticleForm({ initial }: { initial: ArticleFormValues }) {
       }}
     >
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Title">
+        <Field label="Title (CZ)">
           <input
             className={inputClass}
             value={form.title}
@@ -106,6 +115,9 @@ export function ArticleForm({ initial }: { initial: ArticleFormValues }) {
             }}
           />
         </Field>
+        <Field label="Title (EN)">
+          <input className={inputClass} value={form.title_en} onChange={(e) => set("title_en", e.target.value)} />
+        </Field>
         <Field label="Slug">
           <input
             className={inputClass}
@@ -114,20 +126,26 @@ export function ArticleForm({ initial }: { initial: ArticleFormValues }) {
           />
         </Field>
       </div>
-      <Field label="Excerpt">
+      <Field label="Excerpt (CZ)">
         <input
           className={inputClass}
           value={form.excerpt}
           onChange={(e) => set("excerpt", e.target.value)}
         />
       </Field>
-      <Field label="Body">
+      <Field label="Excerpt (EN)">
+        <input className={inputClass} value={form.excerpt_en} onChange={(e) => set("excerpt_en", e.target.value)} />
+      </Field>
+      <Field label="Body (CZ)">
         <textarea
           className={textareaClass}
           rows={14}
           value={form.body}
           onChange={(e) => set("body", e.target.value)}
         />
+      </Field>
+      <Field label="Body (EN)">
+        <textarea className={textareaClass} rows={14} value={form.body_en} onChange={(e) => set("body_en", e.target.value)} />
       </Field>
       <Field label="Hero image URL">
         <input

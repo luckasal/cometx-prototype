@@ -55,6 +55,7 @@ function EventPolicies({ policies, cs, accepted, onAccept }: {
 function CartPage() {
   const { language } = useLanguage();
   const cs = language === "cs";
+  const localized = (cz: string | null, en: string | null) => !cs && en?.trim() ? en : cz;
   const { user } = useAuth();
   const fetchEvent = useServerFn(getEventDetail);
   const fetchAccount = useServerFn(getAccountOverview);
@@ -377,10 +378,10 @@ function CartPage() {
                   <div className="col-span-2 flex min-w-0 items-center gap-3 pr-9 xl:col-span-1 xl:pr-0">
                     {detail.event.heroImageUrl && <img src={detail.event.heroImageUrl} alt="" className="size-14 shrink-0 rounded-xl object-cover" />}
                     <div className="min-w-0">
-                      <h2 className="truncate text-sm font-semibold"><Link to="/events/$slug" params={{ slug }} className="hover:text-accent">{detail.event.title}</Link></h2>
+                      <h2 className="truncate text-sm font-semibold"><Link to="/events/$slug" params={{ slug }} className="hover:text-accent">{localized(detail.event.title, detail.event.titleEn)}</Link></h2>
                       <p className="mt-0.5 text-xs text-muted-foreground">{eventSchedule(detail.event)}</p>
-                      {detail.event.venue && <p className="mt-0.5 text-xs text-muted-foreground">{detail.event.venue}</p>}
-                      <p className="mt-0.5 truncate text-xs font-medium">{ticket?.name ?? (cs ? "Vstupenka již není dostupná" : "Ticket no longer available")}</p>
+                      {detail.event.venue && <p className="mt-0.5 text-xs text-muted-foreground">{localized(detail.event.venue, detail.event.venueEn)}</p>}
+                      <p className="mt-0.5 truncate text-xs font-medium">{ticket ? localized(ticket.name, ticket.nameEn) : (cs ? "Vstupenka již není dostupná" : "Ticket no longer available")}</p>
                       {ticket && availability && availability !== "available" && <p className="mt-1 text-xs text-destructive">{ticketAvailabilityMessage(availability, ticket.saleStart, cs)}</p>}
                     </div>
                   </div>
@@ -407,7 +408,7 @@ function CartPage() {
                   <button type="button" aria-label={cs ? "Odebrat vstupenku" : "Remove ticket"} title={cs ? "Odebrat vstupenku" : "Remove ticket"} className="absolute right-2 top-2 grid size-7 place-items-center rounded-full text-muted-foreground/65 transition-colors hover:bg-background hover:text-foreground xl:static" onClick={() => changeQuantity(line, 0)}><Trash2 className="size-3.5" /></button>
                   <div className="col-span-full w-full space-y-4 py-3">
                     {Array.from({ length: line.quantity }, (_, index) => <fieldset key={index} className="grid gap-3 sm:grid-cols-2">
-                      <legend className="mb-2 text-sm font-semibold">{ticket?.name} · {cs ? "Účastník" : "Attendee"} {index + 1}</legend>
+                      <legend className="mb-2 text-sm font-semibold">{ticket && localized(ticket.name, ticket.nameEn)} · {cs ? "Účastník" : "Attendee"} {index + 1}</legend>
                       <label className="text-sm">{cs ? "Jméno" : "First name"} *<Input required maxLength={120} autoComplete="off" className="mt-1 rounded-xl" value={line.attendees?.[index]?.firstName ?? (totalTickets === 1 ? buyerFirstName : "")} onChange={(event) => updateAttendee(line, index, "firstName", event.target.value)} /></label>
                       <label className="text-sm">{cs ? "Příjmení" : "Last name"} *<Input required maxLength={120} autoComplete="off" className="mt-1 rounded-xl" value={line.attendees?.[index]?.lastName ?? (totalTickets === 1 ? buyerLastName : "")} onChange={(event) => updateAttendee(line, index, "lastName", event.target.value)} /></label>
                       {index === 0 && eventLines[0]?.ticketId === line.ticketId && <button type="button" className="justify-self-start text-sm text-accent underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2" aria-pressed={attendeeMatchesBuyer(line.attendees?.[index], buyer)} disabled={!buyerFirstName.trim() || !buyerLastName.trim()} onClick={() => attendeeMatchesBuyer(line.attendees?.[index], buyer) ? clearBuyerNameForAttendee(line, index) : copyBuyerNameToTicketAttendee(line, index)}>{attendeeMatchesBuyer(line.attendees?.[index], buyer) ? (cs ? "Odebrat jméno kupujícího" : "Remove buyer’s name") : (cs ? "Použít jméno kupujícího pro tuto vstupenku" : "Use buyer’s name for this ticket")}</button>}

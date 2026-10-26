@@ -136,7 +136,7 @@ const ticketBenefitKeys: Record<string, { discount?: string; free?: string }> = 
 
 type EventBenefitPlan = PreviewPlan;
 
-type EventSpeakerOption = { id: string; name: string; event_id: string | null; job_title: string | null; company: string | null; bio: string | null; photo_url: string | null };
+type EventSpeakerOption = { id: string; name: string; event_id: string | null; job_title: string | null; job_title_en: string | null; company: string | null; bio: string | null; bio_en: string | null; photo_url: string | null };
 
 export function EventForm({
   initialEvent,
@@ -158,7 +158,7 @@ export function EventForm({
   const [event, setEvent] = useState<EventFormValues>(initialEvent);
   const [tickets, setTickets] = useState<TicketDraft[]>(initialTickets);
   const [speakerIds, setSpeakerIds] = useState<string[]>(initialSpeakerIds);
-  const [speakerDraft, setSpeakerDraft] = useState({ name: "", job_title: "", company: "", bio: "", photo_url: "" });
+  const [speakerDraft, setSpeakerDraft] = useState({ name: "", job_title: "", job_title_en: "", company: "", bio: "", bio_en: "", photo_url: "" });
   const [newSpeakers, setNewSpeakers] = useState<typeof speakerDraft[]>([]);
   const [workshops, setWorkshops] = useState<WorkshopDraft[]>(initialWorkshops);
   const openingTicket = earliestTicketSaleStart(tickets.filter((ticket) => ticket.name.trim()));
@@ -217,8 +217,10 @@ export function EventForm({
           newSpeakers: newSpeakers.map((draft) => ({
             name: draft.name.trim(),
             job_title: nullable(draft.job_title),
+            job_title_en: nullable(draft.job_title_en),
             company: nullable(draft.company),
             bio: nullable(draft.bio),
+            bio_en: nullable(draft.bio_en),
             photo_url: nullable(draft.photo_url),
           })),
           tickets: tickets
@@ -508,15 +510,17 @@ export function EventForm({
           <h3 className="font-semibold">Add a speaker for this event</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Name"><input className={inputClass} value={speakerDraft.name} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, name: e.target.value }))} /></Field>
-            <Field label="Role or job title"><input className={inputClass} value={speakerDraft.job_title} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, job_title: e.target.value }))} /></Field>
+            <Field label="Role or job title (CZ)"><input className={inputClass} value={speakerDraft.job_title} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, job_title: e.target.value }))} /></Field>
+            <Field label="Role or job title (EN)"><input className={inputClass} value={speakerDraft.job_title_en} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, job_title_en: e.target.value }))} /></Field>
             <Field label="Company"><input className={inputClass} value={speakerDraft.company} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, company: e.target.value }))} /></Field>
           </div>
           {speakerDraft.photo_url && <div className="space-y-2"><img src={speakerDraft.photo_url} alt="New speaker portrait" className="h-32 w-32 rounded-xl object-cover" /><Button type="button" variant="outlineInk" size="sm" onClick={() => setSpeakerDraft((previous) => ({ ...previous, photo_url: "" }))}>Remove portrait</Button></div>}
           <AdminImageUpload scope="speaker-photos" label="Upload speaker portrait from your computer" onUploaded={(url) => setSpeakerDraft((previous) => ({ ...previous, photo_url: url }))} />
-          <Field label="Short bio"><textarea className={textareaClass} value={speakerDraft.bio} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, bio: e.target.value }))} /></Field>
+          <Field label="Short bio (CZ)"><textarea className={textareaClass} value={speakerDraft.bio} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, bio: e.target.value }))} /></Field>
+          <Field label="Short bio (EN)"><textarea className={textareaClass} value={speakerDraft.bio_en} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, bio_en: e.target.value }))} /></Field>
           <Button type="button" variant="outlineInk" disabled={speakerDraft.name.trim().length < 2} onClick={() => {
             setNewSpeakers((previous) => [...previous, { ...speakerDraft }]);
-            setSpeakerDraft({ name: "", job_title: "", company: "", bio: "", photo_url: "" });
+            setSpeakerDraft({ name: "", job_title: "", job_title_en: "", company: "", bio: "", bio_en: "", photo_url: "" });
           }}>
             Add speaker to event draft
           </Button>

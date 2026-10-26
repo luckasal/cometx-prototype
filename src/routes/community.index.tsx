@@ -66,7 +66,7 @@ function CommunityPage() {
                   {article.heroImageUrl && (
                     <img
                       src={article.heroImageUrl}
-                      alt={article.title}
+                      alt={!cs && article.titleEn?.trim() ? article.titleEn : article.title}
                       className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                       loading="lazy"
                     />
@@ -90,9 +90,9 @@ function CommunityPage() {
                     )}
                   </div>
                   <h2 className="mt-3 font-display text-xl font-bold leading-snug">
-                    {article.title}
+                    {!cs && article.titleEn?.trim() ? article.titleEn : article.title}
                   </h2>
-                  <p className="mt-2 text-sm text-muted-foreground">{article.excerpt}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{!cs && article.excerptEn?.trim() ? article.excerptEn : article.excerpt}</p>
                 </div>
               </Link>
             ))}
