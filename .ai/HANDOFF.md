@@ -1037,10 +1037,11 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - This replacement commit is local and not deployed. The preceding `b8aea0e` catalog-recovery commit had already been pushed under the earlier request; no further push or manual deployment was done after the user narrowed scope.
 
 
-## 2026-10-26: event ticket and membership entitlement admin clarity (release pending)
+## 2026-10-26: event ticket and membership entitlement admin clarity (Production)
 
 - Task `BOSS-P0-EVENT-TICKET-ENTITLEMENTS-01`; branch `codex/event-ticket-membership-entitlements-20261026`.
 - Each event ticket now previews the effective price and purchase eligibility for every active plan using the shared checkout pricing helper. Required benefits identify the eligible member plans and surface a warning when none can purchase. Workshop credits are shown as optional one-time checkout choices. The event editor links directly to the central membership benefit catalog.
 - Updated `docs/EVENT_EDITOR_WORKFLOW.md`. No server pricing, checkout, saved event/plan data or schema was changed.
-- `pnpm --ignore-workspace build` passes. `git -c core.whitespace=cr-at-eol diff --check` passes. Targeted ESLint reports existing Prettier-formatting violations throughout both legacy admin component files; these are pre-existing style differences, not functional or build errors. Tests were not run.
-- Deployment and live browser verification are pending.
+- `pnpm --ignore-workspace build` passes. `git -c core.whitespace=cr-at-eol diff --check` passes. Targeted ESLint reports extensive Prettier-formatting violations in the legacy admin components (433); no broad reformat was applied. Tests were not run.
+- Promoted the ready Preview to Vercel Production as deployment `E48a54rbN`; it is Ready and assigned to `cometx-prototype.vercel.app`.
+- Live `/admin/events/new` shows the CZ/EN create form and the benefit-catalog link. Live “Co AI nevyřeší” Tickets editor shows plan prices matching checkout rules (CHF 315 for all three active plans on the saved ticket) and optional workshop credits of CHF 100 / CHF 300. Read-only verification only; no event or plan data was saved.
