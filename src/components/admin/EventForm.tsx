@@ -19,6 +19,7 @@ import { formatMoney, isRegistrationOpen } from "@/lib/pricing";
 import { ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
 import { earliestTicketSaleStart, eventScheduleIssue } from "@/lib/event-admin";
 import { previewTicketByPlan, type PreviewPlan } from "@/lib/event-ticket-preview";
+import { benefitKind } from "@/lib/membership-benefit-catalog";
 
 export type EventFormValues = {
   id?: string;
@@ -135,6 +136,7 @@ const ticketBenefitKeys: Record<string, { discount?: string; free?: string }> = 
 };
 
 type EventBenefitPlan = PreviewPlan;
+type EntitlementOption = { key: string; name: string };
 
 type EventSpeakerOption = { id: string; name: string; event_id: string | null; job_title: string | null; job_title_en: string | null; company: string | null; bio: string | null; bio_en: string | null; photo_url: string | null };
 
@@ -175,9 +177,9 @@ export function EventForm({
     queryKey: ["admin", "speakers", event.id ?? "new"],
     queryFn: async () => (await fetchSpeakers({ data: event.id ? { eventId: event.id } : {} })) as EventSpeakerOption[],
   });
-  const { data: entitlements = [] } = useQuery({
+  const { data: entitlements = [] } = useQuery<EntitlementOption[]>({
     queryKey: ["admin", "entitlements"],
-    queryFn: () => fetchEntitlements(),
+    queryFn: async () => (await fetchEntitlements()) as EntitlementOption[],
   });
   const { data: benefitMatrix = [], error: benefitsError, isLoading: benefitsLoading } = useQuery<EventBenefitPlan[]>({
     queryKey: ["admin", "event-benefit-matrix"],
@@ -560,13 +562,16 @@ export function EventForm({
             No ticket types yet. Add one to let attendees buy tickets and register.
           </p>
         )}
-        <p className="text-sm text-muted-foreground">Set the public price for each ticket. Existing membership benefits apply automatically. Remove a saved ticket only if you intend to archive it on save.</p>
-        <p className="text-sm text-muted-foreground">Membership plans determine each member’s price and access. Review the result below; edit plan benefits in <a href="/admin/plans#membership-benefit-catalog" className="font-medium underline underline-offset-4">Memberships → Membership benefits</a>.</p>
+        <p className="text-sm text-muted-foreground">Set each ticket’s public price here. Plan benefits apply automatically. To change which plans include a benefit, use <a href="/admin/plans#membership-benefit-catalog" className="font-medium underline underline-offset-4">Membership benefits</a>. Removing a saved ticket archives it on save.</p>
         {tickets.map((ticket, index) => {
           const memberPricing = previewTicketByPlan(ticket, event.event_type, benefitMatrix);
           const hasValidPublicPrice = ticket.base_price.trim() !== "" && Number.isFinite(Number(ticket.base_price)) && Number(ticket.base_price) >= 0;
-          const requiredBenefit = entitlements.find((entitlement: { key: string; name: string }) => entitlement.key === ticket.required_entitlement);
-          const noEligiblePlan = !!ticket.required_entitlement && memberPricing.length > 0 && memberPricing.every((plan) => !plan.eligible);
+          const requiredBenefit = entitlements.find((entitlement) => entitlement.key === ticket.required_entitlement);
+          const eligiblePlans = benefitMatrix.filter((plan) => plan.plan_entitlements.some((entry) => entry.entitlements?.key === ticket.required_entitlement)).map((plan) => plan.name);
+          const noEligiblePlan = !!ticket.required_entitlement && !benefitsLoading && !benefitsError && eligiblePlans.length === 0;
+          const accessBenefits = entitlements.filter((entitlement) => benefitKind(entitlement.key) === "access");
+          const pricingBenefits = entitlements.filter((entitlement) => benefitKind(entitlement.key) !== "access");
+          const showAdvancedPricing = event.event_type !== "workshop" || !!(ticket.member_price || ticket.discount_entitlement || ticket.free_entitlement);
           return (
           <div key={ticket.id ?? index} className="space-y-4 rounded-xl border border-border bg-background p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -653,23 +658,25 @@ export function EventForm({
               </div>
             </details>
             <details className="rounded-xl border border-border bg-card p-4">
-              <summary className="cursor-pointer font-semibold">Membership options {ticket.required_entitlement || ticket.member_price || ticket.discount_entitlement || ticket.free_entitlement ? "· customized" : "· automatic benefits"}</summary>
-              <p className="mt-3 text-sm text-muted-foreground">Normally leave these at their defaults. Active members receive the benefits assigned to their plan automatically.</p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Field label="Who can buy?" hint="A members-only ticket can still appear on a public event page.">
+              <summary className="cursor-pointer font-semibold">Access and member pricing · {ticket.required_entitlement ? `requires ${requiredBenefit?.name ?? ticket.required_entitlement}` : "anyone can buy"}{ticket.member_price || ticket.discount_entitlement || ticket.free_entitlement ? " · custom price rule" : " · automatic plan benefits"}</summary>
+              <div className="mt-4 space-y-2">
+                <h4 className="text-sm font-semibold">1. Who can buy?</h4>
+                <p className="text-xs text-muted-foreground">Leave this public unless the ticket itself requires membership. A public event may still have a members-only ticket.</p>
+              <Field label="Ticket access">
                 <select className={inputClass} value={ticket.required_entitlement} onChange={e=>setTicket(index,"required_entitlement",e.target.value)}>
-                  <option value="">Anyone (public ticket)</option>
-                  {entitlements.map((ent: { key: string; name: string }) => <option key={ent.key} value={ent.key}>Only members with: {ent.name}</option>)}
+                  <option value="">Anyone — no membership required</option>
+                  {accessBenefits.length > 0 && <optgroup label="Member access benefits">{accessBenefits.map((ent) => <option key={ent.key} value={ent.key}>{ent.name}</option>)}</optgroup>}
+                  {pricingBenefits.length > 0 && <optgroup label="Price and ticket benefits (advanced)">{pricingBenefits.map((ent) => <option key={ent.key} value={ent.key}>{ent.name}</option>)}</optgroup>}
+                  {ticket.required_entitlement && !requiredBenefit && <option value={ticket.required_entitlement}>{ticket.required_entitlement} (saved benefit)</option>}
                 </select>
               </Field>
-              <Field label="Optional fixed member price" hint={event.event_type === "workshop" ? "Fixed member prices do not apply to workshops. Workshop credit is an optional checkout choice." : "For eligible plans, the lower of this price and the automatic plan price applies. Leave blank to use plan benefits."}><input type="number" min="0" step="0.01" className={inputClass} value={ticket.member_price} onChange={e=>setTicket(index,"member_price",e.target.value)} /></Field>
               </div>
-              {ticket.required_entitlement && !benefitsError && !benefitsLoading && <p className="text-xs text-muted-foreground">Required benefit: {requiredBenefit?.name ?? ticket.required_entitlement}. Only active plans that include it can buy this ticket.</p>}
+              {ticket.required_entitlement && !benefitsError && !benefitsLoading && eligiblePlans.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Eligible active plans: {eligiblePlans.join(", ")}.</p>}
               {noEligiblePlan && <p role="alert" className="text-sm text-destructive">No active membership plan includes this required benefit. Members currently cannot buy this ticket. Assign the benefit to an active plan or choose a different requirement.</p>}
               <section className="mt-4 rounded-lg border border-border/60 bg-background p-4" aria-label={`Membership price preview for ${ticket.name || `ticket ${index + 1}`}`}>
                 <div className="mb-3">
-                  <h4 className="text-sm font-semibold">Member price preview</h4>
-                  <p className="mt-1 text-xs text-muted-foreground">Public price: {hasValidPublicPrice ? formatMoney(Number(ticket.base_price), ticket.currency) : "Not set"}. This preview follows the current plan rules; checkout recalculates eligibility and price on the server.</p>
+                  <h4 className="text-sm font-semibold">2. What members pay</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">Public price: {hasValidPublicPrice ? formatMoney(Number(ticket.base_price), ticket.currency) : "Not set"}. Active plan benefits apply automatically; checkout verifies the final price.</p>
                 </div>
                 {benefitsLoading && <p className="text-sm text-muted-foreground">Loading active plan benefits…</p>}
                 {benefitsError && <p role="alert" className="text-sm text-destructive">Membership price preview could not load. Refresh the page before publishing ticket restrictions.</p>}
@@ -689,32 +696,38 @@ export function EventForm({
                           : <span className="whitespace-nowrap text-xs font-semibold text-destructive">Cannot buy</span>}
                       </div>
                       {price
-                        ? <p className="mt-1 text-xs text-muted-foreground">{price.reason === "Standard ticket" ? "No membership price benefit applies." : price.reason}</p>
+                        ? <p className="mt-1 text-xs text-muted-foreground">{price.reason === "Standard ticket" ? "Same as public price" : price.reason}</p>
                         : <p className="mt-1 text-xs text-muted-foreground">This plan does not include {requiredBenefit?.name ?? "the required benefit"}.</p>}
-                      {optionalCreditPrice !== null && preview.optionalWorkshopCredit !== null && <p className="mt-2 text-xs text-accent">Optional one-time credit: {formatMoney(preview.optionalWorkshopCredit, ticket.currency)} · could reduce this to {formatMoney(optionalCreditPrice, ticket.currency)} if unused.</p>}
+                      {optionalCreditPrice !== null && preview.optionalWorkshopCredit !== null && <p className="mt-2 text-xs text-accent">Optional credit {formatMoney(preview.optionalWorkshopCredit, ticket.currency)} → {formatMoney(optionalCreditPrice, ticket.currency)} if unused</p>}
                     </div>;
                   })}
                 </div>}
               </section>
-              <details className="mt-4 rounded-lg border border-border p-3">
-                <summary className="cursor-pointer text-sm font-medium">Advanced benefit override{ticket.discount_entitlement || ticket.free_entitlement ? " · configured" : ""}</summary>
-                <p className="mt-2 text-xs text-muted-foreground">Use only when this ticket needs a specific discount or free-entry rule. Workshop credit is handled automatically.</p>
+              {showAdvancedPricing && <details className="mt-4 rounded-lg border border-border p-3">
+                <summary className="cursor-pointer text-sm font-medium">Advanced ticket price rules{ticket.member_price || ticket.discount_entitlement || ticket.free_entitlement ? " · configured" : ""}</summary>
+                <p className="mt-2 text-xs text-muted-foreground">Usually leave these blank. Plan benefits already apply automatically.</p>
                 <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                  <Field label="Fixed member price" hint={event.event_type === "workshop" ? "Saved value only; fixed member prices do not apply to workshops. Clear it if no longer needed." : "Optional. The lower of this price and the automatic plan price applies."}><input type="number" min="0" step="0.01" className={inputClass} value={ticket.member_price} onChange={e=>setTicket(index,"member_price",e.target.value)} /></Field>
+                  {event.event_type === "workshop" && <p className="self-end text-xs text-muted-foreground">Workshop credit is an optional checkout choice.</p>}
+                  {(ticketBenefitKeys[event.event_type]?.discount || ticket.discount_entitlement) &&
                   <Field label="Extra percentage discount benefit">
                     <select className={inputClass} value={ticket.discount_entitlement} onChange={e=>setTicket(index,"discount_entitlement",e.target.value)}>
                       <option value="">No extra discount</option>
                       {entitlements.filter((ent: { key: string }) => ent.key === ticketBenefitKeys[event.event_type]?.discount || ent.key === ticket.discount_entitlement).map((ent: { key: string; name: string }) => <option key={ent.key} value={ent.key}>{ent.name}</option>)}
                     </select>
                   </Field>
+                  }
+                  {(ticketBenefitKeys[event.event_type]?.free || ticket.free_entitlement) &&
                   <Field label="Free-ticket benefit">
                     <select className={inputClass} value={ticket.free_entitlement} onChange={e=>setTicket(index,"free_entitlement",e.target.value)}>
                       <option value="">No extra free-ticket rule</option>
                       {entitlements.filter((ent: { key: string }) => ent.key === ticketBenefitKeys[event.event_type]?.free || ent.key === ticket.free_entitlement).map((ent: { key: string; name: string }) => <option key={ent.key} value={ent.key}>{ent.name}</option>)}
                     </select>
                   </Field>
+                  }
                 </div>
                 {ticket.discount_entitlement && ticket.free_entitlement && <p className="mt-2 text-xs text-accent">Both are set. For members with both benefits, the free ticket takes priority.</p>}
-              </details>
+              </details>}
             </details>
           </div>
           );
