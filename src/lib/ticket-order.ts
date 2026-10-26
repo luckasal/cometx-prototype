@@ -9,6 +9,64 @@ export type TicketOrderLine = {
 
 export type MemberDiscountScope = "one" | "all";
 
+const supportedCurrencies = new Set(["CHF", "EUR", "USD", "GBP", "CZK"]);
+
+/** Build a Stripe inline-price line from the server-calculated order snapshot. */
+export function createTicketPriceDataLineItem(input: {
+  ticketName: string;
+  unitAmountMinor: number;
+  currency: string;
+  quantity: number;
+}) {
+  const ticketName = input.ticketName.trim();
+  const currency = input.currency.toUpperCase();
+  if (!ticketName) throw new Error("Ticket name is unavailable.");
+  if (!Number.isSafeInteger(input.unitAmountMinor) || input.unitAmountMinor < 1) {
+    throw new Error("Invalid ticket price.");
+  }
+  if (!Number.isSafeInteger(input.quantity) || input.quantity < 1 || input.quantity > 10) {
+    throw new Error("Invalid ticket quantity.");
+  }
+  if (!supportedCurrencies.has(currency)) throw new Error("Unsupported ticket currency.");
+  return {
+    price_data: {
+      currency: currency.toLowerCase(),
+      unit_amount: input.unitAmountMinor,
+      product_data: { name: ticketName },
+    },
+    quantity: input.quantity,
+  };
+}
+
+/** Convert Supabase order-item snapshots into Checkout lines and reconcile the saved total. */
+export function createTicketCheckoutLineItems(
+  items: Array<{ ticket_name: string; unit_amount_minor: number | string; currency: string; quantity: number }>,
+  expectedAmountMinor: number,
+  expectedCurrency: string,
+) {
+  const currency = expectedCurrency.toUpperCase();
+  if (!supportedCurrencies.has(currency)) throw new Error("Unsupported ticket currency.");
+  if (!Number.isSafeInteger(expectedAmountMinor) || expectedAmountMinor < 0 || !items.length) {
+    throw new Error("Order price details are invalid.");
+  }
+  const savedLines = items.map((item) => {
+    const unitAmountMinor = Number(item.unit_amount_minor);
+    if (!Number.isSafeInteger(unitAmountMinor) || unitAmountMinor < 0
+      || item.currency.toUpperCase() !== currency
+      || !Number.isSafeInteger(item.quantity) || item.quantity < 1 || item.quantity > 10) {
+      throw new Error("Order price details are invalid.");
+    }
+    return { ticketName: item.ticket_name, unitAmountMinor, quantity: item.quantity };
+  });
+  const savedTotal = savedLines.reduce((sum, line) => sum + line.unitAmountMinor * line.quantity, 0);
+  if (!Number.isSafeInteger(savedTotal) || savedTotal !== expectedAmountMinor) {
+    throw new Error("Order total does not match its saved ticket prices.");
+  }
+  return savedLines.filter((line) => line.unitAmountMinor > 0).map((line) => createTicketPriceDataLineItem({
+    ...line, currency,
+  }));
+}
+
 /** Integer minor units for supported two-decimal ticket currencies. No business-rule default. */
 export function quoteTicketOrder(
   lines: TicketOrderLine[],
@@ -20,7 +78,6 @@ export function quoteTicketOrder(
   let total = 0;
   let regularTotal = 0;
   const currency = lines[0]!.price.currency.toUpperCase();
-  const supportedCurrencies = new Set(["CHF", "EUR", "USD", "GBP", "CZK"]);
   for (const line of lines) {
     if (!line.ticketId || ids.has(line.ticketId)) throw new Error("Duplicate or missing ticket type.");
     ids.add(line.ticketId);

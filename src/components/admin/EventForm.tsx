@@ -246,9 +246,8 @@ export function EventForm({
           })),
         } as never,
       }),
-    onSuccess: (saved: { id: string; slug: string; paymentSyncReady: boolean; ticketIds: string[]; newSpeakerIds: string[] }, publishState: EventFormValues["publish_state"]) => {
+    onSuccess: (saved: { id: string; slug: string; ticketIds: string[]; newSpeakerIds: string[] }, publishState: EventFormValues["publish_state"]) => {
       toast.success("Event saved");
-      if (!saved.paymentSyncReady) toast.warning("Content saved. Online payments are not ready; save again to retry payment setup.");
       setTickets(previous => previous.filter(t=>t.name.trim()!=="").map((t,i)=>({...(saved.ticketIds[i] ? {id:saved.ticketIds[i]} : {}),...t})));
       setEvent((previous) => ({ ...previous, id: saved.id, publish_state: publishState, registration_start: registrationOpening }));
       setSpeakerIds((previous) => [...previous, ...saved.newSpeakerIds]);

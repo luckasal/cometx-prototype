@@ -144,50 +144,7 @@ export const adminSetEventPublishState = createServerFn({ method: "POST" })
     const { data: event, error } = await db.from("events").update({ publish_state: data.publishState }).eq("id", data.id).select("id").maybeSingle();
     if (error) throw new Error(error.message);
     if (!event) throw new Error("This event could not be updated.");
-    let paymentSyncReady = false;
-    try {
-      const { syncEventPayments } = await import("./ticket-payments.server");
-      paymentSyncReady = await syncEventPayments(event.id, {
-        backfillUpcomingPublishedTickets: true,
-      });
-    } catch (syncError) {
-      console.error("[event-publish] ticket payment sync failed", { eventId: event.id, syncError });
-    }
-    return { ok: true, paymentSyncReady };
-  });
-
-export const adminSyncPublishedTicketCatalog = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({}).parse(d))
-  .handler(async () => {
-    // Require staff authorization before using the server-only database and payment credentials.
-    await admin("events.write");
-    const { isStripeConfigured } = await import("./stripe.server");
-    if (!isStripeConfigured()) throw new Error("Ticket setup cannot be refreshed right now. Please contact CometX support.");
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: events, error } = await supabaseAdmin.from("events").select("id");
-    if (error) throw new Error("Published ticket setup could not be loaded. Please try again.");
-
-    let synced = 0;
-    let failed = 0;
-    const { syncEventPayments } = await import("./ticket-payments.server");
-    const allEvents = events ?? [];
-    for (let offset = 0; offset < allEvents.length; offset += 3) {
-      await Promise.all(allEvents.slice(offset, offset + 3).map(async (event) => {
-        try {
-          await syncEventPayments(event.id, { backfillAllTicketTypes: true });
-          synced += 1;
-        } catch (syncError) {
-          failed += 1;
-          console.error("[admin-event-ticket-sync] sync failed", {
-            eventId: event.id,
-            message: syncError instanceof Error ? syncError.message : "Unexpected error",
-          });
-        }
-      }));
-    }
-
-    return { processed: allEvents.length, synced, failed };
+    return { ok: true };
   });
 
 export const adminSaveEvent = createServerFn({ method: "POST" })
@@ -337,19 +294,9 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
       if (removed.error) throw new Error("The event was saved, but removed speaker links could not be updated. Please save again.");
     }
 
-    let paymentSyncReady = false;
-    try {
-      const { syncEventPayments } = await import("./ticket-payments.server");
-      paymentSyncReady = await syncEventPayments(saved.id, {
-        backfillUpcomingPublishedTickets: true,
-      });
-    } catch {
-      // Content is saved in Supabase even during a provider outage. A retry is safe.
-      paymentSyncReady = false;
-    }
     const updatedTickets = await db.from("ticket_types").select("id,sort_order").eq("event_id",saved.id).eq("active",true).order("sort_order");
     assertDatabaseResult(updatedTickets);
-    return { id: saved.id, slug: saved.slug, paymentSyncReady, newSpeakerIds, ticketIds:(updatedTickets.data ?? []).map(t=>t.id) };
+    return { id: saved.id, slug: saved.slug, newSpeakerIds, ticketIds:(updatedTickets.data ?? []).map(t=>t.id) };
   });
 
 export const adminDeleteEvent = createServerFn({ method: "POST" })

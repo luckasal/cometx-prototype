@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { checkoutOrigin } from "./checkout";
 import { configuredAppUrl, ticketEmailEnabled } from "./deployment";
 import { isStripeConfigured, stripeRequest } from "./stripe.server";
+import { createTicketCheckoutLineItems } from "./ticket-order";
 
 const db = supabaseAdmin as unknown as SupabaseClient;
 type TicketEvent = { title: string; slug: string; start_date: string; venue: string | null };
@@ -75,18 +76,14 @@ export async function startTicketCheckoutBatch(input: {
   let createdSession = false;
   try {
     const { data: order, error: orderError } = await db.from("ticket_orders")
-      .select("id,ticket_order_items(event_id,ticket_type_id,quantity,unit_amount_minor,currency)")
+      .select("id,amount_minor,currency,ticket_order_items(ticket_name,quantity,unit_amount_minor,currency)")
       .eq("id", batch.order_id).single();
     check(orderError);
     if (!order?.ticket_order_items?.length) throw new Error("Your order details are unavailable.");
-    const { syncEventPayments, ensureTicketPrice } = await import("./ticket-payments.server");
-    const eventIds = [...new Set(order.ticket_order_items.map((item) => item.event_id))];
-    for (const eventId of eventIds) await syncEventPayments(eventId);
-    const lineItems: { price: string; quantity: number }[] = [];
-    for (const item of order.ticket_order_items) {
-      const price = await ensureTicketPrice(item.ticket_type_id, Number(item.unit_amount_minor), item.currency);
-      lineItems.push({ price, quantity: item.quantity });
+    if (Number(order.amount_minor) !== batch.amount_minor || order.currency.toUpperCase() !== batch.currency.toUpperCase()) {
+      throw new Error("Your order total does not match its saved ticket prices.");
     }
+    const lineItems = createTicketCheckoutLineItems(order.ticket_order_items, batch.amount_minor, batch.currency);
     if (!lineItems.length) throw new Error("Your payment total could not be calculated.");
     const success = input.userId
       ? `${checkoutOrigin(appUrl!)}/account/events?purchase=success&batch=${encodeURIComponent(batch.id)}`
@@ -202,14 +199,7 @@ export async function startTicketOrder(input: {
       .select("ticket_type_id,ticket_name,quantity,unit_amount_minor,currency").eq("order_id", order.id);
     check(itemsError);
     if (!items?.length) throw new Error("Order has no tickets.");
-    const { syncEventPayments, ensureTicketPrice } = await import("./ticket-payments.server");
-    await syncEventPayments(order.event_id);
-    const lineItems = [];
-    for (const item of items) {
-      if (item.unit_amount_minor === 0) continue;
-      const price = await ensureTicketPrice(item.ticket_type_id, Number(item.unit_amount_minor), item.currency);
-      lineItems.push({ price, quantity: item.quantity });
-    }
+    const lineItems = createTicketCheckoutLineItems(items, order.amount_minor, order.currency);
     if (!lineItems.length) throw new Error("Order amount did not match its ticket prices.");
     const success = input.userId
       ? `${origin}/account/events?purchase=success&order=${encodeURIComponent(order.id)}`

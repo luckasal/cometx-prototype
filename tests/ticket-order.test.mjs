@@ -1,11 +1,41 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { quoteTicketOrder } from '../src/lib/ticket-order.ts';
+import { createTicketCheckoutLineItems, createTicketPriceDataLineItem, quoteTicketOrder } from '../src/lib/ticket-order.ts';
 
 // Test fixtures only; these are not CometX ticket prices or benefits.
 const price = { basePrice: 100, finalPrice: 80, currency: 'CHF', eligible: true,
   discount: 20, reason: 'Fixture', includedInMembership: false };
 const line = (ticketId, quantity, values = {}) => ({ ticketId, quantity, price: { ...price, ...values } });
+test('builds dynamic Stripe line items from the saved final amount', () => {
+  assert.deepEqual(createTicketPriceDataLineItem({
+    ticketName: 'Regular ticket', unitAmountMinor: 31500, currency: 'CHF', quantity: 2,
+  }), {
+    price_data: { currency: 'chf', unit_amount: 31500, product_data: { name: 'Regular ticket' } },
+    quantity: 2,
+  });
+});
+test('rejects invalid dynamic Stripe line item amounts, quantities, currencies and names', () => {
+  const valid = { ticketName: 'Fixture ticket', unitAmountMinor: 1000, currency: 'CHF', quantity: 1 };
+  for (const invalid of [
+    { unitAmountMinor: 0 }, { unitAmountMinor: Number.MAX_SAFE_INTEGER + 1 },
+    { quantity: 0 }, { quantity: 11 }, { currency: 'JPY' }, { ticketName: '  ' },
+  ]) {
+    assert.throws(() => createTicketPriceDataLineItem({ ...valid, ...invalid }));
+  }
+});
+test('builds Checkout lines only from saved order snapshots and reconciles the server total', () => {
+  const savedItems = [
+    { ticket_name: 'Regular ticket', unit_amount_minor: 31500, currency: 'CHF', quantity: 2 },
+    { ticket_name: 'Included workshop ticket', unit_amount_minor: 0, currency: 'CHF', quantity: 1 },
+  ];
+  assert.deepEqual(createTicketCheckoutLineItems(savedItems, 63000, 'CHF'), [{
+    price_data: { currency: 'chf', unit_amount: 31500, product_data: { name: 'Regular ticket' } }, quantity: 2,
+  }]);
+  assert.throws(() => createTicketCheckoutLineItems(savedItems, 1, 'CHF'), /does not match/);
+  assert.throws(() => createTicketCheckoutLineItems([
+    { ...savedItems[0], currency: 'EUR' },
+  ], 63000, 'CHF'), /invalid/i);
+});
 test('regular quantities and multiple types produce integer CHF totals', () => {
   const result = quoteTicketOrder([line('a', 2, { finalPrice: 100 }), line('b', 3, { basePrice: 20.25, finalPrice: 20.25 })]);
   assert.equal(result.quantity, 5);
