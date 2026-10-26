@@ -15,9 +15,18 @@ export type AdminEventOrderSummary = {
 };
 
 export type AdminEventMetrics = {
-  ticketsSold: number;
+  /** Capacity commitment from sold order quantities plus legacy confirmed registrations. */
+  capacityCommitted: number;
+  /** Valid and checked-in issued tickets; matches the event Guests roster. */
+  issuedTickets: number;
+  legacyRegistrations: number;
   revenueByCurrencyMinor: Record<string, number>;
-  ticketStats: Record<string, { ticketsSold: number; revenueByCurrencyMinor: Record<string, number> }>;
+  ticketStats: Record<string, {
+    capacityCommitted: number;
+    issuedTickets: number;
+    legacyRegistrations: number;
+    revenueByCurrencyMinor: Record<string, number>;
+  }>;
   recentOrders: AdminEventOrderSummary[];
 };
 
@@ -72,7 +81,9 @@ async function loadOrders(eventIds: string[], withLineEvent: boolean) {
 /** Aggregate event sales from the order ledger, with a legacy single-event fallback. */
 export async function getAdminEventMetrics(eventIds: string[]): Promise<Record<string, AdminEventMetrics>> {
   const metrics: Record<string, AdminEventMetrics> = Object.fromEntries(eventIds.map((id) => [id, {
-    ticketsSold: 0,
+    capacityCommitted: 0,
+    issuedTickets: 0,
+    legacyRegistrations: 0,
     revenueByCurrencyMinor: {},
     ticketStats: {},
     recentOrders: [],
@@ -105,16 +116,18 @@ export async function getAdminEventMetrics(eventIds: string[]): Promise<Record<s
         ticketCount += Number(line.quantity);
         addAmount(amounts, line.currency || order.currency, Number(line.amount_minor));
         const ticketStats = metric.ticketStats[line.ticket_type_id] ??= {
-          ticketsSold: 0,
+          capacityCommitted: 0,
+          issuedTickets: 0,
+          legacyRegistrations: 0,
           revenueByCurrencyMinor: {},
         };
-        if (SOLD_ORDER_STATUSES.has(order.status)) ticketStats.ticketsSold += Number(line.quantity);
+        if (SOLD_ORDER_STATUSES.has(order.status)) ticketStats.capacityCommitted += Number(line.quantity);
         if (order.status === "confirmed") {
           addAmount(metric.revenueByCurrencyMinor, line.currency || order.currency, Number(line.amount_minor));
           addAmount(ticketStats.revenueByCurrencyMinor, line.currency || order.currency, Number(line.amount_minor));
         }
       }
-      if (SOLD_ORDER_STATUSES.has(order.status)) metric.ticketsSold += ticketCount;
+      if (SOLD_ORDER_STATUSES.has(order.status)) metric.capacityCommitted += ticketCount;
       metric.recentOrders.push({
         id: order.id,
         buyerName: order.buyer_name,
@@ -140,19 +153,53 @@ export async function getAdminEventMetrics(eventIds: string[]): Promise<Record<s
     for (const registration of registrations) {
       const metric = metrics[registration.event_id];
       if (!metric) continue;
-      metric.ticketsSold += 1;
+      metric.capacityCommitted += 1;
+      metric.legacyRegistrations += 1;
       addAmount(metric.revenueByCurrencyMinor, registration.currency, Math.round(Number(registration.price_paid ?? 0) * 100));
       if (registration.ticket_type_id) {
         const ticketStats = metric.ticketStats[registration.ticket_type_id] ??= {
-          ticketsSold: 0,
+          capacityCommitted: 0,
+          issuedTickets: 0,
+          legacyRegistrations: 0,
           revenueByCurrencyMinor: {},
         };
-        ticketStats.ticketsSold += 1;
+        ticketStats.capacityCommitted += 1;
+        ticketStats.legacyRegistrations += 1;
         addAmount(ticketStats.revenueByCurrencyMinor, registration.currency, Math.round(Number(registration.price_paid ?? 0) * 100));
       }
     }
     if (registrations.length < PAGE_SIZE) break;
     from += PAGE_SIZE;
+  }
+
+  let attendeeFrom = 0;
+  while (true) {
+    const result = await db.from("ticket_attendees")
+      .select("event_id,ticket_type_id")
+      .in("event_id", eventIds)
+      .in("status", ["valid", "checked_in"])
+      .range(attendeeFrom, attendeeFrom + PAGE_SIZE - 1);
+    if (result.error) {
+      console.error("[event metrics] Issued ticket summary could not be loaded:", result.error.message);
+      throw new Error("Event ticket totals could not be loaded. Please try again.");
+    }
+    const attendees = result.data ?? [];
+    for (const attendee of attendees) {
+      const metric = metrics[attendee.event_id];
+      if (!metric) continue;
+      metric.issuedTickets += 1;
+      if (attendee.ticket_type_id) {
+        const ticketStats = metric.ticketStats[attendee.ticket_type_id] ??= {
+          capacityCommitted: 0,
+          issuedTickets: 0,
+          legacyRegistrations: 0,
+          revenueByCurrencyMinor: {},
+        };
+        ticketStats.issuedTickets += 1;
+      }
+    }
+    if (attendees.length < PAGE_SIZE) break;
+    attendeeFrom += PAGE_SIZE;
   }
 
   for (const metric of Object.values(metrics)) {

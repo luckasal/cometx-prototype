@@ -14,6 +14,10 @@ The optional extra percentage/free-ticket selectors are under **Advanced** and s
 
 These controls reference benefits configured in **Back Office → Membership plans → Membership benefits**. Follow the event editor's link to open the benefit catalog directly. Full Admins can update a benefit's public wording while its stable key remains fixed, assign/remove it from a plan (with confirmation), and change supported percentage values. Workshop credits stay locked to the currently supported CHF 100 / CHF 300 values. Newly created benefits are access-only and can gate an event/content item; they do not invent a discount rule. Changes affect future checkouts and access checks; existing order prices remain snapshots.
 
+## Admin ticket counts
+
+The event list, overview and ticket editor distinguish issued tickets from legacy registrations. **Tickets issued** counts valid/checked-in ticket records and matches the event's Guests roster. **Legacy registrations** counts confirmed/check-in rows from the older registration flow; these may have no order or ticket code. **Capacity committed** includes confirmed/free ticket-order quantities plus legacy registrations, so it can be higher than the issued-ticket count. Revenue remains a separate order/registration total.
+
 The new migration `0020_one_member_benefit_ticket_per_event.sql` limits member pricing/free admission to one ticket per event and membership, including across separate orders. When a buyer checks out multiple tickets of one type, the order records separate discounted and public-price lines so the Stripe total and per-attendee benefit allocation agree. This SQL change is local until its hosted Supabase migration and matching app release are coordinated.
 
 ## Photos

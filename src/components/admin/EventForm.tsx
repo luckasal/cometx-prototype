@@ -150,7 +150,7 @@ export function EventForm({
   initialTickets: TicketDraft[];
   initialSpeakerIds: string[];
   initialWorkshops: WorkshopDraft[];
-  initialTicketStats?: Record<string, { ticketsSold: number; revenueByCurrencyMinor: Record<string, number> }> | null;
+  initialTicketStats?: Record<string, { capacityCommitted: number; issuedTickets: number; legacyRegistrations: number; revenueByCurrencyMinor: Record<string, number> }> | null;
   section?: "tickets" | "settings" | "content";
 }) {
   const navigate = useNavigate();
@@ -585,10 +585,10 @@ export function EventForm({
             </div>
             {ticket.id && <p className="text-sm text-muted-foreground" role="status">
               {initialTicketStats === null
-                ? "Ticket sales statistics are unavailable."
+                ? "Ticket totals are unavailable."
                 : initialTicketStats?.[ticket.id]
-                ? `${initialTicketStats[ticket.id]!.ticketsSold} confirmed${ticket.capacity ? ` / ${ticket.capacity} capacity` : ""} · Recorded revenue ${Object.entries(initialTicketStats[ticket.id]!.revenueByCurrencyMinor).map(([currency, amount]) => formatMoney(amount / 100, currency)).join(" · ") || formatMoney(0, ticket.currency)}`
-                : "0 confirmed · Recorded revenue —"}
+                ? `${initialTicketStats[ticket.id]!.issuedTickets} issued · ${initialTicketStats[ticket.id]!.legacyRegistrations} legacy ${initialTicketStats[ticket.id]!.legacyRegistrations === 1 ? "registration" : "registrations"} · ${initialTicketStats[ticket.id]!.capacityCommitted} capacity committed${ticket.capacity ? ` / ${ticket.capacity}` : ""} · Recorded revenue ${Object.entries(initialTicketStats[ticket.id]!.revenueByCurrencyMinor).map(([currency, amount]) => formatMoney(amount / 100, currency)).join(" · ") || formatMoney(0, ticket.currency)}`
+                : "0 issued · 0 legacy registrations · 0 capacity committed · Recorded revenue —"}
             </p>}
             <p className="text-sm font-medium text-accent" role="status">
               {event.publish_state !== "published"

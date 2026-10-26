@@ -96,7 +96,7 @@ function AdminEventsPage() {
       {data && data.length === 0 && <EmptyBlock title="No events yet" hint="Add an event to start publishing your programme." />}
       {data && data.length > 0 && filtered.length === 0 && <EmptyBlock title="No matching events" hint="Change the search or filters and try again." />}
       {filtered.length > 0 && (
-        <AdminTable head={["Event", "Lifecycle", "Start", "Location", "Confirmed tickets", "Recorded revenue", "Last modified", "Actions"]}>
+        <AdminTable head={["Event", "Lifecycle", "Start", "Location", "Tickets issued", "Legacy registrations", "Capacity committed", "Recorded revenue", "Last modified", "Actions"]}>
           {filtered.map((event) => {
             const lifecycle = getEventLifecycleStatus(event);
             const eventPath = `/events/${encodeURIComponent(event.slug)}`;
@@ -113,7 +113,9 @@ function AdminEventsPage() {
                 <td className="min-w-32"><StatusPill tone={lifecycleTone(lifecycle)}>{formatEventLifecycleStatus(lifecycle)}</StatusPill>{event.event_status !== "upcoming" && event.event_status !== "completed" && event.event_status !== "cancelled" && <span className="mt-1 block text-xs capitalize text-muted-foreground">{event.event_status.replaceAll("_", " ")}</span>}</td>
                 <td className="min-w-36 text-muted-foreground">{formatDate(event.start_date)}</td>
                 <td className="min-w-36 text-muted-foreground">{event.venue || event.address || "—"}</td>
-                <td className="text-center tabular-nums">{metrics?.ticketsSold ?? "—"}</td>
+                <td className="text-center tabular-nums">{metrics?.issuedTickets ?? "—"}</td>
+                <td className="text-center tabular-nums">{metrics?.legacyRegistrations ?? "—"}</td>
+                <td className="text-center tabular-nums">{metrics?.capacityCommitted ?? "—"}</td>
                 <td className="min-w-28 whitespace-nowrap tabular-nums">{eventRevenue(metrics?.revenueByCurrencyMinor ?? null)}</td>
                 <td className="min-w-36 text-muted-foreground">{formatDate(event.updated_at)}</td>
                 <td className="min-w-48"><div className="flex flex-wrap justify-end gap-x-3 gap-y-2 text-xs">
