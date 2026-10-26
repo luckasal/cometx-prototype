@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-26: one-time speaker and workshop editing
+
+- Task `EVT-04`; implementation commit `b78caca` on `codex/event-ticket-membership-entitlements-20261026`.
+- A newly drafted one-time speaker can be selected by a workshop before saving the event. The save handler creates the speaker and links the workshop, and returns workshop IDs to the editor so repeat saves update existing workshops. The reusable speaker list and existing edit/delete guards remain.
+- Local production build and diff check passed; focused typecheck showed no new errors in the changed lines, while existing project TypeScript errors remain. Vercel Preview `G82KQk4UJnhGNebejABYKN56V39m` and Production release for commit `b78caca` were Ready on the canonical domain. Live New event editor displayed the pending speaker as selectable for a workshop.
+- Automatic approval review rejected saving a temporary QA event/speaker/workshop in Production because explicit authorization for test records was missing. No test data or photos were saved; hosted write/reload/delete acceptance remains open. Do not retry the previously declined photo-upload permission.
+
 ## 2026-10-26: safe custom benefit removal
 
 - Task `MEMBERSHIP-CUSTOM-BENEFIT-DELETE-20261026`; implementation commit `e4136e6` on `codex/event-ticket-membership-entitlements-20261026`.
