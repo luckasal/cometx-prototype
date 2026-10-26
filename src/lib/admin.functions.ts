@@ -5,6 +5,7 @@ import { earliestTicketSaleStart, eventScheduleIssue } from "./event-admin";
 import { managedEventMediaPath } from "./event-media-rules";
 import type { StaffPermission } from "./staff-permissions";
 import { membershipBenefitValueIssue } from "./membership-benefit-rules";
+import { isCatalogBenefit } from "./membership-benefit-catalog";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
@@ -565,6 +566,32 @@ export const adminCreateEntitlement = createServerFn({ method: "POST" })
     });
     if (error?.code === "23505") throw new Error("That benefit key already exists. Choose another key.");
     if (error) throw new Error("Benefit could not be created.");
+    return { ok: true };
+  });
+
+export const adminDeleteCustomEntitlement = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ key: z.string().min(2).max(100) }).parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin("memberships.write");
+    if (isCatalogBenefit(data.key)) throw new Error("Built-in membership benefits cannot be deleted.");
+    const { data: entitlement, error: lookupError } = await db.from("entitlements")
+      .select("id").eq("key", data.key).maybeSingle();
+    if (lookupError || !entitlement) throw new Error("This benefit no longer exists. Refresh the page.");
+    const [assignments, ticketAccess, ticketDiscounts, ticketFree, articles] = await Promise.all([
+      db.from("plan_entitlements").select("id", { count: "exact", head: true }).eq("entitlement_id", entitlement.id),
+      db.from("ticket_types").select("id", { count: "exact", head: true }).eq("required_entitlement", data.key),
+      db.from("ticket_types").select("id", { count: "exact", head: true }).eq("discount_entitlement", data.key),
+      db.from("ticket_types").select("id", { count: "exact", head: true }).eq("free_entitlement", data.key),
+      db.from("articles").select("id", { count: "exact", head: true }).eq("required_entitlement", data.key),
+    ]);
+    if ([assignments, ticketAccess, ticketDiscounts, ticketFree, articles].some((result) => result.error))
+      throw new Error("Benefit usage could not be checked. Nothing was deleted.");
+    if (assignments.count) throw new Error("Remove this benefit from its membership plans before deleting it.");
+    if (ticketAccess.count || ticketDiscounts.count || ticketFree.count || articles.count)
+      throw new Error("This benefit is used by a ticket or article. Remove those references before deleting it.");
+    const { data: deleted, error } = await db.from("entitlements").delete().eq("id", entitlement.id).select("id").maybeSingle();
+    if (error?.code === "23503") throw new Error("This benefit is still in use. Refresh the page and remove its references first.");
+    if (error || !deleted) throw new Error("Benefit could not be deleted.");
     return { ok: true };
   });
 

@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   adminCreateEntitlement,
+  adminDeleteCustomEntitlement,
   adminListEntitlements,
   adminListPlans,
   adminSetPlanEntitlement,
@@ -10,7 +11,7 @@ import {
 } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
-import { benefitKind, benefitKindLabel, formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
+import { benefitKind, benefitKindLabel, formatMembershipBenefit, isCatalogBenefit } from "@/lib/membership-benefit-catalog";
 
 type BenefitDefinition = { key: string; name: string; description: string | null };
 type PlanSummary = {
@@ -41,6 +42,7 @@ export function MembershipBenefitsManager() {
   const fetchBenefits = useServerFn(adminListEntitlements);
   const updateDefinition = useServerFn(adminUpdateEntitlementDefinition);
   const createBenefit = useServerFn(adminCreateEntitlement);
+  const deleteBenefit = useServerFn(adminDeleteCustomEntitlement);
   const setAssignment = useServerFn(adminSetPlanEntitlement);
   const plans = useQuery({ queryKey: ["admin", "plans"], queryFn: () => fetchPlans() });
   const benefits = useQuery({ queryKey: ["admin", "benefits"], queryFn: () => fetchBenefits() });
@@ -50,6 +52,7 @@ export function MembershipBenefitsManager() {
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ["admin", "plans"] });
     void queryClient.invalidateQueries({ queryKey: ["admin", "benefits"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin", "entitlements"] });
     void queryClient.invalidateQueries({ queryKey: ["plans"] });
     void queryClient.invalidateQueries({ queryKey: ["admin", "event-benefit-matrix"] });
   };
@@ -59,6 +62,14 @@ export function MembershipBenefitsManager() {
       toast.success(
         "Membership benefit saved. This affects future checkouts; existing orders keep their recorded prices.",
       );
+      refresh();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const remove = useMutation({
+    mutationFn: (key: string) => deleteBenefit({ data: { key } }),
+    onSuccess: () => {
+      toast.success("Custom benefit deleted.");
       refresh();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -132,6 +143,18 @@ export function MembershipBenefitsManager() {
             </div>
           </form>
           <p className="mt-2 text-xs text-muted-foreground">Internal key: {benefit.key} (fixed)</p>
+          {!isCatalogBenefit(benefit.key) && <div className="mt-3">
+            <button
+              type="button"
+              className="text-sm text-destructive underline underline-offset-4"
+              disabled={remove.isPending}
+              onClick={() => {
+                if (window.confirm(`Delete “${benefit.name}”? Only unassigned benefits unused by tickets or articles can be deleted. This cannot be undone.`))
+                  remove.mutate(benefit.key);
+              }}
+            >Delete custom benefit</button>
+            <p className="mt-1 text-xs text-muted-foreground">First remove plan assignments and any ticket or article references. Built-in benefits cannot be deleted.</p>
+          </div>}
           <div className="mt-4 grid gap-3 lg:grid-cols-3">
             {planRows.map((plan) => {
               const assignment = plan.plan_entitlements?.find(

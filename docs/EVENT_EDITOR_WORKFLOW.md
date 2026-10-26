@@ -14,6 +14,8 @@ The optional fixed member price and extra percentage/free-ticket selectors are u
 
 These controls reference benefits configured in **Back Office → Membership plans → Membership benefits**. Follow the event editor's link to open the benefit catalog directly. Full Admins can update a benefit's public wording while its stable key remains fixed, assign/remove it from a plan (with confirmation), and change supported percentage values. Workshop credits stay locked to the currently supported CHF 100 / CHF 300 values. Newly created benefits are access-only and can gate an event/content item; they do not invent a discount rule. Changes affect future checkouts and access checks; existing order prices remain snapshots.
 
+Custom access benefits can be deleted in Membership benefits after they have been removed from every plan and are no longer referenced by a ticket or article. Built-in benefits remain protected. The delete action checks usage on the server and leaves referenced benefits intact.
+
 ## Admin ticket counts
 
 The event list, overview and ticket editor distinguish issued tickets from legacy registrations. **Tickets issued** counts valid/checked-in ticket records and matches the event's Guests roster. **Legacy registrations** counts confirmed/check-in rows from the older registration flow; these may have no order or ticket code. **Capacity committed** includes confirmed/free ticket-order quantities plus legacy registrations, so it can be higher than the issued-ticket count. Revenue remains a separate order/registration total.
