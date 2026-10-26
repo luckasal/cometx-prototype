@@ -65,7 +65,7 @@ export function MembershipBenefitsManager() {
   });
 
   return (
-    <section className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
+    <section id="membership-benefit-catalog" className="scroll-mt-6 space-y-5 rounded-2xl border border-border/60 bg-card p-6">
       <div>
         <h2 className="font-display text-xl font-bold">Membership benefits</h2>
         <p className="mt-2 text-sm text-muted-foreground">Open a benefit to edit its wording or which plans receive it. The plan cards above show the current customer-facing offer. Changes affect future checkouts, never past orders.</p>

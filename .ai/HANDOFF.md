@@ -1036,3 +1036,11 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - Focused tests passed: `ticket-order`, `ticket-cart`, `stripe-request`, and `stripe-webhook-event` (17/17). `ticket-database.test.mjs` could not start because the ignored `.test-runtime` PGlite package is absent. No full build was run for this request.
 - This replacement commit is local and not deployed. The preceding `b8aea0e` catalog-recovery commit had already been pushed under the earlier request; no further push or manual deployment was done after the user narrowed scope.
 
+
+## 2026-10-26: event ticket and membership entitlement admin clarity (release pending)
+
+- Task `BOSS-P0-EVENT-TICKET-ENTITLEMENTS-01`; branch `codex/event-ticket-membership-entitlements-20261026`.
+- Each event ticket now previews the effective price and purchase eligibility for every active plan using the shared checkout pricing helper. Required benefits identify the eligible member plans and surface a warning when none can purchase. Workshop credits are shown as optional one-time checkout choices. The event editor links directly to the central membership benefit catalog.
+- Updated `docs/EVENT_EDITOR_WORKFLOW.md`. No server pricing, checkout, saved event/plan data or schema was changed.
+- `pnpm --ignore-workspace build` passes. `git -c core.whitespace=cr-at-eol diff --check` passes. Targeted ESLint reports existing Prettier-formatting violations throughout both legacy admin component files; these are pre-existing style differences, not functional or build errors. Tests were not run.
+- Deployment and live browser verification are pending.

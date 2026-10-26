@@ -18,7 +18,7 @@ import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 import { formatMoney, isRegistrationOpen } from "@/lib/pricing";
 import { ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
 import { earliestTicketSaleStart, eventScheduleIssue } from "@/lib/event-admin";
-import type { PreviewPlan } from "@/lib/event-ticket-preview";
+import { previewTicketByPlan, type PreviewPlan } from "@/lib/event-ticket-preview";
 
 export type EventFormValues = {
   id?: string;
@@ -561,8 +561,13 @@ export function EventForm({
           </p>
         )}
         <p className="text-sm text-muted-foreground">Set the public price for each ticket. Existing membership benefits apply automatically. Remove a saved ticket only if you intend to archive it on save.</p>
-        <p className="text-sm text-muted-foreground">Membership benefits are managed under <a href="/admin/plans" className="underline underline-offset-4">Memberships</a>, not on this event.</p>
-        {tickets.map((ticket, index) => (
+        <p className="text-sm text-muted-foreground">Membership plans determine each member’s price and access. Review the result below; edit plan benefits in <a href="/admin/plans#membership-benefit-catalog" className="font-medium underline underline-offset-4">Memberships → Membership benefits</a>.</p>
+        {tickets.map((ticket, index) => {
+          const memberPricing = previewTicketByPlan(ticket, event.event_type, benefitMatrix);
+          const hasValidPublicPrice = ticket.base_price.trim() !== "" && Number.isFinite(Number(ticket.base_price)) && Number(ticket.base_price) >= 0;
+          const requiredBenefit = entitlements.find((entitlement: { key: string; name: string }) => entitlement.key === ticket.required_entitlement);
+          const noEligiblePlan = !!ticket.required_entitlement && memberPricing.length > 0 && memberPricing.every((plan) => !plan.eligible);
+          return (
           <div key={ticket.id ?? index} className="space-y-4 rounded-xl border border-border bg-background p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -657,10 +662,40 @@ export function EventForm({
                   {entitlements.map((ent: { key: string; name: string }) => <option key={ent.key} value={ent.key}>Only members with: {ent.name}</option>)}
                 </select>
               </Field>
-              <Field label="Fixed member price" hint="Optional; leave blank for automatic plan benefits."><input type="number" min="0" step="0.01" className={inputClass} value={ticket.member_price} onChange={e=>setTicket(index,"member_price",e.target.value)} /></Field>
+              <Field label="Optional fixed member price" hint={event.event_type === "workshop" ? "Fixed member prices do not apply to workshops. Workshop credit is an optional checkout choice." : "For eligible plans, the lower of this price and the automatic plan price applies. Leave blank to use plan benefits."}><input type="number" min="0" step="0.01" className={inputClass} value={ticket.member_price} onChange={e=>setTicket(index,"member_price",e.target.value)} /></Field>
               </div>
-              {ticket.required_entitlement && benefitsLoading && <p className="text-xs text-muted-foreground">Checking which active plans include this benefit…</p>}
-              {ticket.required_entitlement && !benefitsError && !benefitsLoading && <p className="text-xs text-muted-foreground">Eligible active plans: {benefitMatrix.filter((plan: EventBenefitPlan) => plan.plan_entitlements?.some((benefit: EventBenefitPlan["plan_entitlements"][number]) => benefit.entitlements?.key === ticket.required_entitlement)).map((plan: EventBenefitPlan) => plan.name).join(", ") || "none of the active plans — check before publishing"}.</p>}
+              {ticket.required_entitlement && !benefitsError && !benefitsLoading && <p className="text-xs text-muted-foreground">Required benefit: {requiredBenefit?.name ?? ticket.required_entitlement}. Only active plans that include it can buy this ticket.</p>}
+              {noEligiblePlan && <p role="alert" className="text-sm text-destructive">No active membership plan includes this required benefit. Members currently cannot buy this ticket. Assign the benefit to an active plan or choose a different requirement.</p>}
+              <section className="mt-4 rounded-lg border border-border/60 bg-background p-4" aria-label={`Membership price preview for ${ticket.name || `ticket ${index + 1}`}`}>
+                <div className="mb-3">
+                  <h4 className="text-sm font-semibold">Member price preview</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">Public price: {hasValidPublicPrice ? formatMoney(Number(ticket.base_price), ticket.currency) : "Not set"}. This preview follows the current plan rules; checkout recalculates eligibility and price on the server.</p>
+                </div>
+                {benefitsLoading && <p className="text-sm text-muted-foreground">Loading active plan benefits…</p>}
+                {benefitsError && <p role="alert" className="text-sm text-destructive">Membership price preview could not load. Refresh the page before publishing ticket restrictions.</p>}
+                {!benefitsLoading && !benefitsError && benefitMatrix.length === 0 && <p className="text-sm text-muted-foreground">No active membership plans are available for this preview.</p>}
+                {!benefitsLoading && !benefitsError && benefitMatrix.length > 0 && memberPricing.length === 0 && <p className="text-sm text-muted-foreground">Enter a valid public price to preview member pricing.</p>}
+                {!benefitsLoading && !benefitsError && memberPricing.length > 0 && <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {memberPricing.map((preview) => {
+                    const price = preview.price;
+                    const optionalCreditPrice = preview.optionalWorkshopCredit !== null && price
+                      ? Math.max(0, price.basePrice - preview.optionalWorkshopCredit)
+                      : null;
+                    return <div key={preview.name} className="rounded-lg border border-border/50 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-sm font-medium">{preview.name}</span>
+                        {price
+                          ? <strong className="whitespace-nowrap text-sm">{formatMoney(price.finalPrice, price.currency)}</strong>
+                          : <span className="whitespace-nowrap text-xs font-semibold text-destructive">Cannot buy</span>}
+                      </div>
+                      {price
+                        ? <p className="mt-1 text-xs text-muted-foreground">{price.reason === "Standard ticket" ? "No membership price benefit applies." : price.reason}</p>
+                        : <p className="mt-1 text-xs text-muted-foreground">This plan does not include {requiredBenefit?.name ?? "the required benefit"}.</p>}
+                      {optionalCreditPrice !== null && preview.optionalWorkshopCredit !== null && <p className="mt-2 text-xs text-accent">Optional one-time credit: {formatMoney(preview.optionalWorkshopCredit, ticket.currency)} · could reduce this to {formatMoney(optionalCreditPrice, ticket.currency)} if unused.</p>}
+                    </div>;
+                  })}
+                </div>}
+              </section>
               <details className="mt-4 rounded-lg border border-border p-3">
                 <summary className="cursor-pointer text-sm font-medium">Advanced benefit override{ticket.discount_entitlement || ticket.free_entitlement ? " · configured" : ""}</summary>
                 <p className="mt-2 text-xs text-muted-foreground">Use only when this ticket needs a specific discount or free-entry rule. Workshop credit is handled automatically.</p>
@@ -682,7 +717,8 @@ export function EventForm({
               </details>
             </details>
           </div>
-        ))}
+          );
+        })}
       </section>
 
       <section hidden={!!section && section !== "content"} className="space-y-6 rounded-2xl border border-border/60 bg-card p-6">
