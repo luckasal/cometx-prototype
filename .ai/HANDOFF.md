@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-26: event ticket entitlement editor cleanup
+
+- Task `EVENT-TICKET-ENTITLEMENT-UX-20261026`; implementation commit `66a8945` on `codex/event-ticket-membership-entitlements-20261026`.
+- The ticket editor now separates buyer access from plan pricing, groups access versus pricing benefits in the restriction menu, names eligible active plans, and keeps fixed prices and event-specific benefit overrides under Advanced. Irrelevant workshop overrides are hidden unless already saved. No ticket schema, pricing, checkout, or event data changed.
+- `pnpm --ignore-workspace build` and diff check passed. Vercel Preview `6V5gfrnzwaUobQx2v8RtYL3xEoLC` and Production `9yCs6t7Sdm392i3GhK6xS4fazsqz` are Ready; Production is assigned to `cometx-prototype.vercel.app`. The live workshop Tickets tab displayed the new access and member pricing panel, plan price preview, optional workshop credit, and no irrelevant Advanced controls.
+
 ## 2026-10-21: hide legacy admin Registrations page
 
 - Task `ADMIN-LEGACY-REGISTRATIONS-HIDE-20261021`; implementation commit `3bbe2de` on `codex/hide-legacy-registrations-20261021` in `cometx-hide-registrations`.
