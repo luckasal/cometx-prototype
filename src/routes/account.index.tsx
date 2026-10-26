@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/pricing";
 import { formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
 import { isIssuedTicketStatus, isOwnedOrderLine, isUpcomingEvent } from "@/lib/ticket-status";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   EmptyBlock,
   ErrorBlock,
@@ -21,6 +22,9 @@ export const Route = createFileRoute("/account/")({
 });
 
 function AccountOverviewPage() {
+  const { language } = useLanguage();
+  const cs = language === "cs";
+  const locale = cs ? "cs-CZ" : "en-GB";
   const fetchOverview = useServerFn(getAccountOverview);
   const fetchTickets = useServerFn(getMyPurchasedTickets);
   const { data, isLoading, error } = useQuery({
@@ -35,7 +39,7 @@ function AccountOverviewPage() {
   if (isLoading)
     return (
       <Section>
-        <LoadingBlock label="Loading your account" />
+        <LoadingBlock label={cs ? "Načítáme váš účet" : "Loading your account"} />
       </Section>
     );
   if (error)
@@ -63,21 +67,21 @@ function AccountOverviewPage() {
       <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
           <SectionHeading
-            eyebrow={`Hello ${data.profile.firstName ?? ""}`.trim()}
-            title="Upcoming confirmed events"
+            eyebrow={`${cs ? "Dobrý den" : "Hello"} ${data.profile.firstName ?? ""}`.trim()}
+            title={cs ? "Nadcházející potvrzené akce" : "Upcoming confirmed events"}
             action={
               <Link to="/account/events" className="text-sm underline underline-offset-4">
-                My events
+                {cs ? "Moje akce" : "My events"}
               </Link>
             }
           />
-          {ticketError && <ErrorBlock error={new Error("We couldn't load your tickets. Please try again.")} />}
+          {ticketError && <ErrorBlock error={new Error(cs ? "Nepodařilo se načíst vaše vstupenky. Zkuste to znovu." : "We couldn't load your tickets. Please try again.")} />}
           {ticketsLoading && upcomingEvents.length === 0 ? (
-            <LoadingBlock label="Loading your tickets" />
+            <LoadingBlock label={cs ? "Načítáme vstupenky" : "Loading your tickets"} />
           ) : upcomingEvents.length === 0 && !ticketError ? (
             <EmptyBlock
-              title="No upcoming confirmed events"
-              hint="Browse CometX events to find your next gathering."
+              title={cs ? "Nemáte žádné nadcházející potvrzené akce" : "No upcoming confirmed events"}
+              hint={cs ? "Prohlédněte si akce CometX a vyberte si další setkání." : "Browse CometX events to find your next gathering."}
             />
           ) : upcomingEvents.length > 0 ? (
             <ul className="divide-y divide-border border-y border-border">
@@ -92,7 +96,7 @@ function AccountOverviewPage() {
                       {reg.eventTitle}
                     </Link>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {new Date(reg.startDate).toLocaleDateString("en-GB", {
+                      {new Date(reg.startDate).toLocaleDateString(locale, {
                         day: "numeric",
                         month: "long",
                         year: "numeric",
@@ -102,10 +106,10 @@ function AccountOverviewPage() {
                   </div>
                   <div className="text-right">
                     <StatusPill tone="success">
-                      {reg.status}
+                      {cs && reg.status === "paid" ? "Zaplaceno" : reg.status}
                     </StatusPill>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {reg.amount === 0 ? "Free" : formatMoney(reg.amount, reg.currency)}
+                      {reg.amount === 0 ? (cs ? "Zdarma" : "Free") : formatMoney(reg.amount, reg.currency)}
                     </p>
                   </div>
                 </li>
@@ -118,19 +122,19 @@ function AccountOverviewPage() {
         <aside className="space-y-6">
           <div className="overflow-hidden rounded-3xl border border-ink/40">
             <div className="bg-ink px-6 py-4 text-ink-foreground">
-              <p className="eyebrow text-accent">Membership</p>
+              <p className="eyebrow text-accent">{cs ? "Členství" : "Membership"}</p>
               <p className="mt-1 font-display text-xl font-extrabold">
-                {data.membership ? data.membership.planName : "No active membership"}
+                {data.membership ? data.membership.planName : (cs ? "Nemáte aktivní členství" : "No active membership")}
               </p>
             </div>
             <div className="space-y-4 p-6">
               {data.membership ? (
                 <>
-                  <StatusPill tone="success">{data.membership.status}</StatusPill>
+                  <StatusPill tone="success">{cs && data.membership.status === "active" ? "Aktivní" : data.membership.status}</StatusPill>
                   {data.membership.endsAt && (
                     <p className="text-xs text-muted-foreground">
-                      Valid until{" "}
-                      {new Date(data.membership.endsAt).toLocaleDateString("en-GB", {
+                      {cs ? "Platné do" : "Valid until"}{" "}
+                      {new Date(data.membership.endsAt).toLocaleDateString(locale, {
                         day: "numeric",
                         month: "long",
                         year: "numeric",
@@ -139,20 +143,20 @@ function AccountOverviewPage() {
                   )}
                   <ul className="space-y-2 border-t border-border pt-4 text-sm">
                     {data.membership.benefits.map((benefit) => (
-                      <li key={benefit.key}>{formatMembershipBenefit(benefit)}</li>
+                      <li key={benefit.key}>{formatMembershipBenefit(benefit, language)}</li>
                     ))}
                   </ul>
                   <Button asChild variant="outlineInk" className="w-full">
-                    <Link to="/account/membership">Membership details</Link>
+                    <Link to="/account/membership">{cs ? "Podrobnosti členství" : "Membership details"}</Link>
                   </Button>
                 </>
               ) : (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    Explore the CometX plans and choose the membership that suits you.
+                    {cs ? "Prohlédněte si nabídku CometX a vyberte si členství, které vám vyhovuje." : "Explore the CometX plans and choose the membership that suits you."}
                   </p>
                   <Button asChild variant="signal" className="w-full">
-                    <Link to="/membership">Become a member</Link>
+                    <Link to="/membership">{cs ? "Staňte se členem" : "Become a member"}</Link>
                   </Button>
                 </>
               )}
@@ -161,12 +165,12 @@ function AccountOverviewPage() {
 
           {data.hasStaffAccess && (
             <div className="rounded-2xl border border-border/60 p-6">
-              <p className="eyebrow text-muted-foreground">Staff</p>
+              <p className="eyebrow text-muted-foreground">{cs ? "Tým CometX" : "Staff"}</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                You have staff access to the CometX Back Office. Available sections depend on your role.
+                {cs ? "Máte přístup do Back Office CometX. Dostupné sekce závisí na vaší roli." : "You have staff access to the CometX Back Office. Available sections depend on your role."}
               </p>
               <Button asChild variant="ink" className="mt-4 w-full">
-                <Link to="/admin">Open admin</Link>
+                <Link to="/admin">{cs ? "Otevřít Back Office" : "Open admin"}</Link>
               </Button>
             </div>
           )}

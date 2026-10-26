@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { BrandXElement } from "./BrandXElement";
 import { brandAssets } from "@/lib/brand-assets";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function PageHero({
   eyebrow,
@@ -129,6 +130,8 @@ export function EventCard({
     featured?: boolean;
   };
 }) {
+  const { language } = useLanguage();
+  const cs = language === "cs";
   const date = new Date(event.start_date);
   return (
     <Link
@@ -150,10 +153,10 @@ export function EventCard({
       <div className="flex flex-1 flex-col p-6">
         <div className="flex items-center gap-3">
           <span className="eyebrow text-muted-foreground">
-            {date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+            {date.toLocaleDateString(cs ? "cs-CZ" : "en-GB", { day: "2-digit", month: "short", year: "numeric" })}
           </span>
-          {event.status === "registration_open" && <StatusPill tone="signal">Open</StatusPill>}
-          {event.status === "completed" && <StatusPill tone="muted">Past</StatusPill>}
+          {event.status === "registration_open" && <StatusPill tone="signal">{cs ? "V prodeji" : "Open"}</StatusPill>}
+          {event.status === "completed" && <StatusPill tone="muted">{cs ? "Proběhla" : "Past"}</StatusPill>}
         </div>
         <h3 className="mt-3 font-display text-xl font-bold leading-snug">{event.title}</h3>
         {event.short_description && (

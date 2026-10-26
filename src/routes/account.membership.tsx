@@ -8,6 +8,7 @@ import { trackEvent } from "@/lib/analytics";
 import { formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
 import { getAccountOverview, getMyMembershipRenewalStatus, getMyWorkshopCreditStatus, startMembershipBillingPortal } from "@/lib/membership.functions";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   EmptyBlock,
   ErrorBlock,
@@ -23,6 +24,9 @@ export const Route = createFileRoute("/account/membership")({
 });
 
 function AccountMembershipPage() {
+  const { language } = useLanguage();
+  const cs = language === "cs";
+  const locale = cs ? "cs-CZ" : "en-GB";
   const { checkout } = Route.useSearch();
   const fetchOverview = useServerFn(getAccountOverview);
   const fetchWorkshopCredit = useServerFn(getMyWorkshopCreditStatus);
@@ -51,13 +55,13 @@ function AccountMembershipPage() {
 
   useEffect(() => {
     if (checkout === "success") {
-      toast("Checkout finished. We are checking your membership confirmation.");
+      toast(cs ? "Platba skončila. Ověřujeme potvrzení vašeho členství." : "Checkout finished. We are checking your membership confirmation.");
       const timer = setTimeout(() => refetch(), 2500);
       return () => clearTimeout(timer);
     }
-    if (checkout === "cancelled") toast("Checkout cancelled - nothing was charged.");
+    if (checkout === "cancelled") toast(cs ? "Platba byla zrušena, nic vám nebylo účtováno." : "Checkout cancelled - nothing was charged.");
     return undefined;
-  }, [checkout, refetch]);
+  }, [checkout, refetch, cs]);
 
   useEffect(() => {
     if (checkout !== "success" || data?.membership?.status !== "active") return;
@@ -71,21 +75,21 @@ function AccountMembershipPage() {
 
   return (
     <Section>
-      <SectionHeading eyebrow="Membership" title="Your membership" />
-      {isLoading && <LoadingBlock label="Loading membership" />}
+      <SectionHeading eyebrow={cs ? "Členství" : "Membership"} title={cs ? "Vaše členství" : "Your membership"} />
+      {isLoading && <LoadingBlock label={cs ? "Načítáme členství" : "Loading membership"} />}
       {error && <ErrorBlock error={error} />}
 
       {data && !data.membership && (
         <div className="max-w-xl">
           <EmptyBlock
-            title={checkout === "success" ? "Membership activation pending" : "No active membership"}
+            title={checkout === "success" ? (cs ? "Čekáme na aktivaci členství" : "Membership activation pending") : (cs ? "Nemáte aktivní členství" : "No active membership")}
             hint={checkout === "success"
-              ? "CometX has not confirmed your membership yet. Please refresh shortly. If it stays pending, contact support; do not pay again."
-              : "Pick a tier and pay with a Stripe test card to see the full member experience."}
+              ? (cs ? "CometX zatím vaše členství nepotvrdil. Za chvíli stránku obnovte. Pokud potvrzení nepřijde, kontaktujte podporu; neplaťte znovu." : "CometX has not confirmed your membership yet. Please refresh shortly. If it stays pending, contact support; do not pay again.")
+              : (cs ? "Vyberte si členství a zaplaťte testovací kartou Stripe, abyste viděli členské výhody." : "Pick a tier and pay with a Stripe test card to see the full member experience.")}
           />
           {checkout !== "success" && (
             <Button asChild variant="signal" size="lg" className="mt-6">
-              <Link to="/membership">See the plans</Link>
+              <Link to="/membership">{cs ? "Prohlédnout členství" : "See the plans"}</Link>
             </Button>
           )}
         </div>
@@ -95,29 +99,29 @@ function AccountMembershipPage() {
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="overflow-hidden rounded-3xl border border-ink/40">
             <div className="bg-ink px-6 py-5 text-ink-foreground">
-              <p className="eyebrow text-accent">Current plan</p>
+              <p className="eyebrow text-accent">{cs ? "Současné členství" : "Current plan"}</p>
               <p className="mt-1 font-display text-2xl font-extrabold">{data.membership.planName}</p>
             </div>
             <div className="space-y-4 p-6">
-              <StatusPill tone="success">{renewalStatus?.renewalCancelled ? "Active · renewal cancelled" : data.membership.status}</StatusPill>
+              <StatusPill tone="success">{renewalStatus?.renewalCancelled ? (cs ? "Aktivní · obnovení zrušeno" : "Active · renewal cancelled") : cs && data.membership.status === "active" ? "Aktivní" : data.membership.status}</StatusPill>
               {renewalStatus?.renewalCancelled && (
                 <p className="text-sm text-muted-foreground">
-                  Your membership stays active until {renewalStatus.cancelsAt
-                    ? new Date(renewalStatus.cancelsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
-                    : "the end of your paid period"}. It will not renew automatically.
+                  {cs ? "Vaše členství zůstává aktivní do " : "Your membership stays active until "}{renewalStatus.cancelsAt
+                    ? new Date(renewalStatus.cancelsAt).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
+                    : cs ? "konce zaplaceného období" : "the end of your paid period"}. {cs ? "Automaticky se neobnoví." : "It will not renew automatically."}
                 </p>
               )}
               {renewalStatus?.nextBillingAt && (
                 <p className="text-sm text-muted-foreground">
-                  Next billing date: {new Date(renewalStatus.nextBillingAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.
+                  {cs ? "Další platba: " : "Next billing date: "}{new Date(renewalStatus.nextBillingAt).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })}.
                 </p>
               )}
-              {renewalLoading && <p className="text-xs text-muted-foreground">Checking renewal status…</p>}
-              {renewalError && <p className="text-xs text-muted-foreground">Renewal status is unavailable right now. Refresh this page or contact CometX.</p>}
+              {renewalLoading && <p className="text-xs text-muted-foreground">{cs ? "Ověřujeme obnovení členství…" : "Checking renewal status…"}</p>}
+              {renewalError && <p className="text-xs text-muted-foreground">{cs ? "Údaje o obnovení nyní nejsou dostupné. Obnovte stránku nebo kontaktujte CometX." : "Renewal status is unavailable right now. Refresh this page or contact CometX."}</p>}
               {data.membership.endsAt && !renewalStatus?.renewalCancelled && !renewalStatus?.nextBillingAt && (
                 <p className="text-sm text-muted-foreground">
-                  Valid until{" "}
-                  {new Date(data.membership.endsAt).toLocaleDateString("en-GB", {
+                  {cs ? "Platné do" : "Valid until"}{" "}
+                  {new Date(data.membership.endsAt).toLocaleDateString(locale, {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
@@ -126,35 +130,35 @@ function AccountMembershipPage() {
               )}
               {data.membership.canManageBilling ? (
                 <Button variant="outlineInk" className="w-full" disabled={portalMutation.isPending} onClick={() => portalMutation.mutate()}>
-                  {portalMutation.isPending ? "Opening billing…" : "Manage or cancel membership"}
+                  {portalMutation.isPending ? (cs ? "Otevíráme správu plateb…" : "Opening billing…") : (cs ? "Spravovat nebo zrušit členství" : "Manage or cancel membership")}
                 </Button>
               ) : (
                 <Button asChild variant="outlineInk" className="w-full">
-                  <Link to="/membership">See membership plans</Link>
+                  <Link to="/membership">{cs ? "Prohlédnout členství" : "See membership plans"}</Link>
                 </Button>
               )}
             </div>
           </div>
 
           <div>
-            <h3 className="font-display text-lg font-bold">What is included</h3>
+            <h3 className="font-display text-lg font-bold">{cs ? "Co členství zahrnuje" : "What is included"}</h3>
             <ul className="mt-5 divide-y divide-border border-y border-border">
               {data.membership.benefits.map((benefit) => (
                 <li key={benefit.key} className="py-4 text-sm">
-                  {formatMembershipBenefit(benefit)}
+                  {formatMembershipBenefit(benefit, language)}
                   {benefit.key === "workshop_credit" && (
                     <span className="mt-1 block text-xs text-muted-foreground">
                       {creditLoading
-                        ? "Checking your workshop credit…"
+                        ? (cs ? "Ověřujeme kredit na workshop…" : "Checking your workshop credit…")
                         : creditError
-                          ? "Credit status is unavailable right now. Please refresh to try again."
+                          ? (cs ? "Stav kreditu nyní není dostupný. Zkuste stránku obnovit." : "Credit status is unavailable right now. Please refresh to try again.")
                           : workshopCredit?.state === "available"
-                            ? `Available — choose when to use your CHF ${workshopCredit.amount} credit in the ticket cart.`
+                            ? (cs ? `Dostupný — v košíku si sami zvolíte, kdy kredit CHF ${workshopCredit.amount} využít.` : `Available — choose when to use your CHF ${workshopCredit.amount} credit in the ticket cart.`)
                             : workshopCredit?.state === "used"
-                              ? "Used — your one-time workshop credit was applied to a completed ticket purchase."
+                              ? (cs ? "Využitý — jednorázový kredit byl uplatněn při dokončeném nákupu vstupenky." : "Used — your one-time workshop credit was applied to a completed ticket purchase.")
                               : workshopCredit?.state === "reserved"
-                                ? "Temporarily reserved by a checkout. If payment is not completed, the credit becomes available again when that checkout expires."
-                              : "This credit is not available with your current membership."}
+                                ? (cs ? "Dočasně rezervovaný pro rozpracovanou platbu. Pokud platbu nedokončíte, po vypršení rezervace bude znovu dostupný." : "Temporarily reserved by a checkout. If payment is not completed, the credit becomes available again when that checkout expires.")
+                              : (cs ? "Tento kredit není součástí vašeho členství." : "This credit is not available with your current membership.")}
                     </span>
                   )}
                 </li>

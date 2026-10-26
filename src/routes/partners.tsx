@@ -87,8 +87,8 @@ function PartnersPage() {
         <div className="mt-12 border-t border-border pt-8 text-sm text-muted-foreground">
           <p>{cs ? "Máte zájem o spolupráci s CometX?" : "Interested in working with CometX?"}</p>
           <p className="mt-2">
-            Czech Republic: <a href="mailto:jan.mastny@cometx.ch" className="underline underline-offset-4">Jan Mastný</a>
-            {" · "}Slovakia: <a href="mailto:gleb.kopylov@cometx.ch" className="underline underline-offset-4">Gleb Kopylov</a>
+            {cs ? "Česko" : "Czech Republic"}: <a href="mailto:jan.mastny@cometx.ch" className="underline underline-offset-4">Jan Mastný</a>
+            {" · "}{cs ? "Slovensko" : "Slovakia"}: <a href="mailto:gleb.kopylov@cometx.ch" className="underline underline-offset-4">Gleb Kopylov</a>
           </p>
         </div>
       </Section>
