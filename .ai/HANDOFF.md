@@ -1045,3 +1045,11 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - `pnpm --ignore-workspace build` passes. `git -c core.whitespace=cr-at-eol diff --check` passes. Targeted ESLint reports extensive Prettier-formatting violations in the legacy admin components (433); no broad reformat was applied. Tests were not run.
 - Promoted the ready Preview to Vercel Production as deployment `E48a54rbN`; it is Ready and assigned to `cometx-prototype.vercel.app`.
 - Live `/admin/events/new` shows the CZ/EN create form and the benefit-catalog link. Live “Co AI nevyřeší” Tickets editor shows plan prices matching checkout rules (CHF 315 for all three active plans on the saved ticket) and optional workshop credits of CHF 100 / CHF 300. Read-only verification only; no event or plan data was saved.
+
+## 2026-10-26: separate issued-ticket and legacy-registration counts (Production)
+
+- Follow-up task `BOSS-P0-EVENT-TICKET-ENTITLEMENTS-01`; commit `d8ec1f7` on `codex/event-ticket-membership-entitlements-20261026`.
+- Event list, event overview and ticket rows now distinguish **Tickets issued** (valid/checked-in attendee records, same as the Guests roster), **Legacy registrations** (confirmed/checked-in older registration records), and **Capacity committed** (confirmed/free order quantities plus legacy registrations). Revenue remains separate. No schema, order, checkout or event data changed.
+- `pnpm --ignore-workspace build` passes. `git -c core.whitespace=cr-at-eol diff --check` passes. Tests were not run.
+- Vercel Production deployment `7xjQw8YPr` is Ready and assigned to `cometx-prototype.vercel.app`.
+- Live event `/admin/events/eac9321a-4ed4-43db-80b0-6aab118c4e17` verified read-only: overview shows 0 issued tickets, 1 legacy registration, 1/20 capacity committed and CHF 0; Orders shows 0 orders; Guests shows 0 issued tickets; ticket row shows the same issued/legacy/capacity breakdown. No database records were modified.
