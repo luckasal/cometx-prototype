@@ -28,6 +28,7 @@ type PartnerForm = {
   website_url: string;
   logo_url: string;
   description: string;
+  description_en: string;
   active: boolean;
 };
 
@@ -40,6 +41,7 @@ const empty: PartnerForm = {
   website_url: "",
   logo_url: "",
   description: "",
+  description_en: "",
   active: true,
 };
 
@@ -108,6 +110,7 @@ function AdminPartnersPage() {
           website_url: nullable(form.website_url),
           logo_url: nullable(form.logo_url),
           description: nullable(form.description),
+          description_en: nullable(form.description_en),
           active: form.active,
         },
       }),
@@ -283,6 +286,7 @@ function AdminPartnersPage() {
                             website_url: partner.website_url ?? "",
                             logo_url: partner.logo_url ?? "",
                             description: partner.description ?? "",
+                            description_en: partner.description_en ?? "",
                             active: partner.active,
                           })
                         }
@@ -431,7 +435,7 @@ function AdminPartnersPage() {
                 </div>
               </div>
             )}
-            <Field label="Description">
+            <Field label="Description (CZ)">
               <textarea
                 className={textareaClass}
                 value={form.description}
@@ -441,6 +445,9 @@ function AdminPartnersPage() {
                 Shown on the public Partners page. Event pages currently show linked partner names
                 only.
               </span>
+            </Field>
+            <Field label="Description (EN)">
+              <textarea className={textareaClass} value={form.description_en} onChange={(event) => setForm({ ...form, description_en: event.target.value })} />
             </Field>
             <label className="flex items-center gap-2 text-sm">
               <input

@@ -1003,6 +1003,7 @@ const partnerSchema = z.object({
   website_url: z.string().url().nullable().default(null),
   logo_url: z.string().url().nullable().default(null),
   description: z.string().max(3000).nullable().default(null),
+  description_en: z.string().max(3000).nullable().default(null),
   active: z.boolean().default(true),
 }).refine(
   (partner) =>

@@ -86,7 +86,7 @@ export const listPartners = createServerFn({ method: "GET" }).handler(async () =
   const { getPublicClient, assertDatabaseResult } = await import("./database.server");
   const { data, error } = await getPublicClient()
     .from("partners")
-    .select("id,name,description,tier,website_url,logo_url")
+    .select("id,name,description,description_en,tier,website_url,logo_url")
     .eq("active", true)
     .order("name");
   assertDatabaseResult({ error });

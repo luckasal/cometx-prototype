@@ -416,6 +416,7 @@ export type Database = {
           collaboration_start_date: string | null
           created_at: string
           description: string | null
+          description_en: string | null
           id: string
           logo_url: string | null
           name: string
@@ -429,6 +430,7 @@ export type Database = {
           collaboration_start_date?: string | null
           created_at?: string
           description?: string | null
+          description_en?: string | null
           id?: string
           logo_url?: string | null
           name: string
@@ -442,6 +444,7 @@ export type Database = {
           collaboration_start_date?: string | null
           created_at?: string
           description?: string | null
+          description_en?: string | null
           id?: string
           logo_url?: string | null
           name?: string

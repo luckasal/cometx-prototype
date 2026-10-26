@@ -66,8 +66,8 @@ function PartnersPage() {
                   <h2 className="font-display text-xl font-bold">{partner.name}</h2>
                   <StatusPill tone="muted">{partner.tier}</StatusPill>
                 </div>
-                {partner.description && (
-                  <p className="mt-3 flex-1 text-sm text-muted-foreground">{partner.description}</p>
+                {(partner.description || partner.description_en) && (
+                  <p className="mt-3 flex-1 text-sm text-muted-foreground">{!cs && partner.description_en?.trim() ? partner.description_en : partner.description}</p>
                 )}
                 {partner.website_url && (
                   <a
