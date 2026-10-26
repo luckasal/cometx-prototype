@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-26: safe custom benefit removal
+
+- Task `MEMBERSHIP-CUSTOM-BENEFIT-DELETE-20261026`; implementation commit `e4136e6` on `codex/event-ticket-membership-entitlements-20261026`.
+- Added Delete custom benefit in Membership benefits. The server permits deletion only for non-catalog benefits with no plan assignment or ticket/article reference; it reports the dependency to remove otherwise. No schema or current benefit data changed.
+- Local production build and diff check passed. Vercel Preview `AcVg94JfHPg8ia8X42pjUtDB14v9` and Production `7deKZdqD5nxz7nvCHhGqWUbNcoUX` are Ready; Production is assigned to `cometx-prototype.vercel.app`. The live `test_benefit` editor shows Delete custom benefit and its existing Fanoušek assignment; no deletion was attempted.
+
 ## 2026-10-26: event ticket entitlement editor cleanup
 
 - Task `EVENT-TICKET-ENTITLEMENT-UX-20261026`; implementation commit `66a8945` on `codex/event-ticket-membership-entitlements-20261026`.
