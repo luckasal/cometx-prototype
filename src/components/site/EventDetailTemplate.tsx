@@ -31,7 +31,23 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
   const cs = language === "cs";
   const [quantities,setQuantities]=useState<Record<string,number>>({});
   const memberPricesSent = useRef(new Set<string>());
-  const { event, tickets, speakers, workshops, partners } = data;
+  const localized = (cz: string | null, en: string | null) => !cs && en?.trim() ? en : cz;
+  const { speakers, partners } = data;
+  const event = {
+    ...data.event,
+    title: localized(data.event.title, data.event.titleEn) ?? data.event.title,
+    shortDescription: localized(data.event.shortDescription, data.event.shortDescriptionEn),
+    description: localized(data.event.description, data.event.descriptionEn),
+    venue: localized(data.event.venue, data.event.venueEn),
+    address: localized(data.event.address, data.event.addressEn),
+  };
+  // Keep the original ticket name for availability, early-bird rules and analytics.
+  const tickets = data.tickets;
+  const workshops = data.workshops.map((workshop) => ({ ...workshop,
+    title: localized(workshop.title, workshop.titleEn) ?? workshop.title,
+    description: localized(workshop.description, workshop.descriptionEn),
+    location: localized(workshop.location, workshop.locationEn),
+  }));
   useEffect(() => {
     if (!data.isSignedIn) return;
     for (const ticket of tickets) {
@@ -358,8 +374,8 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                               {isEarlyBird && <span className="rounded-full bg-accent px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-accent-foreground">{cs ? "Předprodej" : "Early bird"}</span>}
                               {availability === "available" && <span className="rounded-full border border-accent/50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-accent">{cs ? "K dispozici" : "Available"}</span>}
                             </div>
-                            <h4 className="mt-3 text-lg font-bold leading-snug">{ticket.name}</h4>
-                            {ticket.description && <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{ticket.description}</p>}
+                            <h4 className="mt-3 text-lg font-bold leading-snug">{localized(ticket.name, ticket.nameEn)}</h4>
+                            {localized(ticket.description, ticket.descriptionEn) && <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{localized(ticket.description, ticket.descriptionEn)}</p>}
                           </div>
                           {ticket.spotsLeft !== null && availability === "available" && <p className="text-xs text-muted-foreground">{cs ? `Zbývá ${ticket.spotsLeft} míst` : `${ticket.spotsLeft} places left`}</p>}
                         </div>
@@ -419,7 +435,7 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                         )}
                         <label className="mx-5 mt-5 flex items-center justify-between gap-3 border-t border-border/70 pt-4 text-sm">
                           <span className="font-medium">{cs ? "Počet vstupenek" : "Quantity"}</span>
-                          <select aria-label={cs ? `Počet vstupenek: ${ticket.name}` : `Ticket quantity: ${ticket.name}`} className="min-h-11 min-w-20 rounded-xl border border-border bg-background px-3 text-center font-semibold" value={quantity}
+                          <select aria-label={cs ? `Počet vstupenek: ${ticket.name}` : `Ticket quantity: ${localized(ticket.name, ticket.nameEn)}`} className="min-h-11 min-w-20 rounded-xl border border-border bg-background px-3 text-center font-semibold" value={quantity}
                             disabled={availability !== "available"}
                             onChange={e => {
                               const next = Math.min(Number(e.target.value), Math.max(0, 10 - otherQuantity));

@@ -66,6 +66,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" }).handler(async
 const eventSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().min(2).max(200),
+  title_en: z.string().max(200).nullable().default(null),
   event_type: z.enum(["regular_event", "symposium", "potlach", "workshop"]).default("regular_event"),
   slug: z
     .string()
@@ -73,13 +74,17 @@ const eventSchema = z.object({
     .max(200)
     .regex(/^[a-z0-9-]+$/, "Use lowercase letters, numbers and dashes only"),
   short_description: z.string().max(400).nullable().default(null),
+  short_description_en: z.string().max(400).nullable().default(null),
   description: z.string().max(20000).nullable().default(null),
+  description_en: z.string().max(20000).nullable().default(null),
   hero_image_url: z.union([z.string().url(), z.string().regex(/^\/assets\/cometx\/[a-z0-9._-]+\.(?:jpg|jpeg|png|webp)$/i)]).nullable().default(null),
   gallery_urls: z.array(z.union([z.string().url(), z.string().regex(/^\/assets\/cometx\/[a-z0-9._-]+\.(?:jpg|jpeg|png|webp)$/i)])).default([]),
   start_date: z.string().min(1),
   end_date: z.string().nullable().default(null),
   venue: z.string().max(200).nullable().default(null),
+  venue_en: z.string().max(200).nullable().default(null),
   address: z.string().max(300).nullable().default(null),
+  address_en: z.string().max(300).nullable().default(null),
   capacity: z.number().int().positive().nullable().default(null),
   registration_start: z.string().nullable().default(null),
   registration_end: z.string().nullable().default(null),
@@ -203,7 +208,9 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
             z.object({
               id: z.string().uuid().optional(),
               name: z.string().min(1).max(160),
+              name_en: z.string().max(160).nullable().default(null),
               description: z.string().max(500).nullable().default(null),
+              description_en: z.string().max(500).nullable().default(null),
               base_price: z.number().min(0),
               member_price: z.number().min(0).nullable().default(null),
               sale_start: z.string().datetime().nullable().default(null),
@@ -220,11 +227,14 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
         workshops: z.array(z.object({
           id: z.string().uuid().optional(),
           title: z.string().min(1).max(240),
+          title_en: z.string().max(240).nullable().default(null),
           description: z.string().max(5000).nullable().default(null),
+          description_en: z.string().max(5000).nullable().default(null),
           speaker_id: z.string().uuid().nullable().default(null),
           start_time: z.string().nullable().default(null),
           end_time: z.string().nullable().default(null),
           location: z.string().max(240).nullable().default(null),
+          location_en: z.string().max(240).nullable().default(null),
           capacity: z.number().int().positive().nullable().default(null),
           base_price: z.number().min(0).default(0),
           separate_registration_required: z.boolean().default(false),

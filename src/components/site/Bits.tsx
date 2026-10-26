@@ -121,17 +121,23 @@ export function EventCard({
 }: {
   event: {
     title: string;
+    title_en?: string | null;
     slug: string;
     short_description: string | null;
+    short_description_en?: string | null;
     hero_image_url: string | null;
     start_date: string;
     venue: string | null;
+    venue_en?: string | null;
     status: string;
     featured?: boolean;
   };
 }) {
   const { language } = useLanguage();
   const cs = language === "cs";
+  const title = !cs && event.title_en?.trim() ? event.title_en : event.title;
+  const description = !cs && event.short_description_en?.trim() ? event.short_description_en : event.short_description;
+  const venue = !cs && event.venue_en?.trim() ? event.venue_en : event.venue;
   const date = new Date(event.start_date);
   return (
     <Link
@@ -144,7 +150,7 @@ export function EventCard({
         {event.hero_image_url && (
           <img
             src={event.hero_image_url}
-            alt={event.title}
+            alt={title}
             className="brand-photo size-full transition-transform duration-500 group-hover:scale-[1.03]"
             loading="lazy"
           />
@@ -158,14 +164,14 @@ export function EventCard({
           {event.status === "registration_open" && <StatusPill tone="signal">{cs ? "V prodeji" : "Open"}</StatusPill>}
           {event.status === "completed" && <StatusPill tone="muted">{cs ? "Proběhla" : "Past"}</StatusPill>}
         </div>
-        <h3 className="mt-3 font-display text-xl font-bold leading-snug">{event.title}</h3>
-        {event.short_description && (
+        <h3 className="mt-3 font-display text-xl font-bold leading-snug">{title}</h3>
+        {description && (
           <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
-            {event.short_description}
+            {description}
           </p>
         )}
-        {event.venue && (
-          <p className="mt-4 text-xs text-muted-foreground">{event.venue}</p>
+        {venue && (
+          <p className="mt-4 text-xs text-muted-foreground">{venue}</p>
         )}
       </div>
     </Link>

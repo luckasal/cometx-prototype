@@ -23,16 +23,21 @@ import type { PreviewPlan } from "@/lib/event-ticket-preview";
 export type EventFormValues = {
   id?: string;
   title: string;
+  title_en: string;
   event_type: string;
   slug: string;
   short_description: string;
+  short_description_en: string;
   description: string;
+  description_en: string;
   hero_image_url: string;
   gallery_urls: string;
   start_date: string;
   end_date: string;
   venue: string;
+  venue_en: string;
   address: string;
+  address_en: string;
   capacity: string;
   registration_start: string;
   registration_end: string;
@@ -44,7 +49,9 @@ export type EventFormValues = {
 export type TicketDraft = {
   id?: string;
   name: string;
+  name_en: string;
   description: string;
+  description_en: string;
   base_price: string;
   member_price: string;
   sale_start: string;
@@ -59,11 +66,14 @@ export type TicketDraft = {
 export type WorkshopDraft = {
   id?: string;
   title: string;
+  title_en: string;
   description: string;
+  description_en: string;
   speaker_id: string;
   start_time: string;
   end_time: string;
   location: string;
+  location_en: string;
   capacity: string;
   base_price: string;
   separate_registration_required: boolean;
@@ -71,16 +81,21 @@ export type WorkshopDraft = {
 
 export const emptyEvent: EventFormValues = {
   title: "",
+  title_en: "",
   event_type: "regular_event",
   slug: "",
   short_description: "",
+  short_description_en: "",
   description: "",
+  description_en: "",
   hero_image_url: "",
   gallery_urls: "",
   start_date: "",
   end_date: "",
   venue: "",
+  venue_en: "",
   address: "",
+  address_en: "",
   capacity: "",
   registration_start: "",
   registration_end: "",
@@ -91,7 +106,9 @@ export const emptyEvent: EventFormValues = {
 
 export const emptyTicket: TicketDraft = {
   name: "",
+  name_en: "",
   description: "",
+  description_en: "",
   base_price: "0",
   member_price: "",
   sale_start: "",
@@ -104,7 +121,7 @@ export const emptyTicket: TicketDraft = {
 };
 
 export const emptyWorkshop: WorkshopDraft = {
-  title: "", description: "", speaker_id: "", start_time: "", end_time: "", location: "", capacity: "", base_price: "0", separate_registration_required: false,
+  title: "", title_en: "", description: "", description_en: "", speaker_id: "", start_time: "", end_time: "", location: "", location_en: "", capacity: "", base_price: "0", separate_registration_required: false,
 };
 
 const nullable = (value: string) => (value.trim() === "" ? null : value.trim());
@@ -174,16 +191,21 @@ export function EventForm({
           event: {
             ...(event.id ? { id: event.id } : {}),
             title: event.title.trim(),
+            title_en: nullable(event.title_en),
             event_type: event.event_type.trim(),
             slug: event.slug.trim(),
             short_description: nullable(event.short_description),
+            short_description_en: nullable(event.short_description_en),
             description: nullable(event.description),
+            description_en: nullable(event.description_en),
             hero_image_url: nullable(event.hero_image_url),
             gallery_urls: event.gallery_urls.split("\n").map((url) => url.trim()).filter(Boolean),
             start_date: new Date(event.start_date).toISOString(),
             end_date: isoOrNull(event.end_date),
             venue: nullable(event.venue),
+            venue_en: nullable(event.venue_en),
             address: nullable(event.address),
+            address_en: nullable(event.address_en),
             capacity: event.capacity.trim() === "" ? null : Number(event.capacity),
             registration_start: isoOrNull(registrationOpening),
             registration_end: isoOrNull(event.registration_end),
@@ -204,7 +226,9 @@ export function EventForm({
             .map((ticket) => ({
               ...(ticket.id ? { id: ticket.id } : {}),
               name: ticket.name.trim(),
+              name_en: nullable(ticket.name_en),
               description: nullable(ticket.description),
+              description_en: nullable(ticket.description_en),
               base_price: Number(ticket.base_price || 0),
               currency: ticket.currency,
               member_price: ticket.member_price.trim()==="" ? null : Number(ticket.member_price),
@@ -216,7 +240,7 @@ export function EventForm({
               free_entitlement: nullable(ticket.free_entitlement),
             })),
           workshops: workshops.filter((workshop) => workshop.title.trim() !== "").map((workshop) => ({
-            ...(workshop.id ? { id: workshop.id } : {}), title: workshop.title.trim(), description: nullable(workshop.description), speaker_id: nullable(workshop.speaker_id), start_time: isoOrNull(workshop.start_time), end_time: isoOrNull(workshop.end_time), location: nullable(workshop.location), capacity: workshop.capacity.trim() === "" ? null : Number(workshop.capacity), base_price: Number(workshop.base_price || 0), separate_registration_required: workshop.separate_registration_required,
+            ...(workshop.id ? { id: workshop.id } : {}), title: workshop.title.trim(), title_en: nullable(workshop.title_en), description: nullable(workshop.description), description_en: nullable(workshop.description_en), speaker_id: nullable(workshop.speaker_id), start_time: isoOrNull(workshop.start_time), end_time: isoOrNull(workshop.end_time), location: nullable(workshop.location), location_en: nullable(workshop.location_en), capacity: workshop.capacity.trim() === "" ? null : Number(workshop.capacity), base_price: Number(workshop.base_price || 0), separate_registration_required: workshop.separate_registration_required,
           })),
         } as never,
       }),
@@ -292,7 +316,7 @@ export function EventForm({
       <section hidden={!!section && section !== "content"} className="space-y-5 rounded-2xl border border-border/60 bg-card p-6">
         <h2 className="font-display text-lg font-bold">Basics</h2>
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Title">
+          <Field label="Title (CZ)">
             <input
               className={inputClass}
               value={event.title}
@@ -312,6 +336,7 @@ export function EventForm({
               }}
             />
           </Field>
+          <Field label="Title (EN)"><input className={inputClass} value={event.title_en} onChange={(e) => set("title_en", e.target.value)} /></Field>
           <Field label="Event type" hint="Membership pricing follows this category.">
             <select className={inputClass} value={event.event_type} onChange={(e) => set("event_type", e.target.value)}>
               <option value="regular_event">Regular event</option>
@@ -328,14 +353,15 @@ export function EventForm({
             />
           </Field>
         </div>
-        <Field label="Short description">
+        <Field label="Short description (CZ)">
           <input
             className={inputClass}
             value={event.short_description}
             onChange={(e) => set("short_description", e.target.value)}
           />
         </Field>
-        <Field label="Long description">
+        <Field label="Short description (EN)"><input className={inputClass} value={event.short_description_en} onChange={(e) => set("short_description_en", e.target.value)} /></Field>
+        <Field label="Long description (CZ)">
           <p className="mb-2 text-xs text-muted-foreground">Optional sections: start a line with ## What to expect, ## Who is this event for? or ## Practical information (Czech headings also work). Use - for bullet points. Empty sections stay hidden. Save to update an open preview.</p>
           <textarea
             className={textareaClass}
@@ -344,6 +370,7 @@ export function EventForm({
             onChange={(e) => set("description", e.target.value)}
           />
         </Field>
+        <Field label="Long description (EN)"><textarea className={textareaClass} rows={8} value={event.description_en} onChange={(e) => set("description_en", e.target.value)} /></Field>
         <div className="space-y-4 rounded-xl border border-border bg-background p-4">
           <h3 className="font-display text-lg font-bold">Main event photo</h3>
           {event.hero_image_url && <div className="space-y-2">
@@ -400,20 +427,22 @@ export function EventForm({
               onChange={(e) => set("end_date", e.target.value)}
             />
           </Field>
-          <Field label="Venue">
+          <Field label="Venue (CZ)">
             <input
               className={inputClass}
               value={event.venue}
               onChange={(e) => set("venue", e.target.value)}
             />
           </Field>
-          <Field label="Address">
+          <Field label="Venue (EN)"><input className={inputClass} value={event.venue_en} onChange={(e) => set("venue_en", e.target.value)} /></Field>
+          <Field label="Address (CZ)">
             <input
               className={inputClass}
               value={event.address}
               onChange={(e) => set("address", e.target.value)}
             />
           </Field>
+          <Field label="Address (EN)"><input className={inputClass} value={event.address_en} onChange={(e) => set("address_en", e.target.value)} /></Field>
         </div>
       </section>
 
@@ -570,13 +599,14 @@ export function EventForm({
                   }), ticket.sale_start || null, false) ?? "On sale now (subject to capacity and buyer eligibility)."}
             </p>
             <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr_1fr]">
-              <Field label="Name">
+              <Field label="Name (CZ)">
                 <input
                   className={inputClass}
                   value={ticket.name}
                   onChange={(e) => setTicket(index, "name", e.target.value)}
                 />
               </Field>
+              <Field label="Name (EN)"><input className={inputClass} value={ticket.name_en} onChange={(e) => setTicket(index, "name_en", e.target.value)} /></Field>
               <Field label="Public price">
                 <input
                   type="number"
@@ -598,13 +628,14 @@ export function EventForm({
               </Field>
               <Field label="Currency"><select className={inputClass} value={ticket.currency} onChange={e=>setTicket(index,"currency",e.target.value)}>{["CHF","EUR","USD","GBP","CZK"].map(c=><option key={c}>{c}</option>)}</select></Field>
             </div>
-            <Field label="Description">
+            <Field label="Description (CZ)">
               <input
                 className={inputClass}
                 value={ticket.description}
                 onChange={(e) => setTicket(index, "description", e.target.value)}
               />
             </Field>
+            <Field label="Description (EN)"><input className={inputClass} value={ticket.description_en} onChange={(e) => setTicket(index, "description_en", e.target.value)} /></Field>
             <details className="rounded-xl border border-border bg-card p-4">
               <summary className="cursor-pointer font-semibold">Ticket sale dates {ticket.sale_start || ticket.sale_end ? "· custom" : "· use event dates"}</summary>
               <p className="mt-3 text-xs text-muted-foreground">Optional. Leave blank to use the event sales window above. The earliest ticket opening also sets the event opening.</p>
@@ -655,6 +686,7 @@ export function EventForm({
         <div className="flex items-center justify-between"><h2 className="font-display text-lg font-bold">Programme and workshops</h2><Button type="button" variant="outlineInk" size="sm" onClick={() => setWorkshops((previous) => [...previous, { ...emptyWorkshop }])}>Add workshop</Button></div>
         {workshops.length === 0 && <p className="text-sm text-muted-foreground">Optional. Add workshops or programme sessions shown on the public event page.</p>}
         {workshops.map((workshop, index) => <div key={workshop.id ?? index} className="space-y-4 border-t border-border pt-5"><div className="grid gap-4 sm:grid-cols-2"><Field label="Title"><input className={inputClass} value={workshop.title} onChange={(event) => setWorkshop(index, "title", event.target.value)} /></Field><Field label="Speaker"><select className={inputClass} value={workshop.speaker_id} onChange={(event) => setWorkshop(index, "speaker_id", event.target.value)}><option value="">No speaker</option>{speakers.map((speaker: EventSpeakerOption) => <option key={speaker.id} value={speaker.id}>{speaker.name}</option>)}</select></Field><Field label="Start"><input type="datetime-local" className={inputClass} value={workshop.start_time} onChange={(event) => setWorkshop(index, "start_time", event.target.value)} /></Field><Field label="End"><input type="datetime-local" className={inputClass} value={workshop.end_time} onChange={(event) => setWorkshop(index, "end_time", event.target.value)} /></Field><Field label="Location"><input className={inputClass} value={workshop.location} onChange={(event) => setWorkshop(index, "location", event.target.value)} /></Field><Field label="Capacity"><input type="number" min={1} className={inputClass} value={workshop.capacity} onChange={(event) => setWorkshop(index, "capacity", event.target.value)} /></Field></div><Field label="Description"><textarea className={textareaClass} value={workshop.description} onChange={(event) => setWorkshop(index, "description", event.target.value)} /></Field><div className="flex flex-wrap items-end justify-between gap-4"><Field label="Price (CHF)" className="w-40"><input type="number" min={0} className={inputClass} value={workshop.base_price} onChange={(event) => setWorkshop(index, "base_price", event.target.value)} /></Field><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={workshop.separate_registration_required} onChange={(event) => setWorkshop(index, "separate_registration_required", event.target.checked)} />Separate registration required</label><button type="button" className="text-xs text-destructive underline" onClick={() => setWorkshops((previous) => previous.filter((_, workshopIndex) => workshopIndex !== index))}>Remove</button></div></div>)}
+        {workshops.map((workshop, index) => <details key={`translation-${workshop.id ?? index}`} className="rounded-xl border border-border p-4"><summary className="cursor-pointer font-semibold">English copy: {workshop.title || `Workshop ${index + 1}`}</summary><div className="mt-4 grid gap-4 sm:grid-cols-2"><Field label="Title (EN)"><input className={inputClass} value={workshop.title_en} onChange={(e) => setWorkshop(index, "title_en", e.target.value)} /></Field><Field label="Location (EN)"><input className={inputClass} value={workshop.location_en} onChange={(e) => setWorkshop(index, "location_en", e.target.value)} /></Field></div><Field label="Description (EN)"><textarea className={textareaClass} value={workshop.description_en} onChange={(e) => setWorkshop(index, "description_en", e.target.value)} /></Field></details>)}
       </section>
 
       <p className="text-sm text-muted-foreground">Saving applies changes across Tickets, Settings and Edit content. Save before opening the public preview. Save draft also changes the publication state to draft.</p>

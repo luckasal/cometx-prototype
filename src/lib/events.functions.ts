@@ -22,7 +22,9 @@ const checkoutSchema = z.object({
 export type EventTicketOption = {
   id: string;
   name: string;
+  nameEn: string | null;
   description: string | null;
+  descriptionEn: string | null;
   memberPrice: number | null;
   saleStart: string | null;
   saleEnd: string | null;
@@ -36,16 +38,21 @@ export type EventDetail = {
   event: {
     id: string;
     title: string;
+    titleEn: string | null;
     slug: string;
     eventType: string;
     shortDescription: string | null;
+    shortDescriptionEn: string | null;
     description: string | null;
+    descriptionEn: string | null;
     heroImageUrl: string | null;
     galleryUrls: string[];
     startDate: string;
     endDate: string | null;
     venue: string | null;
+    venueEn: string | null;
     address: string | null;
+    addressEn: string | null;
     capacity: number | null;
     status: string;
     featured: boolean;
@@ -65,9 +72,12 @@ export type EventDetail = {
   workshops: {
     id: string;
     title: string;
+    titleEn: string | null;
     description: string | null;
+    descriptionEn: string | null;
     startTime: string | null;
     location: string | null;
+    locationEn: string | null;
     basePrice: number;
     speakerName: string | null;
   }[];
@@ -125,7 +135,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
         .order("sort_order"),
       supabaseAdmin
         .from("workshops")
-        .select("id,title,description,start_time,location,base_price,speakers(name)")
+        .select("id,title,title_en,description,description_en,start_time,location,location_en,base_price,speakers(name)")
         .eq("event_id", event.id)
         .order("start_time"),
       supabaseAdmin
@@ -194,7 +204,9 @@ export const getEventDetail = createServerFn({ method: "GET" })
       return {
         id: ticket.id,
         name: ticket.name,
+        nameEn: ticket.name_en,
         description: ticket.description,
+        descriptionEn: ticket.description_en,
         memberPrice: ticket.member_price === null || ticket.member_price === undefined ? null : Number(ticket.member_price),
         saleStart: ticket.sale_start,
         saleEnd: ticket.sale_end,
@@ -211,16 +223,21 @@ export const getEventDetail = createServerFn({ method: "GET" })
       event: {
         id: event.id,
         title: event.title,
+        titleEn: event.title_en,
         slug: event.slug,
         eventType: event.event_type,
         shortDescription: event.short_description,
+        shortDescriptionEn: event.short_description_en,
         description: event.description,
+        descriptionEn: event.description_en,
         heroImageUrl: event.hero_image_url,
         galleryUrls: Array.isArray(event.gallery_urls) ? event.gallery_urls.filter((url): url is string => typeof url === "string") : [],
         startDate: event.start_date,
         endDate: event.end_date,
         venue: event.venue,
+        venueEn: event.venue_en,
         address: event.address,
+        addressEn: event.address_en,
         capacity: event.capacity,
         status: event.event_status,
         featured: event.featured,
@@ -243,9 +260,12 @@ export const getEventDetail = createServerFn({ method: "GET" })
       workshops: (workshopsRes.data ?? []).map((w) => ({
         id: w.id,
         title: w.title,
+        titleEn: w.title_en,
         description: w.description,
+        descriptionEn: w.description_en,
         startTime: w.start_time,
         location: w.location,
+        locationEn: w.location_en,
         basePrice: Number(w.base_price),
         speakerName: w.speakers?.name ?? null,
       })),

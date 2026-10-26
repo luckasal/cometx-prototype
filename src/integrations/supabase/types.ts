@@ -157,9 +157,11 @@ export type Database = {
       events: {
         Row: {
           address: string | null
+          address_en: string | null
           capacity: number | null
           created_at: string
           description: string | null
+          description_en: string | null
           end_date: string | null
           event_type: string
           event_status: Database["public"]["Enums"]["event_operational_status"]
@@ -171,18 +173,23 @@ export type Database = {
           registration_start: string | null
           publish_state: Database["public"]["Enums"]["event_publish_state"]
           short_description: string | null
+          short_description_en: string | null
           slug: string
           start_date: string
           status: Database["public"]["Enums"]["event_status"]
           title: string
+          title_en: string | null
           updated_at: string
           venue: string | null
+          venue_en: string | null
         }
         Insert: {
           address?: string | null
+          address_en?: string | null
           capacity?: number | null
           created_at?: string
           description?: string | null
+          description_en?: string | null
           end_date?: string | null
           event_type?: string
           event_status?: Database["public"]["Enums"]["event_operational_status"]
@@ -194,18 +201,23 @@ export type Database = {
           registration_start?: string | null
           publish_state?: Database["public"]["Enums"]["event_publish_state"]
           short_description?: string | null
+          short_description_en?: string | null
           slug: string
           start_date: string
           status?: Database["public"]["Enums"]["event_status"]
           title: string
+          title_en?: string | null
           updated_at?: string
           venue?: string | null
+          venue_en?: string | null
         }
         Update: {
           address?: string | null
+          address_en?: string | null
           capacity?: number | null
           created_at?: string
           description?: string | null
+          description_en?: string | null
           end_date?: string | null
           event_type?: string
           event_status?: Database["public"]["Enums"]["event_operational_status"]
@@ -217,12 +229,15 @@ export type Database = {
           registration_start?: string | null
           publish_state?: Database["public"]["Enums"]["event_publish_state"]
           short_description?: string | null
+          short_description_en?: string | null
           slug?: string
           start_date?: string
           status?: Database["public"]["Enums"]["event_status"]
           title?: string
+          title_en?: string | null
           updated_at?: string
           venue?: string | null
+          venue_en?: string | null
         }
         Relationships: []
       }
@@ -617,11 +632,13 @@ export type Database = {
           created_at: string
           currency: string
           description: string | null
+          description_en: string | null
           discount_entitlement: string | null
           event_id: string
           free_entitlement: string | null
           id: string
           name: string
+          name_en: string | null
           required_entitlement: string | null
           sort_order: number
         }
@@ -635,11 +652,13 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          description_en?: string | null
           discount_entitlement?: string | null
           event_id: string
           free_entitlement?: string | null
           id?: string
           name: string
+          name_en?: string | null
           required_entitlement?: string | null
           sort_order?: number
         }
@@ -653,11 +672,13 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          description_en?: string | null
           discount_entitlement?: string | null
           event_id?: string
           free_entitlement?: string | null
           id?: string
           name?: string
+          name_en?: string | null
           required_entitlement?: string | null
           sort_order?: number
         }
@@ -719,42 +740,51 @@ export type Database = {
           capacity: number | null
           created_at: string
           description: string | null
+          description_en: string | null
           end_time: string | null
           event_id: string
           id: string
           location: string | null
+          location_en: string | null
           separate_registration_required: boolean
           speaker_id: string | null
           start_time: string | null
           title: string
+          title_en: string | null
         }
         Insert: {
           base_price?: number
           capacity?: number | null
           created_at?: string
           description?: string | null
+          description_en?: string | null
           end_time?: string | null
           event_id: string
           id?: string
           location?: string | null
+          location_en?: string | null
           separate_registration_required?: boolean
           speaker_id?: string | null
           start_time?: string | null
           title: string
+          title_en?: string | null
         }
         Update: {
           base_price?: number
           capacity?: number | null
           created_at?: string
           description?: string | null
+          description_en?: string | null
           end_time?: string | null
           event_id?: string
           id?: string
           location?: string | null
+          location_en?: string | null
           separate_registration_required?: boolean
           speaker_id?: string | null
           start_time?: string | null
           title?: string
+          title_en?: string | null
         }
         Relationships: [
           {

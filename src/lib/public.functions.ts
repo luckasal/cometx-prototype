@@ -19,7 +19,7 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
   const [events, featured, articles, partners, plans] = await Promise.all([
     supabaseAdmin
       .from("events")
-      .select("title,slug,short_description,hero_image_url,start_date,venue,event_status,featured")
+      .select("title,title_en,slug,short_description,short_description_en,hero_image_url,start_date,venue,venue_en,event_status,featured")
       .eq("publish_state", "published")
       .in("event_status", ["upcoming", "registration_open", "registration_closed", "sold_out"])
       .gte("start_date", nowIso)
@@ -27,7 +27,7 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
       .limit(3),
     supabaseAdmin
       .from("events")
-      .select("title,slug,short_description,description,hero_image_url,start_date,venue,event_status")
+      .select("title,title_en,slug,short_description,short_description_en,description,description_en,hero_image_url,start_date,venue,venue_en,event_status")
       .eq("featured", true)
       .eq("publish_state", "published")
       .in("event_status", ["upcoming", "registration_open", "registration_closed", "sold_out", "completed", "cancelled"])
@@ -63,7 +63,7 @@ export const listEvents = createServerFn({ method: "GET" }).handler(async () => 
   const { data, error } = await getPublicClient()
     .from("events")
     .select(
-      "title,slug,short_description,hero_image_url,start_date,venue,event_status,featured,capacity",
+      "title,title_en,slug,short_description,short_description_en,hero_image_url,start_date,venue,venue_en,event_status,featured,capacity",
     )
     .eq("publish_state", "published")
     .order("start_date", { ascending: false });

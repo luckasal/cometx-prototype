@@ -113,22 +113,22 @@ function Home() {
                   {data.featured.hero_image_url && (
                     <img
                       src={data.featured.hero_image_url}
-                      alt={data.featured.title}
+                      alt={!cs && data.featured.title_en?.trim() ? data.featured.title_en : data.featured.title}
                       className="brand-photo size-full"
                     />
                   )}
                 </div>
                 <div className="flex flex-col justify-center p-8 lg:p-12">
                   <StatusPill tone="signal">{cs ? "Hlavní akce" : "Flagship event"}</StatusPill>
-                  <h2 className="display-lg mt-5">{data.featured.title}</h2>
-                   <p className="mt-4 text-muted-foreground">{data.featured.short_description}</p>
+                  <h2 className="display-lg mt-5">{!cs && data.featured.title_en?.trim() ? data.featured.title_en : data.featured.title}</h2>
+                  <p className="mt-4 text-muted-foreground">{!cs && data.featured.short_description_en?.trim() ? data.featured.short_description_en : data.featured.short_description}</p>
                   <p className="mt-6 text-sm text-muted-foreground">
                     {new Date(data.featured.start_date).toLocaleDateString(cs ? "cs-CZ" : "en-GB", {
                       day: "numeric",
                       month: "long",
                       year: "numeric",
                     })}
-                    {data.featured.venue ? ` - ${data.featured.venue}` : ""}
+                    {(cs ? data.featured.venue : data.featured.venue_en?.trim() || data.featured.venue) ? ` - ${cs ? data.featured.venue : data.featured.venue_en?.trim() || data.featured.venue}` : ""}
                   </p>
                   <div className="mt-8">
                     <Button asChild variant="ink" size="lg">

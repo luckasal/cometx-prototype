@@ -1006,3 +1006,10 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - Checks: two focused membership-benefit catalogue tests passed; changed TSX files had no TypeScript syntax diagnostics; `git -c core.whitespace=cr-at-eol diff --check` passed. Full typecheck could not run because this worktree has no local dependencies (`vite/client` missing).
 - Remaining: bilingual fields and save/read paths for editor-managed events, tickets, workshops, speakers, plans, partner descriptions and articles; shared error/status strings and further signed-in visual QA. Do not claim the entire site is bilingual or deploy this partial phase alone.
 
+# 2026-10-26: bilingual event content (local, release pending)
+
+- Branch: `codex/bilingual-content-20261026` in `cometx-partners-release`.
+- Added optional English fields for events, ticket types and workshops in migration `0023_bilingual_event_content.sql`, the admin event editor and public event views. Existing Czech fields remain the fallback; ticket pricing and checkout use the original ticket records.
+- Validation: `pnpm build` passes. `event-content` and `public-event-visibility` focused tests pass. Full typecheck reports existing errors in staff/admin/route code; full tests include missing local PGlite runtime fixtures. The event-template test also fails its data-URL React import in this checkout.
+- Release blocker: hosted Supabase migration has not been applied. The Supabase connector became unavailable during the task and local browser use is disabled, so the code must not be deployed first. Apply additive migration, verify columns, then deploy the matching commit to the canonical Production URL and smoke test event editor and public CZ/EN views. This does not complete bilingual editing for articles, plans, partners or other content types.
+

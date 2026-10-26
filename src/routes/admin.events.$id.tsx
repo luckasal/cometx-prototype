@@ -237,16 +237,21 @@ function EditEventPage() {
   const initialEvent: EventFormValues = {
     id: e.id,
     title: e.title,
+    title_en: e.title_en ?? "",
     event_type: e.event_type,
     slug: e.slug,
     short_description: e.short_description ?? "",
+    short_description_en: e.short_description_en ?? "",
     description: e.description ?? "",
+    description_en: e.description_en ?? "",
     hero_image_url: e.hero_image_url ?? "",
     gallery_urls: Array.isArray(e.gallery_urls) ? e.gallery_urls.filter((url): url is string => typeof url === "string").join("\n") : "",
     start_date: toLocalInput(e.start_date),
     end_date: toLocalInput(e.end_date),
     venue: e.venue ?? "",
+    venue_en: e.venue_en ?? "",
     address: e.address ?? "",
+    address_en: e.address_en ?? "",
     capacity: e.capacity === null ? "" : String(e.capacity),
     registration_start: toLocalInput(e.registration_start),
     registration_end: toLocalInput(e.registration_end),
@@ -258,7 +263,9 @@ function EditEventPage() {
   const initialTickets: TicketDraft[] = data.tickets.map((ticket) => ({
     id: ticket.id,
     name: ticket.name,
+    name_en: ticket.name_en ?? "",
     description: ticket.description ?? "",
+    description_en: ticket.description_en ?? "",
     base_price: String(Number(ticket.base_price)),
     member_price: ticket.member_price === null ? "" : String(ticket.member_price),
     sale_start: toLocalInput(ticket.sale_start),
@@ -270,7 +277,7 @@ function EditEventPage() {
     free_entitlement: ticket.free_entitlement ?? "",
   }));
   const initialWorkshops: WorkshopDraft[] = data.workshops.map((workshop) => ({
-    id: workshop.id, title: workshop.title, description: workshop.description ?? "", speaker_id: workshop.speaker_id ?? "", start_time: toLocalInput(workshop.start_time), end_time: toLocalInput(workshop.end_time), location: workshop.location ?? "", capacity: workshop.capacity === null ? "" : String(workshop.capacity), base_price: String(Number(workshop.base_price)), separate_registration_required: workshop.separate_registration_required,
+    id: workshop.id, title: workshop.title, title_en: workshop.title_en ?? "", description: workshop.description ?? "", description_en: workshop.description_en ?? "", speaker_id: workshop.speaker_id ?? "", start_time: toLocalInput(workshop.start_time), end_time: toLocalInput(workshop.end_time), location: workshop.location ?? "", location_en: workshop.location_en ?? "", capacity: workshop.capacity === null ? "" : String(workshop.capacity), base_price: String(Number(workshop.base_price)), separate_registration_required: workshop.separate_registration_required,
   }));
 
   return (
