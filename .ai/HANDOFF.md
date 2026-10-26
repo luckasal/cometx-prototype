@@ -1028,3 +1028,11 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - Live `events/co-ai-nevyresi?preview=false` displayed English title, descriptions, venue, ticket name, speaker role and speaker bio. Live admin creation forms showed CZ/EN fields for events and speakers, tickets, articles, structured content, plans, and partner descriptions. Workshop English copy is available in its expandable editor section.
 - No active partner descriptions or existing articles/structured content rows require backfill. The user can create and publish those records with CZ and EN copy from the live admin.
 
+## 2026-10-26: event ticket Checkout uses inline Stripe price_data (local)
+
+- Task `EVENT-DYNAMIC-TICKET-PRICEDATA-20261026`; implementation commit `587a800` on `codex/bilingual-published-events-20261026`.
+- The three event ticket Checkout paths now build inline `price_data` using saved Supabase ticket name, unit amount, currency and quantity. The server checks that order-item totals match the Supabase order/batch amount before creating a Checkout Session. Client input remains ticket IDs and quantities; Supabase RPCs calculate price and entitlements.
+- Removed event Product/Price creation and lookup from checkout, admin event save/publish, and the Events catalog refresh action. Existing Stripe mapping rows/tables and Products/Prices were left untouched. Membership billing and ticket order/webhook fulfillment were not changed. No migration or payment transaction.
+- Focused tests passed: `ticket-order`, `ticket-cart`, `stripe-request`, and `stripe-webhook-event` (17/17). `ticket-database.test.mjs` could not start because the ignored `.test-runtime` PGlite package is absent. No full build was run for this request.
+- This replacement commit is local and not deployed. The preceding `b8aea0e` catalog-recovery commit had already been pushed under the earlier request; no further push or manual deployment was done after the user narrowed scope.
+
