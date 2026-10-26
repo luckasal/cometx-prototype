@@ -155,6 +155,7 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
         event: eventSchema,
         speakerIds: z.array(z.string().uuid()).default([]),
         newSpeakers: z.array(z.object({
+          client_id: z.string().uuid().optional(),
           name: z.string().trim().min(2).max(160),
           job_title: z.string().max(160).nullable().default(null),
           job_title_en: z.string().max(160).nullable().default(null),
@@ -254,20 +255,29 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
         assertDatabaseResult(await db.from("workshops").delete().eq("id", workshop.id));
       }
     }
+    const workshopIds: string[] = [];
+    const pendingWorkshopSpeakers: { workshopId: string; clientId: string }[] = [];
     for (const workshop of data.workshops) {
       const { id: workshopId, ...workshopFields } = workshop;
-      const payload = { ...workshopFields, event_id: saved.id };
-      if (workshopId) assertDatabaseResult(await db.from("workshops").update(payload).eq("id", workshopId).eq("event_id", saved.id));
-      else assertDatabaseResult(await db.from("workshops").insert(payload));
+      const pendingSpeaker = data.newSpeakers.find((speaker) => speaker.client_id === workshopFields.speaker_id);
+      const payload = { ...workshopFields, speaker_id: pendingSpeaker ? null : workshopFields.speaker_id, event_id: saved.id };
+      const result = workshopId
+        ? await db.from("workshops").update(payload).eq("id", workshopId).eq("event_id", saved.id).select("id").single()
+        : await db.from("workshops").insert(payload).select("id").single();
+      assertDatabaseResult(result);
+      if (!result.data) throw new Error("Workshop could not be saved.");
+      workshopIds.push(result.data.id);
+      if (pendingSpeaker?.client_id) pendingWorkshopSpeakers.push({ workshopId: result.data.id, clientId: pendingSpeaker.client_id });
     }
 
     // Create event-owned profiles only at the end of the event save. If their
     // event link fails, remove the new rows so no detached speaker records remain.
     const newSpeakerIds: string[] = [];
     if (data.newSpeakers.length) {
-      const speakerRows = data.newSpeakers.map((draft: { name: string; job_title: string | null; job_title_en: string | null; company: string | null; bio: string | null; bio_en: string | null; photo_url: string | null }) => {
+      const speakerRows = data.newSpeakers.map((draft) => {
+        const { client_id: _clientId, ...fields } = draft;
         const slugStem = draft.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "speaker";
-        return { ...draft, event_id: saved.id, slug: `${slugStem.slice(0, 140)}-${crypto.randomUUID().slice(0, 8)}` };
+        return { ...fields, event_id: saved.id, slug: `${slugStem.slice(0, 140)}-${crypto.randomUUID().slice(0, 8)}` };
       });
       const { data: createdSpeakers, error: speakerError } = await db.from("speakers").insert(speakerRows).select("id");
       if (speakerError) throw new Error(speakerError.message);
@@ -295,9 +305,16 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
       if (removed.error) throw new Error("The event was saved, but removed speaker links could not be updated. Please save again.");
     }
 
+    const newSpeakerIdByDraft = new Map(data.newSpeakers.map((speaker, index) => [speaker.client_id, newSpeakerIds[index]]));
+    for (const pending of pendingWorkshopSpeakers) {
+      const speakerId = newSpeakerIdByDraft.get(pending.clientId);
+      if (!speakerId) throw new Error("The new workshop speaker could not be linked. Save the event again.");
+      assertDatabaseResult(await db.from("workshops").update({ speaker_id: speakerId }).eq("id", pending.workshopId).eq("event_id", saved.id));
+    }
+
     const updatedTickets = await db.from("ticket_types").select("id,sort_order").eq("event_id",saved.id).eq("active",true).order("sort_order");
     assertDatabaseResult(updatedTickets);
-    return { id: saved.id, slug: saved.slug, newSpeakerIds, ticketIds:(updatedTickets.data ?? []).map(t=>t.id) };
+    return { id: saved.id, slug: saved.slug, newSpeakerIds, workshopIds, ticketIds:(updatedTickets.data ?? []).map(t=>t.id) };
   });
 
 export const adminDeleteEvent = createServerFn({ method: "POST" })

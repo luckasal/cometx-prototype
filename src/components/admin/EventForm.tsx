@@ -161,7 +161,7 @@ export function EventForm({
   const [tickets, setTickets] = useState<TicketDraft[]>(initialTickets);
   const [speakerIds, setSpeakerIds] = useState<string[]>(initialSpeakerIds);
   const [speakerDraft, setSpeakerDraft] = useState({ name: "", job_title: "", job_title_en: "", company: "", bio: "", bio_en: "", photo_url: "" });
-  const [newSpeakers, setNewSpeakers] = useState<typeof speakerDraft[]>([]);
+  const [newSpeakers, setNewSpeakers] = useState<(typeof speakerDraft & { client_id: string })[]>([]);
   const [workshops, setWorkshops] = useState<WorkshopDraft[]>(initialWorkshops);
   const openingTicket = earliestTicketSaleStart(tickets.filter((ticket) => ticket.name.trim()));
   const registrationOpening = openingTicket?.sale_start || event.registration_start;
@@ -217,6 +217,7 @@ export function EventForm({
           },
           speakerIds,
           newSpeakers: newSpeakers.map((draft) => ({
+            client_id: draft.client_id,
             name: draft.name.trim(),
             job_title: nullable(draft.job_title),
             job_title_en: nullable(draft.job_title_en),
@@ -248,11 +249,17 @@ export function EventForm({
           })),
         } as never,
       }),
-    onSuccess: (saved: { id: string; slug: string; ticketIds: string[]; newSpeakerIds: string[] }, publishState: EventFormValues["publish_state"]) => {
+    onSuccess: (saved: { id: string; slug: string; ticketIds: string[]; workshopIds: string[]; newSpeakerIds: string[] }, publishState: EventFormValues["publish_state"]) => {
       toast.success("Event saved");
       setTickets(previous => previous.filter(t=>t.name.trim()!=="").map((t,i)=>({...(saved.ticketIds[i] ? {id:saved.ticketIds[i]} : {}),...t})));
       setEvent((previous) => ({ ...previous, id: saved.id, publish_state: publishState, registration_start: registrationOpening }));
       setSpeakerIds((previous) => [...previous, ...saved.newSpeakerIds]);
+      const newSpeakerIdByDraft = new Map(newSpeakers.map((speaker, index) => [speaker.client_id, saved.newSpeakerIds[index]]));
+      setWorkshops((previous) => previous.filter((workshop) => workshop.title.trim()).map((workshop, index) => ({
+        ...workshop,
+        ...(saved.workshopIds[index] ? { id: saved.workshopIds[index] } : {}),
+        speaker_id: newSpeakerIdByDraft.get(workshop.speaker_id) ?? workshop.speaker_id,
+      })));
       setNewSpeakers([]);
       queryClient.invalidateQueries({ queryKey: ["admin", "speakers"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "events"] });
@@ -506,7 +513,7 @@ export function EventForm({
 
       <section hidden={!!section && section !== "content"} className="space-y-4 rounded-2xl border border-border/60 bg-card p-6">
         <h2 className="font-display text-lg font-bold">Speakers</h2>
-        <p className="text-sm text-muted-foreground">Most speakers appear at one event. Add them here; no separate speaker-list step is needed. A workshop speaker is assigned separately in Programme and workshops.</p>
+        <p className="text-sm text-muted-foreground">Add a one-time speaker here, then select them in a workshop below if needed. Save the event once to publish both. Use the separate Speakers page only for people you want to reuse across events.</p>
         <div className="space-y-4 rounded-xl border border-border bg-background p-4">
           <h3 className="font-semibold">Add a speaker for this event</h3>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -520,20 +527,23 @@ export function EventForm({
           <Field label="Short bio (CZ)"><textarea className={textareaClass} value={speakerDraft.bio} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, bio: e.target.value }))} /></Field>
           <Field label="Short bio (EN)"><textarea className={textareaClass} value={speakerDraft.bio_en} onChange={(e) => setSpeakerDraft((previous) => ({ ...previous, bio_en: e.target.value }))} /></Field>
           <Button type="button" variant="outlineInk" disabled={speakerDraft.name.trim().length < 2} onClick={() => {
-            setNewSpeakers((previous) => [...previous, { ...speakerDraft }]);
+            setNewSpeakers((previous) => [...previous, { ...speakerDraft, client_id: crypto.randomUUID() }]);
             setSpeakerDraft({ name: "", job_title: "", job_title_en: "", company: "", bio: "", bio_en: "", photo_url: "" });
           }}>
             Add speaker to event draft
           </Button>
-          <p className="text-xs text-muted-foreground">The speaker is saved only when you save the event. One-off speakers are not added to the reusable speaker list.</p>
+          <p className="text-xs text-muted-foreground">After adding the draft, you can assign this speaker to a workshop before saving the event. One-time speakers stay attached to this event.</p>
         </div>
         {newSpeakers.length > 0 && <div className="space-y-2" aria-label="New speakers pending event save">
-          {newSpeakers.map((speaker, index) => <div key={`${speaker.name}-${index}`} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"><span>{speaker.name} · pending event save</span><Button type="button" variant="ghost" size="sm" onClick={() => setNewSpeakers((previous) => previous.filter((_, itemIndex) => itemIndex !== index))}>Remove</Button></div>)}
+          {newSpeakers.map((speaker) => <div key={speaker.client_id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"><span>{speaker.name} · pending event save</span><Button type="button" variant="ghost" size="sm" onClick={() => {
+            setNewSpeakers((previous) => previous.filter((item) => item.client_id !== speaker.client_id));
+            setWorkshops((previous) => previous.map((workshop) => workshop.speaker_id === speaker.client_id ? { ...workshop, speaker_id: "" } : workshop));
+          }}>Remove</Button></div>)}
         </div>}
         {speakerIds.length > 0 && <p className="text-sm">Selected for this event: {speakers.filter((speaker: EventSpeakerOption) => speakerIds.includes(speaker.id)).map((speaker: EventSpeakerOption) => speaker.name).join(", ") || `${speakerIds.length} speaker(s)`}</p>}
         {event.id && speakers.filter((speaker: EventSpeakerOption) => speaker.event_id === event.id).map((speaker: EventSpeakerOption) => <EventOwnedSpeakerEditor key={speaker.id} eventId={event.id!} speaker={speaker} onDeleted={(id) => setSpeakerIds((previous) => previous.filter((item) => item !== id))} />)}
         <details className="rounded-xl border border-border p-4">
-          <summary className="cursor-pointer text-sm font-medium">Choose or remove an existing speaker</summary>
+          <summary className="cursor-pointer text-sm font-medium">Reuse an existing speaker or change event speakers</summary>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {speakers.map((speaker: EventSpeakerOption) => (
               <label key={speaker.id} className="flex items-center gap-3 text-sm">
@@ -737,7 +747,7 @@ export function EventForm({
       <section hidden={!!section && section !== "content"} className="space-y-6 rounded-2xl border border-border/60 bg-card p-6">
         <div className="flex items-center justify-between"><h2 className="font-display text-lg font-bold">Programme and workshops</h2><Button type="button" variant="outlineInk" size="sm" onClick={() => setWorkshops((previous) => [...previous, { ...emptyWorkshop }])}>Add workshop</Button></div>
         {workshops.length === 0 && <p className="text-sm text-muted-foreground">Optional. Add workshops or programme sessions shown on the public event page.</p>}
-        {workshops.map((workshop, index) => <div key={workshop.id ?? index} className="space-y-4 border-t border-border pt-5"><div className="grid gap-4 sm:grid-cols-2"><Field label="Title"><input className={inputClass} value={workshop.title} onChange={(event) => setWorkshop(index, "title", event.target.value)} /></Field><Field label="Speaker"><select className={inputClass} value={workshop.speaker_id} onChange={(event) => setWorkshop(index, "speaker_id", event.target.value)}><option value="">No speaker</option>{speakers.map((speaker: EventSpeakerOption) => <option key={speaker.id} value={speaker.id}>{speaker.name}</option>)}</select></Field><Field label="Start"><input type="datetime-local" className={inputClass} value={workshop.start_time} onChange={(event) => setWorkshop(index, "start_time", event.target.value)} /></Field><Field label="End"><input type="datetime-local" className={inputClass} value={workshop.end_time} onChange={(event) => setWorkshop(index, "end_time", event.target.value)} /></Field><Field label="Location"><input className={inputClass} value={workshop.location} onChange={(event) => setWorkshop(index, "location", event.target.value)} /></Field><Field label="Capacity"><input type="number" min={1} className={inputClass} value={workshop.capacity} onChange={(event) => setWorkshop(index, "capacity", event.target.value)} /></Field></div><Field label="Description"><textarea className={textareaClass} value={workshop.description} onChange={(event) => setWorkshop(index, "description", event.target.value)} /></Field><div className="flex flex-wrap items-end justify-between gap-4"><Field label="Price (CHF)" className="w-40"><input type="number" min={0} className={inputClass} value={workshop.base_price} onChange={(event) => setWorkshop(index, "base_price", event.target.value)} /></Field><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={workshop.separate_registration_required} onChange={(event) => setWorkshop(index, "separate_registration_required", event.target.checked)} />Separate registration required</label><button type="button" className="text-xs text-destructive underline" onClick={() => setWorkshops((previous) => previous.filter((_, workshopIndex) => workshopIndex !== index))}>Remove</button></div></div>)}
+        {workshops.map((workshop, index) => <div key={workshop.id ?? index} className="space-y-4 border-t border-border pt-5"><div className="grid gap-4 sm:grid-cols-2"><Field label="Title"><input className={inputClass} value={workshop.title} onChange={(event) => setWorkshop(index, "title", event.target.value)} /></Field><Field label="Speaker"><select className={inputClass} value={workshop.speaker_id} onChange={(event) => setWorkshop(index, "speaker_id", event.target.value)}><option value="">No speaker</option>{speakers.map((speaker: EventSpeakerOption) => <option key={speaker.id} value={speaker.id}>{speaker.name}</option>)}{newSpeakers.map((speaker) => <option key={speaker.client_id} value={speaker.client_id}>{speaker.name} · new for this event</option>)}</select></Field><Field label="Start"><input type="datetime-local" className={inputClass} value={workshop.start_time} onChange={(event) => setWorkshop(index, "start_time", event.target.value)} /></Field><Field label="End"><input type="datetime-local" className={inputClass} value={workshop.end_time} onChange={(event) => setWorkshop(index, "end_time", event.target.value)} /></Field><Field label="Location"><input className={inputClass} value={workshop.location} onChange={(event) => setWorkshop(index, "location", event.target.value)} /></Field><Field label="Capacity"><input type="number" min={1} className={inputClass} value={workshop.capacity} onChange={(event) => setWorkshop(index, "capacity", event.target.value)} /></Field></div><Field label="Description"><textarea className={textareaClass} value={workshop.description} onChange={(event) => setWorkshop(index, "description", event.target.value)} /></Field><div className="flex flex-wrap items-end justify-between gap-4"><Field label="Price (CHF)" className="w-40"><input type="number" min={0} className={inputClass} value={workshop.base_price} onChange={(event) => setWorkshop(index, "base_price", event.target.value)} /></Field><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={workshop.separate_registration_required} onChange={(event) => setWorkshop(index, "separate_registration_required", event.target.checked)} />Separate registration required</label><button type="button" className="text-xs text-destructive underline" onClick={() => setWorkshops((previous) => previous.filter((_, workshopIndex) => workshopIndex !== index))}>Remove</button></div></div>)}
         {workshops.map((workshop, index) => <details key={`translation-${workshop.id ?? index}`} className="rounded-xl border border-border p-4"><summary className="cursor-pointer font-semibold">English copy: {workshop.title || `Workshop ${index + 1}`}</summary><div className="mt-4 grid gap-4 sm:grid-cols-2"><Field label="Title (EN)"><input className={inputClass} value={workshop.title_en} onChange={(e) => setWorkshop(index, "title_en", e.target.value)} /></Field><Field label="Location (EN)"><input className={inputClass} value={workshop.location_en} onChange={(e) => setWorkshop(index, "location_en", e.target.value)} /></Field></div><Field label="Description (EN)"><textarea className={textareaClass} value={workshop.description_en} onChange={(e) => setWorkshop(index, "description_en", e.target.value)} /></Field></details>)}
       </section>
 

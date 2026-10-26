@@ -16,6 +16,10 @@ These controls reference benefits configured in **Back Office → Membership pla
 
 Custom access benefits can be deleted in Membership benefits after they have been removed from every plan and are no longer referenced by a ticket or article. Built-in benefits remain protected. The delete action checks usage on the server and leaves referenced benefits intact.
 
+## One-time speakers
+
+In **Edit content**, add a speaker for this event. That speaker remains event-owned and can be selected for a workshop immediately, before the first event save. Saving the event creates the speaker, its event link, and the workshop assignment together. Existing event-owned speakers have their own edit/delete controls; those changes save immediately. The separate Speakers page remains the reusable profile list for people appearing at multiple events, so no second speaker archive is needed for one-time speakers. Deleting a speaker still requires removing any workshop assignment first.
+
 ## Admin ticket counts
 
 The event list, overview and ticket editor distinguish issued tickets from legacy registrations. **Tickets issued** counts valid/checked-in ticket records and matches the event's Guests roster. **Legacy registrations** counts confirmed/check-in rows from the older registration flow; these may have no order or ticket code. **Capacity committed** includes confirmed/free ticket-order quantities plus legacy registrations, so it can be higher than the issued-ticket count. Revenue remains a separate order/registration total.
