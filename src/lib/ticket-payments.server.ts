@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { stripeRequest, isStripeConfigured } from "./stripe.server";
+import { stripeRequest, isStripeConfigured, StripeRequestError } from "./stripe.server";
 import { checkoutOrigin } from "./checkout";
 import { configuredAppUrl } from "./deployment";
 
@@ -13,27 +13,80 @@ const checkoutSchema = z.object({
   expires_at: z.string(), status: z.enum(["pending","processing","paid","free","expired","failed"]),
 });
 const providerSchema = z.object({ id: z.string(), livemode: z.literal(false) });
+const priceSchema = z.object({
+  id: z.string(), product: z.union([z.string(), z.object({ id: z.string() })]),
+  currency: z.string(), unit_amount: z.number().nullable(), active: z.boolean(), livemode: z.literal(false),
+});
 function check(error: unknown) { if (error) throw new Error("Could not save payment data. Please retry or contact CometX."); }
+
+function priceProductId(price: z.infer<typeof priceSchema>) {
+  return typeof price.product === "string" ? price.product : price.product.id;
+}
+
+async function findTicketProduct(ticketId: string) {
+  const query = encodeURIComponent(`metadata['ticket_id']:'${ticketId}'`);
+  const found = await stripeRequest<{ data: unknown[] }>(`/products/search?query=${query}&limit=1`);
+  return found.data[0] ? providerSchema.parse(found.data[0]) : null;
+}
+
+async function saveTicketProduct(ticketId: string, productId: string) {
+  const saved = await db.from("ticket_payment_products").upsert(
+    { ticket_id: ticketId, product_id: productId }, { onConflict: "ticket_id" },
+  );
+  check(saved.error);
+}
+
+async function saveTicketPrice(
+  ticketId: string, amountMinor: number, currency: string, productId: string, priceId: string,
+) {
+  const saved = await db.from("ticket_payment_prices").upsert({
+    ticket_id: ticketId, amount_minor: amountMinor, currency, product_id: productId, price_id: priceId,
+  }, { onConflict: "ticket_id,amount_minor,currency" });
+  check(saved.error);
+}
 
 export async function ensureTicketPrice(ticketId: string, amountMinor: number, currency: string) {
   if (!Number.isSafeInteger(amountMinor) || amountMinor < 0) throw new Error("Invalid payment amount.");
   currency = currency.toLowerCase();
+  const { data: product, error: productError } = await db.from("ticket_payment_products")
+    .select("product_id").eq("ticket_id", ticketId).single();
+  check(productError);
+  if (!product) throw new Error("The ticket's payment product has not synced yet.");
   const { data: mapping, error } = await db.from("ticket_payment_prices").select("price_id")
     .eq("ticket_id",ticketId).eq("amount_minor",amountMinor).eq("currency",currency).maybeSingle();
   check(error);
-  if (mapping) return z.string().parse(mapping.price_id);
-  // Lookup keys survive Stripe's 24h idempotency retention and DB-write retries.
-  const {data:product,error:productError}=await db.from("ticket_payment_products").select("product_id").eq("ticket_id",ticketId).single();
-  check(productError);
-  if(!product) throw new Error("The ticket's payment product has not synced yet.");
-  const lookup = `cometx_${ticketId}_${currency}_${amountMinor}`;
-  const existing = await stripeRequest<{ data: unknown[] }>(`/prices?lookup_keys%5B%5D=${encodeURIComponent(lookup)}&limit=1`);
-  const price = existing.data[0] ? providerSchema.parse(existing.data[0]) : providerSchema.parse(
-    await stripeRequest("/prices", { product: product.product_id, unit_amount: amountMinor,
-      currency, lookup_key: lookup }, lookup));
-  const saved = await db.from("ticket_payment_prices").upsert({ ticket_id:ticketId, amount_minor:amountMinor,
-    currency, product_id:product.product_id, price_id:price.id }, { onConflict:"ticket_id,amount_minor,currency" });
-  check(saved.error);
+  if (mapping) {
+    try {
+      const mappedPrice = priceSchema.parse(await stripeRequest(`/prices/${mapping.price_id}`));
+      if (mappedPrice.active && mappedPrice.currency === currency && mappedPrice.unit_amount === amountMinor
+        && priceProductId(mappedPrice) === product.product_id) return mappedPrice.id;
+    } catch (error) {
+      if (!(error instanceof StripeRequestError) || error.status !== 404) throw error;
+    }
+  }
+
+  // Keep older lookup keys readable, then use a product-specific key when a ticket's
+  // Stripe product was deleted and recreated. This avoids reusing a stale Price.
+  const legacyLookup = `cometx_${ticketId}_${currency}_${amountMinor}`;
+  const productLookup = `${legacyLookup}_p_${product.product_id}`;
+  for (const lookup of [legacyLookup, productLookup]) {
+    const existing = await stripeRequest<{ data: unknown[] }>(
+      `/prices?lookup_keys%5B%5D=${encodeURIComponent(lookup)}&limit=100`,
+    );
+    const price = existing.data.map((row) => priceSchema.parse(row)).find((candidate) =>
+      candidate.active && candidate.currency === currency && candidate.unit_amount === amountMinor
+      && priceProductId(candidate) === product.product_id,
+    );
+    if (price) {
+      await saveTicketPrice(ticketId, amountMinor, currency, product.product_id, price.id);
+      return price.id;
+    }
+  }
+
+  const price = priceSchema.parse(await stripeRequest("/prices", {
+    product: product.product_id, unit_amount: amountMinor, currency, lookup_key: productLookup,
+  }, `price_${ticketId}_${currency}_${amountMinor}_${product.product_id}`));
+  await saveTicketPrice(ticketId, amountMinor, currency, product.product_id, price.id);
   return price.id;
 }
 
@@ -64,16 +117,32 @@ export async function syncEventPayments(eventId: string, options: { backfillUpco
     const old=await db.from("ticket_payment_products").select("product_id").eq("ticket_id",ticket.id).maybeSingle();
     check(old.error);
     let productId=old.data?.product_id;
+    const productName = `${event.title} — ${ticket.name}`;
     if (!productId) {
       if (!active && !shouldBackfill) continue;
-      const query=encodeURIComponent(`metadata['ticket_id']:'${ticket.id}'`);
-      const found=await stripeRequest<{data:unknown[]}>(`/products/search?query=${query}&limit=1`);
-      const p=found.data[0] ? providerSchema.parse(found.data[0]) : providerSchema.parse(await stripeRequest("/products", { name:`${event.title} — ${ticket.name}`,
-        metadata:{event_id:eventId,ticket_id:ticket.id},active }, `product_${ticket.id}`));
+      const found = await findTicketProduct(ticket.id);
+      const p = found ?? providerSchema.parse(await stripeRequest("/products", {
+        name: productName, metadata: { event_id: eventId, ticket_id: ticket.id }, active,
+      }, `product_${ticket.id}`));
       productId=p.id;
-      const saved=await db.from("ticket_payment_products").upsert({ticket_id:ticket.id,product_id:productId},{onConflict:"ticket_id"}); check(saved.error);
+      await saveTicketProduct(ticket.id, productId);
     }
-    await stripeRequest(`/products/${productId}`, { name:`${event.title} — ${ticket.name}`,active });
+    try {
+      await stripeRequest(`/products/${productId}`, { name: productName, active });
+    } catch (error) {
+      if (!(error instanceof StripeRequestError) || error.status !== 404) throw error;
+      const replacement = await findTicketProduct(ticket.id);
+      if (replacement && replacement.id !== productId) {
+        productId = replacement.id;
+        await stripeRequest(`/products/${productId}`, { name: productName, active });
+      } else {
+        const recreated = providerSchema.parse(await stripeRequest("/products", {
+          name: productName, metadata: { event_id: eventId, ticket_id: ticket.id }, active,
+        }, `product_repair_${ticket.id}_${productId}`));
+        productId = recreated.id;
+      }
+      await saveTicketProduct(ticket.id, productId);
+    }
     if (active || shouldBackfill) for (const amount of new Set([ticket.base_price,ticket.member_price])) {
       // Free tickets do not need a Stripe Price; zero-value checkouts bypass Stripe.
       if (amount !== null && Number(amount)>0) await ensureTicketPrice(ticket.id,Math.round(Number(amount)*100),ticket.currency);
