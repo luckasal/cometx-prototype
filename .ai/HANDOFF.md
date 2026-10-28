@@ -1072,3 +1072,12 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - `pnpm --ignore-workspace build` passes. `git -c core.whitespace=cr-at-eol diff --check` passes. Tests were not run.
 - Vercel Production deployment `7xjQw8YPr` is Ready and assigned to `cometx-prototype.vercel.app`.
 - Live event `/admin/events/eac9321a-4ed4-43db-80b0-6aab118c4e17` verified read-only: overview shows 0 issued tickets, 1 legacy registration, 1/20 capacity committed and CHF 0; Orders shows 0 orders; Guests shows 0 issued tickets; ticket row shows the same issued/legacy/capacity breakdown. No database records were modified.
+
+## 2026-10-28: Production QA event deletion guard recovery (in progress)
+
+- Task `ADMIN-ACCESS-CHECK-RECOVERY-20261027`; branch `codex/event-ticket-membership-entitlements-20261026`.
+- User re-authenticated; Production `/admin/events` is accessible. The explicitly authorized event `QA speaker workflow 27 Oct` remains present (`ff45fd43-5051-47b5-80ec-fbe878074f30`); the first delete attempt failed closed with “Could not verify this event’s orders. Please try again.” No records were deleted.
+- Root cause: `adminDeleteEvent` tried to query restricted order tables with the caller-scoped admin client. Replaced that check with server-only `supabaseAdmin` plus the existing `readEventOrders` reader, which handles the legacy parent-event schema. Deletion remains fail-closed and now blocks any event with order history.
+- Implementation commit: `5253ab4`. Migration `0019_event_owned_speakers.sql` confirms the event-owned QA speaker, event-speaker link, and workshop are configured to cascade with their parent event.
+- Validation: `pnpm build` passes; focused legacy-schema and permission-error order-reader tests pass (2/2). `git -c core.whitespace=cr-at-eol diff --check` passes. Broader focused invocations still hit existing test-harness issues (server-function permission mock and `adminSyncPublishedTicketCatalog` role assertion). No auth/JWT code was weakened.
+- Next: commit the guard fix, deploy it to Production, retry the already-authorized QA event deletion, and verify the Events list no longer contains the event. Confirm its event-owned QA speaker and workshop were removed through cascade behavior before marking the task done.
