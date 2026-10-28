@@ -2,6 +2,10 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-28: PAY-01 and PAY-02 scope prepared
+
+See `docs/PAYMENTS_BANK_TRANSFER_INVOICE_SCOPE_2026-10-28.md`. Current Payments is read-only and its existing rows carry Stripe-oriented identifiers. Proposed separate partner bank-transfer evidence and invoice-request metadata; no implementation, schema, checkout or Production record changes. Confirm reconciliation and invoicing authority before building.
+
 ## 2026-10-28: CNT-08 active members in Contacts
 
 Contacts > Everyone in CometX now has an Active members shortcut and record-type filter. It reads current active membership rows only when the staff role can read memberships, and shows the plan name beside each member account. Membership billing and account management remain in Members. No database migration or customer data changes. Production deployment and authenticated acceptance are pending.
