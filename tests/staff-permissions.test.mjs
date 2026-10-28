@@ -30,6 +30,8 @@ test("event manager manages events and check-in but not refunds, contacts or rol
   for (const permission of [
     "roles.manage",
     "payments.refund",
+    "payments.record_manual",
+    "payments.manage_invoices",
     "contacts.write",
     "members.write",
     "memberships.write",
@@ -53,6 +55,8 @@ test("analyst is read-only and marketing cannot access financial or role managem
     "orders.read",
     "payments.read",
     "payments.refund",
+    "payments.record_manual",
+    "payments.manage_invoices",
     "roles.manage",
   ])
     assert.equal(can(["marketing"], permission), false);

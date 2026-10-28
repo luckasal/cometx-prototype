@@ -35,6 +35,7 @@ const sessionSchema = z.object({ id: z.string(), url: z.string().url(), livemode
 export async function startTicketCheckoutBatch(input: {
   userId: string | null; buyerName?: string; buyerEmail?: string;
   events: z.infer<typeof batchLinesSchema>; termsAccepted: boolean;
+  invoice?: { name: string; address: string; vatUid?: string | undefined; note?: string | undefined };
 }) {
   const events = batchLinesSchema.parse(input.events);
   if (new Set(events.map((event) => event.eventSlug)).size !== events.length) throw new Error("Each event must appear once.");
@@ -64,6 +65,27 @@ export async function startTicketCheckoutBatch(input: {
   check(error);
   const batch = checkoutBatchSchema.parse(data);
   const accessUrl = token && appUrl ? `${checkoutOrigin(appUrl)}/tickets/guest?batch=${encodeURIComponent(batch.id)}&token=${encodeURIComponent(token)}` : null;
+  if (input.invoice) {
+    const invoiceSaved = await db.from("ticket_invoice_requests").insert({
+      checkout_batch_id: batch.id,
+      billing_name: input.invoice.name,
+      billing_address: input.invoice.address,
+      vat_uid: input.invoice.vatUid?.trim() || null,
+      note: input.invoice.note?.trim() || null,
+    });
+    if (invoiceSaved.error) {
+      if (batch.status === "free") {
+        if (accessUrl) {
+          try { await sendGuestTicketBatchEmail(batch.id); }
+          catch (error) { console.error("[ticket-email] free ticket confirmation failed", error); }
+        }
+        return { url: null, accessUrl: accessUrl ? `${accessUrl}&paid=1` : null, batchId: batch.id, free: true, invoiceRequestError: true };
+      }
+      const failed = await db.rpc("fail_ticket_checkout_batch", { p_batch_id: batch.id });
+      if (failed.error) throw new Error("Checkout was stopped, but the reservation could not be released. Please contact CometX.");
+      throw new Error("Your invoice request could not be saved, so checkout was stopped. Please try again.");
+    }
+  }
   if (batch.status === "free") {
     const freeAccessUrl = accessUrl ? `${accessUrl}&paid=1` : null;
     if (accessUrl) {

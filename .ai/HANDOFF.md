@@ -2,9 +2,9 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
-## 2026-10-28: PAY-01 and PAY-02 scope prepared
+## 2026-10-28: PAY-02 and PAY-03 implementation
 
-See `docs/PAYMENTS_BANK_TRANSFER_INVOICE_SCOPE_2026-10-28.md`. Current Payments is read-only and its existing rows carry Stripe-oriented identifiers. Proposed separate partner bank-transfer evidence and invoice-request metadata; no implementation, schema, checkout or Production record changes. Confirm reconciliation and invoicing authority before building.
+`/admin/payments` now has a separate finance-confirmed bank-transfer section, audit-safe void action, partner invoice request and Stripe/external invoice reference editor. Ticket checkout can optionally capture invoice billing details; invoice requests are stored in their own table and never affect payment status or webhook fulfillment. Stripe's `payments` table is unchanged. Migration `0034_manual_bank_payments_and_invoice_requests.sql` and follow-up `0035_payment_references_and_audit.sql` are applied in Production; both new tables remain private and empty. Build and targeted checks pass; app deployment and hosted acceptance are pending. See `docs/PAYMENTS_BANK_TRANSFER_INVOICE_SCOPE_2026-10-28.md` for boundaries and TODOs.
 
 ## 2026-10-28: CNT-08 active members in Contacts
 

@@ -28,6 +28,8 @@ export const staffPermissions = [
   "memberships.read",
   "memberships.write",
   "payments.read",
+  "payments.record_manual",
+  "payments.manage_invoices",
   "payments.refund",
   "roles.manage",
   "settings.manage",

@@ -65,6 +65,11 @@ function CartPage() {
   const [buyerFirstName, setBuyerFirstName] = useState("");
   const [buyerLastName, setBuyerLastName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
+  const [invoiceRequested, setInvoiceRequested] = useState(false);
+  const [billingName, setBillingName] = useState("");
+  const [billingAddress, setBillingAddress] = useState("");
+  const [billingVatUid, setBillingVatUid] = useState("");
+  const [billingNote, setBillingNote] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [selectedCreditSlug, setSelectedCreditSlug] = useState<string | null>(null);
   const cartViewSent = useRef(false);
@@ -205,7 +210,8 @@ function CartPage() {
           return { firstName: attendee?.firstName || (singleTicket ? buyerFirstName : ""), lastName: attendee?.lastName || (singleTicket ? buyerLastName : "") };
         }),
       })) }));
-      return startCheckout({ data: { events, termsAccepted: true, ...(!user ? { buyerName, buyerEmail } : {}) } });
+      return startCheckout({ data: { events, termsAccepted: true, ...(!user ? { buyerName, buyerEmail } : {}),
+        ...(invoiceRequested ? { invoice: { name: billingName, address: billingAddress, vatUid: billingVatUid, note: billingNote } } : {}) } });
     },
     onSuccess: (result) => {
       if (result.url) {
@@ -231,6 +237,9 @@ function CartPage() {
         });
       } else trackEvent("free_ticket_issued", { event_count: groups.length });
       if (result.url) { window.location.assign(result.url); return; }
+      if ("invoiceRequestError" in result && result.invoiceRequestError) {
+        window.alert(cs ? "Vstupenka je potvrzena, ale žádost o fakturu se neuložila. Kontaktujte prosím CometX." : "Your ticket is confirmed, but the invoice request was not saved. Please contact CometX.");
+      }
       saveCart([]);
       if (result.accessUrl) { window.location.assign(result.accessUrl); return; }
       toast.success(cs ? "Vstupenka je potvrzena. Najdete ji v Můj CometX." : "Your ticket is confirmed. See it in My CometX.");
@@ -264,7 +273,8 @@ function CartPage() {
   const buyerContactComplete = !!buyerFirstName.trim() && !!buyerLastName.trim() && buyerName.length <= 240 && isValidBuyerEmail(buyerEmailForCheckout);
   const attendeeComplete = selectedLines.every((line) => Array.from({ length: line.quantity }, (_, index) => line.attendees?.[index]).every((person) =>
     (person?.firstName.trim() || (totalTickets === 1 && buyerFirstName.trim())) && (person?.lastName.trim() || (totalTickets === 1 && buyerLastName.trim()))));
-  const checkoutAllowed = termsAccepted && attendeeComplete && buyerNameConflicts.size === 0 && consentComplete && currencyCompatible && groupReadiness.length > 0 && groupReadiness.every((group) => group.purchasable) && !checkoutMutation.isPending &&
+  const invoiceComplete = !invoiceRequested || (billingName.trim().length > 0 && billingName.trim().length <= 240 && billingAddress.trim().length > 0 && billingAddress.trim().length <= 1000 && billingVatUid.trim().length <= 80 && billingNote.trim().length <= 1000);
+  const checkoutAllowed = termsAccepted && invoiceComplete && attendeeComplete && buyerNameConflicts.size === 0 && consentComplete && currencyCompatible && groupReadiness.length > 0 && groupReadiness.every((group) => group.purchasable) && !checkoutMutation.isPending &&
     buyerContactComplete && (user ? !accountQuery.isLoading : true);
   function saveCart(next: TicketCartLine[]) {
     writeTicketCart(next);
@@ -436,6 +446,17 @@ function CartPage() {
             scope: consentScope,
             accepted: { ...(previous.scope === consentScope ? previous.accepted : {}), [id]: checked },
           }))} />
+          <section className="rounded-3xl bg-card/70 px-5 py-4">
+            <h3 className="font-display font-semibold">{cs ? "Faktura na vyžádání" : "Invoice on request"}</h3>
+            <label className="mt-3 flex items-start gap-3 text-sm"><input type="checkbox" checked={invoiceRequested} onChange={(event) => setInvoiceRequested(event.target.checked)} className="mt-0.5 size-4 accent-accent" /><span>{cs ? "Chci fakturu k této objednávce" : "Request an invoice for this order"}</span></label>
+            {invoiceRequested && <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <label className="text-sm">{cs ? "Fakturační jméno nebo firma" : "Billing name or company"}<Input required maxLength={240} value={billingName} onChange={(event) => setBillingName(event.target.value)} className="mt-1" /></label>
+              <label className="text-sm sm:col-span-2">{cs ? "Fakturační adresa" : "Billing address"}<textarea required maxLength={1000} value={billingAddress} onChange={(event) => setBillingAddress(event.target.value)} className="mt-1 min-h-20 w-full rounded-xl border border-border bg-background px-3 py-2" /></label>
+              <label className="text-sm">{cs ? "DIČ / UID (nepovinné)" : "VAT / UID (optional)"}<Input maxLength={80} value={billingVatUid} onChange={(event) => setBillingVatUid(event.target.value)} className="mt-1" /></label>
+              <label className="text-sm">{cs ? "Poznámka (nepovinné)" : "Note (optional)"}<Input maxLength={1000} value={billingNote} onChange={(event) => setBillingNote(event.target.value)} className="mt-1" /></label>
+              <p className="text-xs text-muted-foreground sm:col-span-2">{cs ? "Žádost předáme týmu. Fakturu vystavuje Stripe Invoicing; platba pokračuje běžným způsobem." : "We will pass the request to the team. Stripe Invoicing issues the invoice; payment continues normally."}</p>
+            </div>}
+          </section>
           <section className="rounded-3xl bg-card/70 px-5 py-4">
             <h3 className="font-display font-semibold"><span className="text-accent">3.</span> {cs ? "Podmínky nákupu" : "Purchase terms"}</h3>
             <label className="mt-3 flex items-start gap-3 text-sm">
