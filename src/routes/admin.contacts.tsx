@@ -56,7 +56,6 @@ function ContactsPage() {
   const [editingSegmentId, setEditingSegmentId] = useState<string | null>(null);
   const [profileSegmentId, setProfileSegmentId] = useState("");
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
-  const [pendingPreparedContactIds, setPendingPreparedContactIds] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<"subscribe" | "unsubscribe" | "segment_assign" | "segment_remove">("segment_assign");
   const [bulkSegmentId, setBulkSegmentId] = useState("");
   const [bulkSegmentName, setBulkSegmentName] = useState("");
@@ -93,12 +92,6 @@ function ContactsPage() {
   const visibleContactIds = contacts.data?.map((contact) => contact.id) ?? [];
   const contactSegments = useQuery({ queryKey: ["admin", "contact-segments", visibleContactIds], queryFn: () => fetchContactSegments({ data: { contactIds: visibleContactIds } }), retry: false });
   useEffect(() => { setSelectedContactIds([]); setBulkResult(null); setBulkReviewOpen(false); }, [query, status, archive, segmentFilterId]);
-  useEffect(() => {
-    if (!pendingPreparedContactIds.length || !contacts.data) return;
-    const visible = new Set(contacts.data.map((contact) => contact.id));
-    setSelectedContactIds(pendingPreparedContactIds.filter((id) => visible.has(id)));
-    setPendingPreparedContactIds([]);
-  }, [contacts.data, pendingPreparedContactIds]);
   const activeSegments = contactSegments.data?.segments.filter((segment) => !segment.archived_at) ?? [];
   const directory = useQuery({ queryKey: ["admin", "contact-directory"], queryFn: () => withRequestTimeout(fetchDirectory(), 20000, "Loading the CometX directory took too long. Please try again."), retry: false });
   const members = useQuery({ queryKey: ["admin", "member-options"], queryFn: () => withRequestTimeout(fetchMembers(), 15000, "Loading linked accounts took too long. Please try again."), retry: false });
@@ -231,14 +224,17 @@ function ContactsPage() {
   const selectableDirectoryEntries = directoryEntries.filter((entry) => entry.email && (entry.contact_id || entry.member_id || entry.types.includes("Guest attendee")));
   const prepareDirectory = useMutation({
     mutationFn: () => prepareDirectoryContacts({ data: { people: directoryEntries.filter((entry) => selectedDirectoryIds.includes(entry.id) && entry.email).map((entry) => ({ email: entry.email!, memberId: entry.member_id })) } }),
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       setSelectedDirectoryIds([]);
       setActiveView("manage");
       setQuery(""); setStatus("all"); setArchive("active"); setSegmentFilterId("");
-      cache.invalidateQueries({ queryKey: ["admin", "contacts"] });
+      const refreshed = await fetchContacts({ data: { query: "", status: "all", archive: "active", segmentId: null } });
+      cache.setQueryData(["admin", "contacts", "", "all", "active", ""], refreshed);
       cache.invalidateQueries({ queryKey: ["admin", "contact-directory"] });
-      setPendingPreparedContactIds(result.contactIds);
-      toast.success(`${result.contactIds.length} ready for bulk edit · ${result.created} contact profiles created · ${result.skipped} skipped.`);
+      const visible = new Set(refreshed.map((contact) => contact.id));
+      const selected = result.contactIds.filter((id) => visible.has(id));
+      setSelectedContactIds(selected);
+      toast.success(`${selected.length} ready for bulk edit · ${result.created} contact profiles created · ${result.skipped + result.contactIds.length - selected.length} not shown in the first 500 contacts.`);
     },
     onError: (error: Error) => toast.error(error.message),
   });
