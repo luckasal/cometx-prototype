@@ -1125,6 +1125,8 @@ type ContactDirectoryEntry = {
   linkedin_url: string | null;
   birth_year: number | null;
   newsletter_status: "subscribed" | "unsubscribed" | "pending" | null;
+  membership_plan?: string | null;
+  membership_status?: string | null;
   notes: string | null;
   context: string[];
   created_at: string | null;
@@ -1169,7 +1171,7 @@ export const adminListContactDirectory = createServerFn({ method: "GET" }).handl
   const { requireStaffPermission } = await import("./auth.server");
   const actor = await requireStaffPermission("contacts.read");
   const canRead = (permission: StaffPermission) => hasStaffPermission(actor.staffRoles, permission);
-  const [contacts, profiles, attendees, partners, speakers] = await Promise.all([
+  const [contacts, profiles, memberships, attendees, partners, speakers] = await Promise.all([
     (async () => {
       const db = await admin("contacts.read");
       return readAllAdminPages(async (from, to) => db.from("contacts")
@@ -1181,6 +1183,15 @@ export const adminListContactDirectory = createServerFn({ method: "GET" }).handl
       return readAllAdminPages(async (from, to) => db.from("profiles")
         .select("id,first_name,last_name,email,phone,company,created_at")
         .order("created_at", { ascending: false }).range(from, to));
+    })() : Promise.resolve([]),
+    canRead("memberships.read") ? (async () => {
+      const db = await admin("memberships.read");
+      const now = new Date().toISOString();
+      return readAllAdminPages(async (from, to) => db.from("memberships")
+        .select("user_id,status,starts_at,ends_at,membership_plans(name)")
+        .eq("status", "active").lte("starts_at", now)
+        .or(`ends_at.is.null,ends_at.gt.${now}`)
+        .order("starts_at", { ascending: false }).range(from, to));
     })() : Promise.resolve([]),
     canRead("attendees.read") ? (async () => {
       // ticket_attendees exists in Production but is missing from the generated
@@ -1245,6 +1256,8 @@ export const adminListContactDirectory = createServerFn({ method: "GET" }).handl
     existing.linkedin_url ||= values.linkedin_url;
     existing.birth_year ??= values.birth_year;
     existing.newsletter_status ||= values.newsletter_status;
+    existing.membership_plan = existing.membership_plan ?? values.membership_plan ?? null;
+    existing.membership_status = existing.membership_status ?? values.membership_status ?? null;
     existing.notes ||= values.notes;
     existing.context = [...new Set([...existing.context, ...values.context])];
     if (values.created_at && (!existing.created_at || values.created_at < existing.created_at)) existing.created_at = values.created_at;
@@ -1272,6 +1285,12 @@ export const adminListContactDirectory = createServerFn({ method: "GET" }).handl
       created_at: contact.created_at,
     });
   }
+  const membershipByUser = new Map<string, { name: string | null; status: string }>();
+  for (const membership of memberships) {
+    if (membershipByUser.has(membership.user_id)) continue;
+    const plan = membership.membership_plans;
+    membershipByUser.set(membership.user_id, { name: Array.isArray(plan) ? (plan[0]?.name ?? null) : (plan?.name ?? null), status: membership.status });
+  }
   for (const profile of profiles) {
     const linkedContactGroup = memberGroupIds.get(profile.id);
     const id = linkedContactGroup ?? emailGroup(profile.email, `member:${profile.id}`);
@@ -1287,8 +1306,10 @@ export const adminListContactDirectory = createServerFn({ method: "GET" }).handl
       linkedin_url: null,
       birth_year: null,
       newsletter_status: null,
+      membership_plan: membershipByUser.get(profile.id)?.name ?? null,
+      membership_status: membershipByUser.get(profile.id)?.status ?? null,
       notes: null,
-      context: ["CometX account"],
+      context: ["CometX account", ...(membershipByUser.has(profile.id) ? [`Active membership · ${membershipByUser.get(profile.id)?.name ?? "Plan unavailable"}`] : [])],
       created_at: profile.created_at,
     });
   }
@@ -1337,7 +1358,7 @@ export const adminListContactDirectory = createServerFn({ method: "GET" }).handl
 
   return {
     entries: [...entries.values()].sort((left, right) => (right.created_at ?? "").localeCompare(left.created_at ?? "")),
-    availableTypes: ["Contact record", ...(canRead("members.read") ? ["Member account"] : []), ...(canRead("attendees.read") ? ["Guest attendee"] : []), ...(canRead("partners.read") ? ["Partner organization"] : []), ...(canRead("events.read") ? ["Speaker"] : [])],
+    availableTypes: ["Contact record", ...(canRead("members.read") ? ["Member account"] : []), ...(canRead("memberships.read") ? ["Active members"] : []), ...(canRead("attendees.read") ? ["Guest attendee"] : []), ...(canRead("partners.read") ? ["Partner organization"] : []), ...(canRead("events.read") ? ["Speaker"] : [])],
   };
 });
 

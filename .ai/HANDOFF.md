@@ -2,6 +2,10 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-28: CNT-08 active members in Contacts
+
+Contacts > Everyone in CometX now has an Active members shortcut and record-type filter. It reads current active membership rows only when the staff role can read memberships, and shows the plan name beside each member account. Membership billing and account management remain in Members. No database migration or customer data changes. Production deployment and authenticated acceptance are pending.
+
 ## 2026-10-28: CNT-03 combined Contacts directory
 
 - Implementation commit `a44c4a1` on `codex/event-ticket-membership-entitlements-20261026`. `/admin/contacts` now has a searchable, type-filtered, read-only directory for contact records, member accounts, guest ticket attendees, partner organizations, and speakers. Server reads are gated by the current staff role's source permissions; records remain separate and are not merged by name or email. No schema migration or data changes.
