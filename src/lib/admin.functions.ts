@@ -1110,13 +1110,23 @@ export const getAdminIntegrationStatus = createServerFn({ method: "GET" }).handl
 
 /* ---------------------- contacts, newsletter and payments --------------------- */
 
+type ContactDirectoryKind = "Contact record" | "Member account" | "Guest attendee" | "Partner organization" | "Speaker";
 type ContactDirectoryEntry = {
   id: string;
-  type: "Contact record" | "Member account" | "Guest attendee" | "Partner organization" | "Speaker";
+  contact_id: string | null;
+  member_id: string | null;
+  types: ContactDirectoryKind[];
+  sourceCounts: Partial<Record<ContactDirectoryKind, number>>;
   name: string;
   email: string | null;
-  organization: string | null;
-  details: string | null;
+  phone: string | null;
+  company: string | null;
+  website_url: string | null;
+  linkedin_url: string | null;
+  birth_year: number | null;
+  newsletter_status: "subscribed" | "unsubscribed" | "pending" | null;
+  notes: string | null;
+  context: string[];
   created_at: string | null;
 };
 type GuestAttendeeDirectoryRow = {
@@ -1159,19 +1169,17 @@ export const adminListContactDirectory = createServerFn({ method: "GET" }).handl
   const { requireStaffPermission } = await import("./auth.server");
   const actor = await requireStaffPermission("contacts.read");
   const canRead = (permission: StaffPermission) => hasStaffPermission(actor.staffRoles, permission);
-  const entries: ContactDirectoryEntry[] = [];
-
   const [contacts, profiles, attendees, partners, speakers] = await Promise.all([
     (async () => {
       const db = await admin("contacts.read");
       return readAllAdminPages(async (from, to) => db.from("contacts")
-        .select("id,email,first_name,last_name,company,source,newsletter_status,member_id,archived_at,created_at")
+        .select("id,email,first_name,last_name,phone,company,linkedin_url,birth_year,notes,source,newsletter_status,member_id,archived_at,created_at")
         .order("created_at", { ascending: false }).range(from, to));
     })(),
     canRead("members.read") ? (async () => {
       const db = await admin("members.read");
       return readAllAdminPages(async (from, to) => db.from("profiles")
-        .select("id,first_name,last_name,email,company,created_at")
+        .select("id,first_name,last_name,email,phone,company,created_at")
         .order("created_at", { ascending: false }).range(from, to));
     })() : Promise.resolve([]),
     canRead("attendees.read") ? (async () => {
@@ -1201,24 +1209,89 @@ export const adminListContactDirectory = createServerFn({ method: "GET" }).handl
     })() : Promise.resolve([]),
   ]);
 
-  entries.push(...contacts.map((contact) => ({
-    id: `contact:${contact.id}`,
-    type: "Contact record" as const,
-    name: [contact.first_name, contact.last_name].filter(Boolean).join(" ") || contact.email,
-    email: contact.email,
-    organization: contact.company,
-    details: `${contact.archived_at ? "Archived · " : ""}${contact.newsletter_status} · ${contact.source}${contact.member_id ? " · linked account" : ""}`,
-    created_at: contact.created_at,
-  })));
-  entries.push(...profiles.map((profile) => ({
-    id: `member:${profile.id}`,
-    type: "Member account" as const,
-    name: [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.email || "Unnamed account",
-    email: profile.email,
-    organization: profile.company,
-    details: "CometX account",
-    created_at: profile.created_at,
-  })));
+  const entries = new Map<string, ContactDirectoryEntry>();
+  const groupsByEmail = new Map<string, Set<string>>();
+  const memberGroupIds = new Map<string, string>();
+  const normalizedEmail = (email: string | null | undefined) => normalizeContactEmail(email ?? "");
+  const addEmailGroup = (email: string | null, id: string) => {
+    const normalized = normalizedEmail(email);
+    if (!normalized) return;
+    const ids = groupsByEmail.get(normalized) ?? new Set<string>();
+    ids.add(id);
+    groupsByEmail.set(normalized, ids);
+  };
+  const emailGroup = (email: string | null, fallback: string) => {
+    const normalized = normalizedEmail(email);
+    const matches = normalized ? groupsByEmail.get(normalized) : undefined;
+    if (matches?.size === 1) return [...matches][0]!;
+    return normalized && matches?.size !== 1 ? `email:${normalized}` : fallback;
+  };
+  const addEntry = (id: string, kind: ContactDirectoryKind, values: Omit<ContactDirectoryEntry, "id" | "types" | "sourceCounts">) => {
+    const existing = entries.get(id);
+    if (!existing) {
+      entries.set(id, { id, types: [kind], sourceCounts: { [kind]: 1 }, ...values });
+      addEmailGroup(values.email, id);
+      return;
+    }
+    if (!existing.types.includes(kind)) existing.types.push(kind);
+    existing.contact_id ||= values.contact_id;
+    existing.member_id ||= values.member_id;
+    existing.sourceCounts[kind] = (existing.sourceCounts[kind] ?? 0) + 1;
+    existing.name ||= values.name;
+    existing.email ||= values.email;
+    existing.phone ||= values.phone;
+    existing.company ||= values.company;
+    existing.website_url ||= values.website_url;
+    existing.linkedin_url ||= values.linkedin_url;
+    existing.birth_year ??= values.birth_year;
+    existing.newsletter_status ||= values.newsletter_status;
+    existing.notes ||= values.notes;
+    existing.context = [...new Set([...existing.context, ...values.context])];
+    if (values.created_at && (!existing.created_at || values.created_at < existing.created_at)) existing.created_at = values.created_at;
+    addEmailGroup(values.email, id);
+  };
+
+  // Contact profiles are the canonical admin-editable fields. Group by an explicit
+  // member link first; otherwise use a normalized email match.
+  for (const contact of contacts) {
+    const id = contact.member_id ? `member:${contact.member_id}` : emailGroup(contact.email, `contact:${contact.id}`);
+    if (contact.member_id) memberGroupIds.set(contact.member_id, id);
+    addEntry(id, "Contact record", {
+      contact_id: contact.id,
+      member_id: contact.member_id,
+      name: [contact.first_name, contact.last_name].filter(Boolean).join(" "),
+      email: contact.email,
+      phone: contact.phone,
+      company: contact.company,
+      website_url: null,
+      linkedin_url: contact.linkedin_url,
+      birth_year: contact.birth_year,
+      newsletter_status: contact.newsletter_status,
+      notes: contact.notes,
+      context: [`${contact.archived_at ? "Archived · " : ""}${contact.newsletter_status} · ${contact.source}${contact.member_id ? " · linked account" : ""}`],
+      created_at: contact.created_at,
+    });
+  }
+  for (const profile of profiles) {
+    const linkedContactGroup = memberGroupIds.get(profile.id);
+    const id = linkedContactGroup ?? emailGroup(profile.email, `member:${profile.id}`);
+    memberGroupIds.set(profile.id, id);
+    addEntry(id, "Member account", {
+      contact_id: null,
+      member_id: profile.id,
+      name: [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.email || "Unnamed account",
+      email: profile.email,
+      phone: profile.phone,
+      company: profile.company,
+      website_url: null,
+      linkedin_url: null,
+      birth_year: null,
+      newsletter_status: null,
+      notes: null,
+      context: ["CometX account"],
+      created_at: profile.created_at,
+    });
+  }
 
   let eventNames = new Map<string, string>();
   if (attendees.length && canRead("events.read")) {
@@ -1230,37 +1303,40 @@ export const adminListContactDirectory = createServerFn({ method: "GET" }).handl
       eventNames = new Map([...eventNames, ...(data ?? []).map((event) => [event.id, event.title] as const)]);
     }
   }
-  entries.push(...attendees.map((attendee) => ({
-    id: `attendee:${attendee.id}`,
-    type: "Guest attendee" as const,
-    name: attendee.attendee_name,
-    email: attendee.attendee_email,
-    organization: null,
-    details: `${eventNames.get(attendee.event_id) ?? "Event ticket"} · ${attendee.status}`,
-    created_at: attendee.created_at,
-  })));
-  entries.push(...partners.map((partner) => ({
-    id: `partner:${partner.id}`,
-    type: "Partner organization" as const,
-    name: partner.name,
-    email: null,
-    organization: partner.website_url,
-    details: `${partner.active ? "Active" : "Inactive"}${partner.tier ? ` · ${partner.tier}` : ""}`,
-    created_at: partner.created_at,
-  })));
-  entries.push(...speakers.map((speaker) => ({
-    id: `speaker:${speaker.id}`,
-    type: "Speaker" as const,
-    name: speaker.name,
-    email: null,
-    organization: speaker.company,
-    details: [speaker.job_title, speaker.event_id ? "Event-specific speaker" : "Reusable speaker"]
-      .filter(Boolean).join(" · "),
-    created_at: speaker.created_at,
-  })));
+  for (const attendee of attendees) {
+    const id = emailGroup(attendee.attendee_email, `attendee:${attendee.id}`);
+    addEntry(id, "Guest attendee", {
+      contact_id: null,
+      member_id: null,
+      name: attendee.attendee_name,
+      email: attendee.attendee_email,
+      phone: null,
+      company: null,
+      website_url: null,
+      linkedin_url: null,
+      birth_year: null,
+      newsletter_status: null,
+      notes: null,
+      context: [`${eventNames.get(attendee.event_id) ?? "Event ticket"} · ${attendee.status}`],
+      created_at: attendee.created_at,
+    });
+  }
+  for (const partner of partners) addEntry(`partner:${partner.id}`, "Partner organization", {
+    contact_id: null, member_id: null,
+    name: partner.name, email: null, phone: null, company: null, website_url: partner.website_url, linkedin_url: null, birth_year: null,
+    newsletter_status: null, notes: null,
+    context: [`${partner.active ? "Active" : "Inactive"}${partner.tier ? ` · ${partner.tier}` : ""}`], created_at: partner.created_at,
+  });
+  for (const speaker of speakers) addEntry(`speaker:${speaker.id}`, "Speaker", {
+    contact_id: null, member_id: null,
+    name: speaker.name, email: null, phone: null, company: speaker.company, website_url: speaker.website_url, linkedin_url: speaker.linkedin_url, birth_year: null,
+    newsletter_status: null, notes: null, context: [speaker.job_title, speaker.event_id ? "Event-specific speaker" : "Reusable speaker"].filter((value): value is string => Boolean(value)), created_at: speaker.created_at,
+  });
+
+  for (const entry of entries.values()) entry.name ||= entry.email ?? "Unnamed";
 
   return {
-    entries: entries.sort((left, right) => (right.created_at ?? "").localeCompare(left.created_at ?? "")),
+    entries: [...entries.values()].sort((left, right) => (right.created_at ?? "").localeCompare(left.created_at ?? "")),
     availableTypes: ["Contact record", ...(canRead("members.read") ? ["Member account"] : []), ...(canRead("attendees.read") ? ["Guest attendee"] : []), ...(canRead("partners.read") ? ["Partner organization"] : []), ...(canRead("events.read") ? ["Speaker"] : [])],
   };
 });

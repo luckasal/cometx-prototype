@@ -75,19 +75,19 @@ function ContactsPage() {
   const members = useQuery({ queryKey: ["admin", "member-options"], queryFn: () => withRequestTimeout(fetchMembers(), 15000, "Loading linked accounts took too long. Please try again."), retry: false });
   const save = useMutation({
     mutationFn: () => saveContact({ data: { ...draft, first_name: draft.first_name || null, last_name: draft.last_name || null, phone: draft.phone || null, company: draft.company || null, linkedin_url: draft.linkedin_url.trim() || null, birth_year: draft.birth_year === "" ? null : Number(draft.birth_year), notes: draft.notes || null, member_id: draft.member_id || null } }),
-    onSuccess: () => { toast.success("Contact saved"); setSaveError(""); if (draft.id) { setSelectedContactId(null); setEditingSelected(false); } else setArchive("active"); setDraft(blank); cache.invalidateQueries({ queryKey: ["admin", "contacts"] }); cache.invalidateQueries({ queryKey: ["admin", "newsletter"] }); },
+    onSuccess: () => { toast.success("Contact saved"); setSaveError(""); if (draft.id) { setSelectedContactId(null); setEditingSelected(false); } else setArchive("active"); setDraft(blank); cache.invalidateQueries({ queryKey: ["admin", "contacts"] }); cache.invalidateQueries({ queryKey: ["admin", "contact-directory"] }); cache.invalidateQueries({ queryKey: ["admin", "newsletter"] }); },
     onError: (error: Error) => { setSaveError(error.message); toast.error(error.message); },
   });
   const archiveContact = useServerFn(adminArchiveContact);
   const restoreContact = useServerFn(adminRestoreContact);
   const archiveMutation = useMutation({
     mutationFn: (id: string) => archiveContact({ data: { id } }),
-    onSuccess: () => { toast.success("Contact archived. Its record and history are preserved."); setSelectedContactId(null); cache.invalidateQueries({ queryKey: ["admin", "contacts"] }); cache.invalidateQueries({ queryKey: ["admin", "newsletter"] }); },
+    onSuccess: () => { toast.success("Contact archived. Its record and history are preserved."); setSelectedContactId(null); cache.invalidateQueries({ queryKey: ["admin", "contacts"] }); cache.invalidateQueries({ queryKey: ["admin", "contact-directory"] }); cache.invalidateQueries({ queryKey: ["admin", "newsletter"] }); },
     onError: (error: Error) => toast.error(error.message),
   });
   const restoreMutation = useMutation({
     mutationFn: (id: string) => restoreContact({ data: { id } }),
-    onSuccess: () => { toast.success("Contact restored"); setSelectedContactId(null); cache.invalidateQueries({ queryKey: ["admin", "contacts"] }); cache.invalidateQueries({ queryKey: ["admin", "newsletter"] }); },
+    onSuccess: () => { toast.success("Contact restored"); setSelectedContactId(null); cache.invalidateQueries({ queryKey: ["admin", "contacts"] }); cache.invalidateQueries({ queryKey: ["admin", "contact-directory"] }); cache.invalidateQueries({ queryKey: ["admin", "newsletter"] }); },
     onError: (error: Error) => toast.error(error.message),
   });
   const importContacts = useMutation({
@@ -163,9 +163,9 @@ function ContactsPage() {
   const selectedContact = contacts.data?.find((contact) => contact.id === selectedContactId) ?? null;
   const selectedMember = selectedContact?.member_id ? members.data?.find((member) => member.id === selectedContact.member_id) : null;
   const directoryEntries = (directory.data?.entries ?? []).filter((entry) => {
-    const matchesType = directoryType === "All types" || entry.type === directoryType;
+    const matchesType = directoryType === "All types" || entry.types.includes(directoryType);
     const needle = directoryQuery.trim().toLocaleLowerCase();
-    const matchesSearch = !needle || [entry.name, entry.email, entry.organization, entry.details]
+    const matchesSearch = !needle || [entry.name, entry.email, entry.phone, entry.company, entry.website_url, entry.linkedin_url, entry.birth_year?.toString(), entry.newsletter_status, entry.notes, ...entry.context]
       .some((value) => value?.toLocaleLowerCase().includes(needle));
     return matchesType && matchesSearch;
   });
@@ -183,6 +183,36 @@ function ContactsPage() {
     setSaveError("");
   }
 
+  function openDirectoryContactProfile(entry: NonNullable<typeof directory.data>["entries"][number]) {
+    if (entry.contact_id) {
+      const contact = contacts.data?.find((row) => row.id === entry.contact_id);
+      if (contact) openContact(contact);
+      else {
+        setArchive("archived");
+        document.getElementById("contacts-records")?.scrollIntoView({ behavior: "smooth" });
+      }
+      return;
+    }
+    if (!entry.email) return;
+    setSelectedContactId(null);
+    setEditingSelected(false);
+    setDraft({
+      ...blank,
+      email: entry.email,
+      first_name: entry.name,
+      phone: entry.phone ?? "",
+      company: entry.company ?? "",
+      linkedin_url: entry.linkedin_url ?? "",
+      birth_year: entry.birth_year === null ? "" : String(entry.birth_year),
+      source: "directory",
+      member_id: entry.member_id ?? "",
+      newsletter_status: "pending",
+      notes: entry.notes ?? "",
+    });
+    setSaveError("");
+    document.getElementById("new-contact")?.scrollIntoView({ behavior: "smooth" });
+  }
+
   function confirmArchive(contact: NonNullable<typeof contacts.data>[number]) {
     if (window.confirm(`Archive ${contact.email}? This hides the contact from active and newsletter views but preserves the record and all linked history. You can restore it later.`)) archiveMutation.mutate(contact.id);
   }
@@ -196,15 +226,15 @@ function ContactsPage() {
 
   return <AdminPage title="Contacts" description="One directory for people and organizations across CometX, with each record kept in its original section." action={<div className="flex flex-wrap gap-2"><Button type="button" onClick={() => setImportOpen((open) => !open)} variant="outlineInk">{importOpen ? "Close CSV import" : "Import CSV"}</Button><Button onClick={() => document.getElementById("new-contact")?.scrollIntoView({ behavior: "smooth" })} variant="ink">New contact</Button></div>}>
     <section className="mb-10 space-y-4" aria-labelledby="cometx-directory-title">
-      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="cometx-directory-title" className="font-display text-xl font-bold">Everyone in CometX</h2><p className="mt-1 text-sm text-muted-foreground">Members, event guests, partners, speakers and contact records. This overview is read-only; edit each record in its original section.</p></div><span className="text-sm text-muted-foreground">{directoryEntries.length} {directoryType === "All types" ? "records" : directoryType.toLocaleLowerCase() + (directoryEntries.length === 1 ? "" : "s")}</span></div>
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="cometx-directory-title" className="font-display text-xl font-bold">Everyone in CometX</h2><p className="mt-1 text-sm text-muted-foreground">People with the same email or an explicit member link are grouped into one row. Contact profile details are shown alongside their account and event history; the original records remain in their own sections.</p></div><span className="text-sm text-muted-foreground">{directoryEntries.length} {directoryType === "All types" ? "people and organizations" : directoryType.toLocaleLowerCase() + (directoryEntries.length === 1 ? "" : "s")}</span></div>
       <div className="grid gap-3 sm:grid-cols-[1fr_240px]"><input aria-label="Search everyone in CometX" className={inputClass} value={directoryQuery} onChange={(event) => setDirectoryQuery(event.target.value)} placeholder="Search name, email, company or event" /><select aria-label="Directory record type" className={inputClass} value={directoryType} onChange={(event) => setDirectoryType(event.target.value as DirectoryType)}><option>All types</option>{(directory.data?.availableTypes ?? []).map((type) => <option key={type}>{type}</option>)}</select></div>
       {directory.isLoading && <LoadingBlock label="Loading the CometX directory" />}
       {directory.error && <div className="space-y-3"><ErrorBlock error={directory.error} /><Button variant="outlineInk" onClick={() => directory.refetch()}>Try again</Button></div>}
       {directory.data && directoryEntries.length === 0 && <EmptyBlock title="No directory records found" />}
-      {directory.data && directoryEntries.length > 0 && <AdminTable head={["Type", "Name", "Email / website", "Organization", "Details", "Added"]}>{directoryEntries.map((entry) => <tr key={entry.id} className="[&>td]:px-4 [&>td]:py-3"><td><StatusPill tone={entry.type === "Partner organization" ? "success" : "muted"}>{entry.type}</StatusPill></td><td className="font-medium">{entry.name || "Unnamed"}</td><td>{entry.email ?? (entry.organization?.startsWith("http") ? <a className="underline" href={entry.organization} target="_blank" rel="noreferrer">Website</a> : "—")}</td><td>{entry.type === "Partner organization" ? "—" : entry.organization ?? "—"}</td><td className="text-sm text-muted-foreground">{entry.details ?? "—"}</td><td>{entry.created_at ? new Date(entry.created_at).toLocaleDateString("en-GB") : "—"}</td></tr>)}</AdminTable>}
-      <p className="text-xs text-muted-foreground">The same person may appear more than once when they have separate member, guest, speaker or contact records. No records are merged here.</p>
+      {directory.data && directoryEntries.length > 0 && <AdminTable head={["Sources", "Name", "Email", "Company / website", "Contact profile", "CometX context", "Added", "Profile"]}>{directoryEntries.map((entry) => <tr key={entry.id} className="[&>td]:px-4 [&>td]:py-3"><td><div className="flex max-w-48 flex-wrap gap-1">{entry.types.map((type) => <StatusPill key={type} tone={type === "Partner organization" ? "success" : "muted"}>{type}{(entry.sourceCounts[type] ?? 0) > 1 ? ` × ${entry.sourceCounts[type]}` : ""}</StatusPill>)}</div></td><td className="font-medium">{entry.name || "Unnamed"}</td><td>{entry.email ?? "—"}</td><td>{entry.company ?? (entry.website_url ? <a className="underline" href={entry.website_url} target="_blank" rel="noreferrer">Website</a> : "—")}</td><td className="min-w-48 text-sm">{entry.phone && <div>Phone: {entry.phone}</div>}{entry.linkedin_url && <div className="max-w-56 truncate"><a className="underline" href={entry.linkedin_url} target="_blank" rel="noreferrer">LinkedIn</a></div>}{entry.birth_year && <div>Birth year: {entry.birth_year}</div>}{entry.newsletter_status && <div>Newsletter: {entry.newsletter_status}</div>}{entry.notes && <div className="max-w-64 truncate" title={entry.notes}>Notes: {entry.notes}</div>}{!entry.phone && !entry.linkedin_url && !entry.birth_year && !entry.newsletter_status && !entry.notes && "—"}</td><td className="min-w-48 text-sm text-muted-foreground">{entry.context.map((detail, index) => <div key={`${index}-${detail}`}>{detail}</div>)}</td><td>{entry.created_at ? new Date(entry.created_at).toLocaleDateString("en-GB") : "—"}</td><td>{entry.email && (entry.types.includes("Contact record") || entry.types.includes("Member account") || entry.types.includes("Guest attendee")) && <button type="button" className="text-xs underline" onClick={() => openDirectoryContactProfile(entry)}>{entry.contact_id ? "Edit profile" : "Add profile"}</button>}</td></tr>)}</AdminTable>}
+      <p className="text-xs text-muted-foreground">People are grouped only when their normalized email matches or a member account is explicitly linked. Partner organizations stay separate, and speakers without an email are not guessed into a person record. Add or edit a contact profile to maintain phone, company, LinkedIn, birth year, newsletter status and notes.</p>
     </section>
-    <div className="mb-6 grid gap-3 sm:grid-cols-[1fr_180px_180px_auto]">
+    <div id="contacts-records" className="mb-6 grid gap-3 sm:grid-cols-[1fr_180px_180px_auto]">
       <input className={inputClass} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, email or company" />
       <select aria-label="Newsletter status" className={inputClass} value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="all">All newsletter states</option><option value="subscribed">Subscribed</option><option value="pending">Pending</option><option value="unsubscribed">Unsubscribed</option></select>
       <select aria-label="Contact archive status" className={inputClass} value={archive} onChange={(event) => setArchive(event.target.value as typeof archive)}><option value="active">Active contacts</option><option value="archived">Archived contacts</option></select>
