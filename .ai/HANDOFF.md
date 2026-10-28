@@ -2,6 +2,13 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-28: CNT-01 contact detail and safe archive
+
+- Implementation commit `340db7d` on `codex/event-ticket-membership-entitlements-20261026`. Contact admin now has a readable detail dialog, full editable contact fields, cancel/save/error feedback, lowercased trimmed email storage and normalized duplicate detection. Existing newsletter consent timestamps are retained when editing; a new timestamp is recorded only when status changes to subscribed.
+- Added reversible `archived_at` lifecycle with confirmation, active/archived filters, restore action, and exclusion of archived records from active/newsletter views. No hard-delete path was added, so contact/order/ticket/payment/membership/registration history is preserved. New additive migration: `drizzle/migrations/0031_contact_archive.sql`.
+- `pnpm build` passed. Changed-file ESLint passed with the repository Prettier rule disabled because this Windows checkout has CRLF line endings while the rule expects LF; `git -c core.whitespace=cr-at-eol diff --check` passed. Full `pnpm typecheck` still fails on existing unrelated issues in StaffReadOnly, storage file typing, staff-permissions, root/admin routes and Stripe RPC. No tests were run; no contacts were read or changed.
+- Not pushed or deployed. Next: apply migration `0031_contact_archive.sql` to Production, then deploy the matching code and verify authenticated contact create/edit/archive/restore with a designated safe contact. Do not hard-delete contacts.
+
 ## 2026-10-26: one-time speaker and workshop editing
 
 - Task `EVT-04`; implementation commit `b78caca` on `codex/event-ticket-membership-entitlements-20261026`.
