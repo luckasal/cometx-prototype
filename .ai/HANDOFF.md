@@ -1132,6 +1132,8 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - Matching app deployment and authenticated admin verification remain. Keep CNT-02 in review until the Production deployment is Ready and the admin form is checked.
 # CNT-06 — Bulk contact subscriptions and segments (2026-10-28)
 
+- Follow-up UX fix: `/admin/contacts` now opens on a separate Manage contacts view, with Everyone in CometX one click away. Bulk editing is visible above the contact table and follows select → choose action → review → apply. The review dialog names the action, segment and selected count; consent confirmation remains mandatory for subscription. This changes no server pricing, permission, contact profile or segment schema logic.
+
 - User backlog row: CNT-03 “Bulk edit subscriptions / segments”. Internal ID is CNT-06 because this repository already assigns CNT-03 to the unified contact directory.
 - Added `drizzle/migrations/0032_contact_segments.sql` with separate `contact_segments` and `contact_segment_assignments` tables. Assignments reference contacts and are cascaded only when a contact is deleted; segment data is separate from the contact profile.
 - Added permission-checked server actions for listing segments/assignments and selected-row bulk operations. Newsletter changes require `newsletter.write`; segment changes require `contacts.write`. Each operation validates up to 500 unique active contact IDs and writes only the requested status/consent timestamp or segment assignment.

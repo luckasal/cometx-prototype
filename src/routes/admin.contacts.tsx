@@ -43,6 +43,7 @@ type ContactImportResult = {
 type DirectoryType = "All types" | "Contact record" | "Member account" | "Guest attendee" | "Partner organization" | "Speaker";
 
 function ContactsPage() {
+  const [activeView, setActiveView] = useState<"directory" | "manage">("manage");
   const [query, setQuery] = useState("");
   const [directoryQuery, setDirectoryQuery] = useState("");
   const [directoryType, setDirectoryType] = useState<DirectoryType>("All types");
@@ -54,6 +55,7 @@ function ContactsPage() {
   const [bulkSegmentName, setBulkSegmentName] = useState("");
   const [consentConfirmed, setConsentConfirmed] = useState(false);
   const [bulkResult, setBulkResult] = useState<{ updated: number; skipped: number; failed: number } | null>(null);
+  const [bulkReviewOpen, setBulkReviewOpen] = useState(false);
   const [draft, setDraft] = useState<ContactDraft>(blank);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [editingSelected, setEditingSelected] = useState(false);
@@ -81,7 +83,7 @@ function ContactsPage() {
   const contacts = useQuery({ queryKey: ["admin", "contacts", query, status, archive], queryFn: () => withRequestTimeout(fetchContacts({ data: { query, status, archive } }), 15000, "Loading contacts took too long. Please try again."), retry: false });
   const visibleContactIds = contacts.data?.map((contact) => contact.id) ?? [];
   const contactSegments = useQuery({ queryKey: ["admin", "contact-segments", visibleContactIds], queryFn: () => fetchContactSegments({ data: { contactIds: visibleContactIds } }), enabled: visibleContactIds.length > 0, retry: false });
-  useEffect(() => { setSelectedContactIds([]); setBulkResult(null); }, [query, status, archive]);
+  useEffect(() => { setSelectedContactIds([]); setBulkResult(null); setBulkReviewOpen(false); }, [query, status, archive]);
   const directory = useQuery({ queryKey: ["admin", "contact-directory"], queryFn: () => withRequestTimeout(fetchDirectory(), 20000, "Loading the CometX directory took too long. Please try again."), retry: false });
   const members = useQuery({ queryKey: ["admin", "member-options"], queryFn: () => withRequestTimeout(fetchMembers(), 15000, "Loading linked accounts took too long. Please try again."), retry: false });
   const save = useMutation({
@@ -123,6 +125,7 @@ function ContactsPage() {
     onSuccess: (result) => {
       setBulkResult(result);
       setSelectedContactIds([]);
+      setBulkReviewOpen(false);
       setConsentConfirmed(false);
       cache.invalidateQueries({ queryKey: ["admin", "contacts"] });
       cache.invalidateQueries({ queryKey: ["admin", "contact-segments"] });
@@ -214,7 +217,8 @@ function ContactsPage() {
       if (contact) openContact(contact);
       else {
         setArchive("archived");
-        document.getElementById("contacts-records")?.scrollIntoView({ behavior: "smooth" });
+        setActiveView("manage");
+        requestAnimationFrame(() => document.getElementById("contacts-records")?.scrollIntoView({ behavior: "smooth" }));
       }
       return;
     }
@@ -249,32 +253,35 @@ function ContactsPage() {
     const link = document.createElement("a"); link.href = url; link.download = "cometx-contacts.csv"; link.click(); URL.revokeObjectURL(url);
   }
 
-  function submitBulkUpdate() {
+  function reviewBulkUpdate() {
     if (!selectedContactIds.length) return;
-    if (bulkAction === "unsubscribe") {
-      if (!window.confirm(`Unsubscribe ${selectedContactIds.length} selected contact${selectedContactIds.length === 1 ? "" : "s"}? This changes only newsletter status and keeps recorded consent history.`)) return;
-      bulkUpdateContacts.mutate({ action: "newsletter", status: "unsubscribed", consentConfirmed: true, contactIds: selectedContactIds });
-      return;
-    }
-    if (bulkAction === "subscribe") {
-      if (!consentConfirmed) { toast.error("Confirm that current newsletter consent is documented before subscribing."); return; }
-      if (!window.confirm(`Mark ${selectedContactIds.length} selected contact${selectedContactIds.length === 1 ? "" : "s"} as subscribed? Only continue if each person’s current consent is documented.`)) return;
-      bulkUpdateContacts.mutate({ action: "newsletter", status: "subscribed", consentConfirmed: true, contactIds: selectedContactIds });
-      return;
-    }
-    if (bulkAction === "segment_assign") {
-      const segment = contactSegments.data?.segments.find((item) => item.id === bulkSegmentId);
-      bulkUpdateContacts.mutate({ action: "segment_assign", contactIds: selectedContactIds, ...(segment ? { segmentId: segment.id } : { segmentName: bulkSegmentName }) });
-      return;
-    }
-    if (!bulkSegmentId) { toast.error("Choose a segment to remove."); return; }
-    const segment = contactSegments.data?.segments.find((item) => item.id === bulkSegmentId);
-    if (!segment || !window.confirm(`Remove the “${segment.name}” segment from ${selectedContactIds.length} selected contact${selectedContactIds.length === 1 ? "" : "s"}?`)) return;
-    bulkUpdateContacts.mutate({ action: "segment_remove", contactIds: selectedContactIds, segmentId: segment.id });
+    if (bulkAction === "subscribe" && !consentConfirmed) { toast.error("Confirm documented opt-in consent for every selected contact."); return; }
+    if (bulkAction === "segment_assign" && !bulkSegmentId && !bulkSegmentName.trim()) { toast.error("Choose or create a segment."); return; }
+    if (bulkAction === "segment_remove" && !bulkSegmentId) { toast.error("Choose a segment to remove."); return; }
+    setBulkReviewOpen(true);
   }
 
-  return <AdminPage title="Contacts" description="One directory for people and organizations across CometX, with each record kept in its original section." action={<div className="flex flex-wrap gap-2"><Button type="button" onClick={() => setImportOpen((open) => !open)} variant="outlineInk">{importOpen ? "Close CSV import" : "Import CSV"}</Button><Button onClick={() => document.getElementById("new-contact")?.scrollIntoView({ behavior: "smooth" })} variant="ink">New contact</Button></div>}>
-    <section className="mb-10 space-y-4" aria-labelledby="cometx-directory-title">
+  function submitBulkUpdate() {
+    if (!selectedContactIds.length) return;
+    if (bulkAction === "subscribe" || bulkAction === "unsubscribe") {
+      bulkUpdateContacts.mutate({ action: "newsletter", status: bulkAction === "subscribe" ? "subscribed" : "unsubscribed", consentConfirmed: true, contactIds: selectedContactIds });
+    } else if (bulkAction === "segment_assign") {
+      const segment = contactSegments.data?.segments.find((item) => item.id === bulkSegmentId);
+      bulkUpdateContacts.mutate({ action: "segment_assign", contactIds: selectedContactIds, ...(segment ? { segmentId: segment.id } : { segmentName: bulkSegmentName.trim() }) });
+    } else {
+      bulkUpdateContacts.mutate({ action: "segment_remove", contactIds: selectedContactIds, segmentId: bulkSegmentId });
+    }
+  }
+
+  const bulkActionLabel = bulkAction === "subscribe" ? "Mark subscribed" : bulkAction === "unsubscribe" ? "Unsubscribe" : bulkAction === "segment_assign" ? "Add segment" : "Remove segment";
+  const bulkSegmentLabel = contactSegments.data?.segments.find((item) => item.id === bulkSegmentId)?.name ?? bulkSegmentName.trim();
+
+  return <AdminPage title="Contacts" description="Find everyone in CometX, or manage contact records and their newsletter consent and segments." action={<div className="flex flex-wrap gap-2"><Button type="button" onClick={() => setImportOpen((open) => !open)} variant="outlineInk">{importOpen ? "Close CSV import" : "Import CSV"}</Button><Button onClick={() => document.getElementById("new-contact")?.scrollIntoView({ behavior: "smooth" })} variant="ink">New contact</Button></div>}>
+    <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Contact views">
+      <Button type="button" aria-pressed={activeView === "directory"} variant={activeView === "directory" ? "ink" : "outlineInk"} onClick={() => setActiveView("directory")}>Everyone in CometX</Button>
+      <Button type="button" aria-pressed={activeView === "manage"} variant={activeView === "manage" ? "ink" : "outlineInk"} onClick={() => setActiveView("manage")}>Manage contacts & bulk edit</Button>
+    </div>
+    {activeView === "directory" && <section className="mb-10 space-y-4" aria-labelledby="cometx-directory-title">
       <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="cometx-directory-title" className="font-display text-xl font-bold">Everyone in CometX</h2><p className="mt-1 text-sm text-muted-foreground">People with the same email or an explicit member link are grouped into one row. Contact profile details are shown alongside their account and event history; the original records remain in their own sections.</p></div><span className="text-sm text-muted-foreground">{directoryEntries.length} {directoryType === "All types" ? "people and organizations" : directoryType.toLocaleLowerCase() + (directoryEntries.length === 1 ? "" : "s")}</span></div>
       <div className="grid gap-3 sm:grid-cols-[1fr_240px]"><input aria-label="Search everyone in CometX" className={inputClass} value={directoryQuery} onChange={(event) => setDirectoryQuery(event.target.value)} placeholder="Search name, email, company or event" /><select aria-label="Directory record type" className={inputClass} value={directoryType} onChange={(event) => setDirectoryType(event.target.value as DirectoryType)}><option>All types</option>{(directory.data?.availableTypes ?? []).map((type) => <option key={type}>{type}</option>)}</select></div>
       {directory.isLoading && <LoadingBlock label="Loading the CometX directory" />}
@@ -282,24 +289,28 @@ function ContactsPage() {
       {directory.data && directoryEntries.length === 0 && <EmptyBlock title="No directory records found" />}
       {directory.data && directoryEntries.length > 0 && <AdminTable head={["Sources", "Name", "Email", "Company / website", "Contact profile", "CometX context", "Added", "Profile"]}>{directoryEntries.map((entry) => <tr key={entry.id} className="[&>td]:px-4 [&>td]:py-3"><td><div className="flex max-w-48 flex-wrap gap-1">{entry.types.map((type) => <StatusPill key={type} tone={type === "Partner organization" ? "success" : "muted"}>{type}{(entry.sourceCounts[type] ?? 0) > 1 ? ` × ${entry.sourceCounts[type]}` : ""}</StatusPill>)}</div></td><td className="font-medium">{entry.name || "Unnamed"}</td><td>{entry.email ?? "—"}</td><td>{entry.company ?? (entry.website_url ? <a className="underline" href={entry.website_url} target="_blank" rel="noreferrer">Website</a> : "—")}</td><td className="min-w-48 text-sm">{entry.phone && <div>Phone: {entry.phone}</div>}{entry.linkedin_url && <div className="max-w-56 truncate"><a className="underline" href={entry.linkedin_url} target="_blank" rel="noreferrer">LinkedIn</a></div>}{entry.birth_year && <div>Birth year: {entry.birth_year}</div>}{entry.newsletter_status && <div>Newsletter: {entry.newsletter_status}</div>}{entry.notes && <div className="max-w-64 truncate" title={entry.notes}>Notes: {entry.notes}</div>}{!entry.phone && !entry.linkedin_url && !entry.birth_year && !entry.newsletter_status && !entry.notes && "—"}</td><td className="min-w-48 text-sm text-muted-foreground">{entry.context.map((detail, index) => <div key={`${index}-${detail}`}>{detail}</div>)}</td><td>{entry.created_at ? new Date(entry.created_at).toLocaleDateString("en-GB") : "—"}</td><td>{entry.email && (entry.types.includes("Contact record") || entry.types.includes("Member account") || entry.types.includes("Guest attendee")) && <button type="button" className="text-xs underline" onClick={() => openDirectoryContactProfile(entry)}>{entry.contact_id ? "Edit profile" : "Add profile"}</button>}</td></tr>)}</AdminTable>}
       <p className="text-xs text-muted-foreground">People are grouped only when their normalized email matches or a member account is explicitly linked. Partner organizations stay separate, and speakers without an email are not guessed into a person record. Add or edit a contact profile to maintain phone, company, LinkedIn, birth year, newsletter status and notes.</p>
-    </section>
-    <div id="contacts-records" className="mb-6 grid gap-3 sm:grid-cols-[1fr_180px_180px_auto]">
+      <Button type="button" variant="outlineInk" onClick={() => setActiveView("manage")}>Manage contact records and bulk actions</Button>
+    </section>}
+    {activeView === "manage" && <section id="contacts-records" className="mb-10" aria-labelledby="contact-records-title">
+    <div className="mb-4"><h2 id="contact-records-title" className="font-display text-xl font-bold">Manage contact records</h2><p className="mt-1 text-sm text-muted-foreground">Select rows below to update newsletter consent or segments. Other directory records need a contact profile before they can be bulk edited.</p></div>
+    <div className="mb-6 grid gap-3 sm:grid-cols-[1fr_180px_180px_auto]">
       <input className={inputClass} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, email or company" />
       <select aria-label="Newsletter status" className={inputClass} value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="all">All newsletter states</option><option value="subscribed">Subscribed</option><option value="pending">Pending</option><option value="unsubscribed">Unsubscribed</option></select>
       <select aria-label="Contact archive status" className={inputClass} value={archive} onChange={(event) => setArchive(event.target.value as typeof archive)}><option value="active">Active contacts</option><option value="archived">Archived contacts</option></select>
       <Button type="button" variant="outlineInk" onClick={exportContacts} disabled={!contacts.data?.length}>Export CSV</Button>
     </div>
     {bulkResult && <p className="mb-4 rounded-lg border border-border/60 p-3 text-sm" role="status">Bulk update complete: {bulkResult.updated} updated · {bulkResult.skipped} unchanged · {bulkResult.failed} failed.</p>}
-    {archive === "active" && contacts.data && contacts.data.length > 0 && <section className="mb-5 space-y-4 rounded-2xl border border-border/60 bg-card p-4" aria-label="Bulk contact actions">
-      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Bulk edit contacts</h2><p className="text-sm text-muted-foreground">Select from the {visibleContactIds.length} contacts currently loaded by these filters (maximum 500).</p></div><div className="flex gap-2"><Button type="button" variant="outlineInk" onClick={() => { setSelectedContactIds(visibleContactIds); setBulkResult(null); }}>Select all visible</Button><Button type="button" variant="outlineInk" onClick={() => setSelectedContactIds([])} disabled={!selectedContactIds.length}>Clear selection</Button></div></div>
-      <div className="flex flex-wrap items-center gap-3 text-sm"><strong>{selectedContactIds.length} selected</strong><select aria-label="Bulk action" className={`${inputClass} max-w-64`} value={bulkAction} onChange={(event) => { setBulkAction(event.target.value as typeof bulkAction); setConsentConfirmed(false); setBulkResult(null); }}><option value="segment_assign">Assign segment</option><option value="segment_remove">Remove segment</option><option value="subscribe">Mark subscribed</option><option value="unsubscribe">Unsubscribe</option></select>
+    {archive === "active" && contacts.data && contacts.data.length > 0 && <section className="mb-5 space-y-4 rounded-2xl border border-border/60 bg-card p-5" aria-label="Bulk contact actions">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold">1. Select contacts</h3><p className="text-sm text-muted-foreground">{selectedContactIds.length} of {visibleContactIds.length} loaded contacts selected. Filters apply before selection.</p></div><div className="flex gap-2"><Button type="button" variant="outlineInk" onClick={() => { setSelectedContactIds(visibleContactIds); setBulkResult(null); }}>Select all shown</Button><Button type="button" variant="outlineInk" onClick={() => setSelectedContactIds([])} disabled={!selectedContactIds.length}>Clear</Button></div></div>
+      <div className="space-y-3 border-t border-border/60 pt-4"><h3 className="font-semibold">2. Choose one change</h3><div className="flex flex-wrap gap-2" role="group" aria-label="Bulk action">{([['segment_assign', 'Add segment'], ['segment_remove', 'Remove segment'], ['subscribe', 'Mark subscribed'], ['unsubscribe', 'Unsubscribe']] as const).map(([action, label]) => <Button key={action} type="button" variant={bulkAction === action ? "ink" : "outlineInk"} aria-pressed={bulkAction === action} onClick={() => { setBulkAction(action); setConsentConfirmed(false); setBulkResult(null); setBulkReviewOpen(false); }}>{label}</Button>)}</div>
         {bulkAction === "segment_assign" && <>{contactSegments.data?.segments.length ? <select aria-label="Segment to assign" className={`${inputClass} max-w-64`} value={bulkSegmentId} onChange={(event) => setBulkSegmentId(event.target.value)}><option value="">Create a new segment…</option>{contactSegments.data.segments.map((segment) => <option key={segment.id} value={segment.id}>{segment.name}</option>)}</select> : null}{!bulkSegmentId && <input aria-label="New segment name" className={`${inputClass} max-w-64`} value={bulkSegmentName} onChange={(event) => setBulkSegmentName(event.target.value)} placeholder="New segment name" maxLength={80} />}</>}
         {bulkAction === "segment_remove" && <select aria-label="Segment to remove" className={`${inputClass} max-w-64`} value={bulkSegmentId} onChange={(event) => setBulkSegmentId(event.target.value)}><option value="">Choose segment…</option>{(contactSegments.data?.segments ?? []).map((segment) => <option key={segment.id} value={segment.id}>{segment.name}</option>)}</select>}
-        {(bulkAction === "subscribe" || bulkAction === "unsubscribe") && <label className="flex items-start gap-2"><input type="checkbox" checked={bulkAction === "unsubscribe" || consentConfirmed} disabled={bulkAction === "unsubscribe"} onChange={(event) => setConsentConfirmed(event.target.checked)} /><span>{bulkAction === "unsubscribe" ? "Unsubscribe requires confirmation when applied." : "I confirm current opt-in consent is documented for every selected contact."}</span></label>}
-        <Button type="button" variant="ink" disabled={!selectedContactIds.length || bulkUpdateContacts.isPending || ((bulkAction === "segment_assign" || bulkAction === "segment_remove") && (contactSegments.isLoading || Boolean(contactSegments.error))) || (bulkAction === "segment_assign" && !bulkSegmentId && !bulkSegmentName.trim()) || (bulkAction === "segment_remove" && !bulkSegmentId) || (bulkAction === "subscribe" && !consentConfirmed)} onClick={submitBulkUpdate}>{bulkUpdateContacts.isPending ? "Applying…" : `Apply to ${selectedContactIds.length}`}</Button>
+        {bulkAction === "subscribe" && <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={consentConfirmed} onChange={(event) => setConsentConfirmed(event.target.checked)} /><span>I confirm current opt-in consent is documented for every selected contact.</span></label>}
+        {bulkAction === "unsubscribe" && <p className="text-sm text-muted-foreground">This marks selected contacts unsubscribed and keeps their recorded consent timestamp.</p>}
       </div>
+      <div className="border-t border-border/60 pt-4"><h3 className="mb-2 font-semibold">3. Review and apply</h3><Button type="button" variant="ink" disabled={!selectedContactIds.length || bulkUpdateContacts.isPending || ((bulkAction === "segment_assign" || bulkAction === "segment_remove") && (contactSegments.isLoading || Boolean(contactSegments.error))) || (bulkAction === "segment_assign" && !bulkSegmentId && !bulkSegmentName.trim()) || (bulkAction === "segment_remove" && !bulkSegmentId) || (bulkAction === "subscribe" && !consentConfirmed)} onClick={reviewBulkUpdate}>Review change for {selectedContactIds.length}</Button></div>
       {contactSegments.error && <p role="alert" className="text-sm text-destructive">Segments could not be loaded: {contactSegments.error.message}. Refresh before assigning or removing.</p>}
-      <p className="text-xs text-muted-foreground">Newsletter changes update only consent status and consent timestamp; existing consent history is kept on unsubscribe. Segment changes are stored separately from contact profile fields. “Select all visible” selects only the loaded results, up to 500.</p>
+      <p className="text-xs text-muted-foreground">Only contact profiles can be changed here. “Select all shown” covers the loaded filtered records, up to 500. No unrelated profile fields are changed.</p>
     </section>}
     {importOpen && <section className="mb-8 space-y-5 rounded-2xl border border-border/60 bg-card p-6" aria-labelledby="contact-csv-import-title">
       <div><h2 id="contact-csv-import-title" className="font-display text-lg font-bold">Import contacts from CSV</h2><p className="mt-1 text-sm text-muted-foreground">Reusable import for contact leads. The file is previewed before writing. New contacts stay pending for newsletter status; no member or sign-in accounts are created.</p></div>
@@ -322,12 +333,26 @@ function ContactsPage() {
     {contacts.error && <div className="mb-5 space-y-3"><ErrorBlock error={contacts.error} /><Button variant="outlineInk" onClick={() => contacts.refetch()}>Try again</Button></div>}
     {contacts.data?.length === 0 && <EmptyBlock title={archive === "archived" ? "No archived contacts found" : "No contacts found"} />}
     {contacts.data && contacts.data.length > 0 && <AdminTable head={["Select", "Contact", "Company", "Source", "Newsletter", "Segments", "Linked member", "Added", "Actions"]}>{contacts.data.map((contact) => { const assignedSegments = contactSegments.data?.assignments.filter((assignment) => assignment.contact_id === contact.id).map((assignment) => contactSegments.data?.segments.find((segment) => segment.id === assignment.segment_id)).filter((segment): segment is NonNullable<typeof segment> => Boolean(segment)) ?? []; return <tr key={contact.id} className="[&>td]:px-4 [&>td]:py-3"><td>{archive === "active" && <input aria-label={`Select ${contact.email}`} type="checkbox" checked={selectedContactIds.includes(contact.id)} onChange={(event) => { setSelectedContactIds((current) => event.target.checked ? [...new Set([...current, contact.id])] : current.filter((id) => id !== contact.id)); setBulkResult(null); }} />}</td><td><button type="button" className="text-left" onClick={() => openContact(contact)}><span className="font-medium underline">{[contact.first_name, contact.last_name].filter(Boolean).join(" ") || "Unnamed contact"}</span></button><p className="text-xs text-muted-foreground">{contact.email}</p>{contact.linkedin_url && <p className="text-xs"><a href={contact.linkedin_url} target="_blank" rel="noreferrer" className="underline">LinkedIn profile</a></p>}{contact.birth_year && <p className="text-xs text-muted-foreground">Birth year: {contact.birth_year}</p>}</td><td>{contact.company ?? "-"}</td><td>{contact.source}</td><td><StatusPill tone={contact.newsletter_status === "subscribed" ? "success" : "muted"}>{contact.newsletter_status}</StatusPill></td><td><div className="flex max-w-48 flex-wrap gap-1">{assignedSegments.map((segment) => <StatusPill key={segment.id} tone="muted">{segment.name}</StatusPill>)}{contactSegments.isLoading && <span className="text-xs text-muted-foreground">Loading…</span>}{!contactSegments.isLoading && !assignedSegments.length && "—"}</div></td><td>{contact.member_id ? "Linked" : "-"}</td><td>{new Date(contact.created_at).toLocaleDateString("en-GB")}</td><td><div className="flex flex-wrap gap-3"><button type="button" className="text-xs underline" onClick={() => openContact(contact)}>View</button>{archive === "active" ? <button type="button" className="text-xs underline" disabled={archiveMutation.isPending} onClick={() => confirmArchive(contact)}>Archive</button> : <button type="button" className="text-xs underline" disabled={restoreMutation.isPending} onClick={() => restoreMutation.mutate(contact.id)}>Restore</button>}</div></td></tr>; })}</AdminTable>}
+    </section>}
     <form id="new-contact" className="mt-10 space-y-5 rounded-2xl border border-border/60 bg-card p-6" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
       <h2 className="font-display text-lg font-bold">Add contact</h2>
       <ContactEditorFields draft={draft} members={members.data ?? []} onChange={setDraft} />
       {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
       <div className="flex gap-3"><Button type="submit" variant="ink" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save contact"}</Button><Button type="button" variant="outlineInk" disabled={save.isPending} onClick={() => { setDraft(blank); setSaveError(""); }}>Cancel</Button></div>
     </form>
+    <Dialog open={bulkReviewOpen} onOpenChange={(open) => { if (!bulkUpdateContacts.isPending) setBulkReviewOpen(open); }}>
+      <DialogContent className="w-[calc(100%-2rem)] max-w-lg rounded-2xl bg-card">
+        <DialogTitle className="font-display text-xl font-bold">Review bulk change</DialogTitle>
+        <DialogDescription>Check the action and number of contacts before applying it.</DialogDescription>
+        <div className="space-y-2 rounded-xl border border-border/60 p-4 text-sm">
+          <p><strong>Action:</strong> {bulkActionLabel}{(bulkAction === "segment_assign" || bulkAction === "segment_remove") && ` · ${bulkSegmentLabel}`}</p>
+          <p><strong>Contacts:</strong> {selectedContactIds.length} selected from the current filtered list</p>
+          <p className="text-muted-foreground">Only newsletter status or the selected segment assignment will change. Other contact fields remain as they are.</p>
+          {bulkAction === "subscribe" && <p>Current opt-in consent has been confirmed for every selected contact.</p>}
+        </div>
+        <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outlineInk" disabled={bulkUpdateContacts.isPending} onClick={() => setBulkReviewOpen(false)}>Back</Button><Button type="button" variant="ink" disabled={bulkUpdateContacts.isPending} onClick={submitBulkUpdate}>{bulkUpdateContacts.isPending ? "Applying…" : `Apply to ${selectedContactIds.length} contacts`}</Button></div>
+      </DialogContent>
+    </Dialog>
     {selectedContact && <Dialog open onOpenChange={(open) => { if (!open) { setSelectedContactId(null); setEditingSelected(false); setDraft(blank); } }}>
       <DialogContent className="max-h-[88dvh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto rounded-2xl bg-card">
         <div className="pr-7"><DialogTitle className="font-display text-xl font-bold">{editingSelected ? "Edit contact" : "Contact details"}</DialogTitle><DialogDescription className="mt-1">{selectedContact.email}</DialogDescription></div>
