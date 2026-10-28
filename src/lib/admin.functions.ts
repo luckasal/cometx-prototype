@@ -1177,7 +1177,9 @@ export const adminListContactDirectory = createServerFn({ method: "GET" }).handl
     canRead("attendees.read") ? (async () => {
       // ticket_attendees exists in Production but is missing from the generated
       // Supabase Database type; keep this cast scoped to this read-only query.
-      const db = await admin("attendees.read") as unknown as GuestAttendeeQueryClient;
+      await requireStaffPermission("attendees.read");
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const db = supabaseAdmin as unknown as GuestAttendeeQueryClient;
       return readAllAdminPages<GuestAttendeeDirectoryRow>(async (from, to) => {
         const { data, error } = await db.from("ticket_attendees")
           .select("id,attendee_name,attendee_email,event_id,status,created_at")
