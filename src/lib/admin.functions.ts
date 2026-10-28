@@ -206,6 +206,26 @@ export const adminSaveEvent = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const db = await admin("events.write");
     const { id, ...fields } = data.event;
+    const existingEventTickets = id
+      ? await db.from("ticket_types")
+        .select("id,required_entitlement,discount_entitlement,free_entitlement")
+        .eq("event_id", id)
+      : { data: [], error: null };
+    if (existingEventTickets.error) throw new Error("Ticket entitlements could not be checked. Nothing was saved.");
+    const existingTicketMap = new Map((existingEventTickets.data ?? []).map((ticket: {
+      id: string;
+      required_entitlement: string | null;
+      discount_entitlement: string | null;
+      free_entitlement: string | null;
+    }) => [ticket.id, ticket]));
+    await assertEntitlementReferencesAssignable(db, data.tickets.flatMap((ticket) =>
+      (["required_entitlement", "discount_entitlement", "free_entitlement"] as const)
+        .filter((field) => ticket[field])
+        .map((field) => ({
+          key: ticket[field]!,
+          allowArchived: !!ticket.id && existingTicketMap.get(ticket.id)?.[field] === ticket[field],
+        })),
+    ));
     const firstTicket = earliestTicketSaleStart(data.tickets);
     if (firstTicket?.sale_start) fields.registration_start = firstTicket.sale_start;
     const scheduleIssue = eventScheduleIssue(fields);
@@ -524,6 +544,16 @@ export const adminSaveArticle = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => articleSchema.parse(d))
   .handler(async ({ data }) => {
     const db = await admin("content.write");
+    if (data.visibility === "entitlement" && data.required_entitlement) {
+      const existing = data.id
+        ? await db.from("articles").select("required_entitlement").eq("id", data.id).maybeSingle()
+        : { data: null, error: null };
+      if (existing.error) throw new Error("Article entitlement could not be checked. Nothing was saved.");
+      await assertEntitlementReferencesAssignable(db, [{
+        key: data.required_entitlement,
+        allowArchived: existing.data?.required_entitlement === data.required_entitlement,
+      }]);
+    }
     const { id, ...fields } = data;
     const payload = {
       ...fields,
@@ -562,6 +592,36 @@ const entitlementDefinitionSchema = z.object({
   name: z.string().trim().min(2).max(160),
   description: z.string().trim().max(1000).nullable().default(null),
 });
+
+type EntitlementReference = { key: string; allowArchived: boolean };
+
+async function assertEntitlementReferencesAssignable(
+  db: SupabaseClient,
+  references: EntitlementReference[],
+) {
+  if (!references.length) return;
+  const keys = [...new Set(references.map((reference) => reference.key))];
+  const { data, error } = await db.from("entitlements").select("key,archived_at").in("key", keys);
+  if (error || !data) throw new Error("Entitlement availability could not be checked. Nothing was saved.");
+  const definitions = new Map(data.map((item: { key: string; archived_at: string | null }) => [item.key, item]));
+  for (const reference of references) {
+    const definition = definitions.get(reference.key);
+    if (!definition) throw new Error("Choose an existing entitlement.");
+    if (definition.archived_at && !reference.allowArchived)
+      throw new Error("This entitlement is archived and cannot be assigned to new tickets or content. Restore it first.");
+  }
+}
+
+export const adminSetEntitlementArchived = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ key: z.string().min(2).max(100), archived: z.boolean() }).parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin("memberships.write");
+    const { data: saved, error } = await db.from("entitlements").update({
+      archived_at: data.archived ? new Date().toISOString() : null,
+    }).eq("key", data.key).select("key,archived_at").maybeSingle();
+    if (error || !saved) throw new Error("Entitlement archive status could not be saved.");
+    return { ok: true, archived: !!saved.archived_at };
+  });
 
 /** Stable keys are referenced by tickets/articles; admins may edit wording, never the key. */
 export const adminUpdateEntitlementDefinition = createServerFn({ method: "POST" })
@@ -633,10 +693,12 @@ export const adminSetPlanEntitlement = createServerFn({ method: "POST" })
     const db = await admin("memberships.write");
     const [{ data: plan, error: planError }, { data: entitlement, error: entitlementError }] = await Promise.all([
       db.from("membership_plans").select("id,slug").eq("id", data.planId).maybeSingle(),
-      db.from("entitlements").select("id").eq("key", data.entitlementKey).maybeSingle(),
+      db.from("entitlements").select("id,archived_at").eq("key", data.entitlementKey).maybeSingle(),
     ]);
     if (planError || entitlementError) throw new Error("Membership benefit could not be checked.");
     if (!plan || !entitlement) throw new Error("Choose an existing membership plan and benefit.");
+    if (data.enabled && entitlement.archived_at)
+      throw new Error("This entitlement is archived. Restore it before assigning it to a plan.");
 
     if (data.enabled) {
       const valueIssue = membershipBenefitValueIssue(data.entitlementKey, plan.slug, data.value);
@@ -972,7 +1034,7 @@ export const adminListWorkshops = createServerFn({ method: "GET" }).handler(asyn
 
 export const adminListEntitlements = createServerFn({ method: "GET" }).handler(async () => {
   const db = await admin("entitlements.read");
-  const { data, error } = await db.from("entitlements").select("key,name,description").order("key");
+  const { data, error } = await db.from("entitlements").select("key,name,description,archived_at").order("key");
   if (error) throw new Error("Benefits could not be loaded.");
   return data ?? [];
 });

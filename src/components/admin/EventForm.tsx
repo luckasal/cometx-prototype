@@ -136,7 +136,7 @@ const ticketBenefitKeys: Record<string, { discount?: string; free?: string }> = 
 };
 
 type EventBenefitPlan = PreviewPlan;
-type EntitlementOption = { key: string; name: string };
+type EntitlementOption = { key: string; name: string; archived_at: string | null };
 
 type EventSpeakerOption = { id: string; name: string; event_id: string | null; job_title: string | null; job_title_en: string | null; company: string | null; bio: string | null; bio_en: string | null; photo_url: string | null };
 
@@ -579,8 +579,8 @@ export function EventForm({
           const requiredBenefit = entitlements.find((entitlement) => entitlement.key === ticket.required_entitlement);
           const eligiblePlans = benefitMatrix.filter((plan) => plan.plan_entitlements.some((entry) => entry.entitlements?.key === ticket.required_entitlement)).map((plan) => plan.name);
           const noEligiblePlan = !!ticket.required_entitlement && !benefitsLoading && !benefitsError && eligiblePlans.length === 0;
-          const accessBenefits = entitlements.filter((entitlement) => benefitKind(entitlement.key) === "access");
-          const pricingBenefits = entitlements.filter((entitlement) => benefitKind(entitlement.key) !== "access");
+          const accessBenefits = entitlements.filter((entitlement) => !entitlement.archived_at && benefitKind(entitlement.key) === "access");
+          const pricingBenefits = entitlements.filter((entitlement) => !entitlement.archived_at && benefitKind(entitlement.key) !== "access");
           const showAdvancedPricing = event.event_type !== "workshop" || !!(ticket.member_price || ticket.discount_entitlement || ticket.free_entitlement);
           return (
           <div key={ticket.id ?? index} className="space-y-4 rounded-xl border border-border bg-background p-5">
@@ -677,6 +677,7 @@ export function EventForm({
                   <option value="">Anyone — no membership required</option>
                   {accessBenefits.length > 0 && <optgroup label="Member access benefits">{accessBenefits.map((ent) => <option key={ent.key} value={ent.key}>{ent.name}</option>)}</optgroup>}
                   {pricingBenefits.length > 0 && <optgroup label="Price and ticket benefits (advanced)">{pricingBenefits.map((ent) => <option key={ent.key} value={ent.key}>{ent.name}</option>)}</optgroup>}
+                  {requiredBenefit?.archived_at && <option value={requiredBenefit.key} disabled>{requiredBenefit.name} (archived · existing ticket)</option>}
                   {ticket.required_entitlement && !requiredBenefit && <option value={ticket.required_entitlement}>{ticket.required_entitlement} (saved benefit)</option>}
                 </select>
               </Field>
@@ -723,7 +724,7 @@ export function EventForm({
                   <Field label="Extra percentage discount benefit">
                     <select className={inputClass} value={ticket.discount_entitlement} onChange={e=>setTicket(index,"discount_entitlement",e.target.value)}>
                       <option value="">No extra discount</option>
-                      {entitlements.filter((ent: { key: string }) => ent.key === ticketBenefitKeys[event.event_type]?.discount || ent.key === ticket.discount_entitlement).map((ent: { key: string; name: string }) => <option key={ent.key} value={ent.key}>{ent.name}</option>)}
+                      {entitlements.filter((ent: EntitlementOption) => (!ent.archived_at && ent.key === ticketBenefitKeys[event.event_type]?.discount) || ent.key === ticket.discount_entitlement).map((ent: EntitlementOption) => <option key={ent.key} value={ent.key}>{ent.name}{ent.archived_at ? " (archived · existing ticket)" : ""}</option>)}
                     </select>
                   </Field>
                   }
@@ -731,7 +732,7 @@ export function EventForm({
                   <Field label="Free-ticket benefit">
                     <select className={inputClass} value={ticket.free_entitlement} onChange={e=>setTicket(index,"free_entitlement",e.target.value)}>
                       <option value="">No extra free-ticket rule</option>
-                      {entitlements.filter((ent: { key: string }) => ent.key === ticketBenefitKeys[event.event_type]?.free || ent.key === ticket.free_entitlement).map((ent: { key: string; name: string }) => <option key={ent.key} value={ent.key}>{ent.name}</option>)}
+                      {entitlements.filter((ent: EntitlementOption) => (!ent.archived_at && ent.key === ticketBenefitKeys[event.event_type]?.free) || ent.key === ticket.free_entitlement).map((ent: EntitlementOption) => <option key={ent.key} value={ent.key}>{ent.name}{ent.archived_at ? " (archived · existing ticket)" : ""}</option>)}
                     </select>
                   </Field>
                   }

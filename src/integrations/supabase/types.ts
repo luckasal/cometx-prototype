@@ -78,6 +78,7 @@ export type Database = {
       }
       entitlements: {
         Row: {
+          archived_at: string | null
           created_at: string
           description: string | null
           id: string
@@ -85,6 +86,7 @@ export type Database = {
           name: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -92,6 +94,7 @@ export type Database = {
           name: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           description?: string | null
           id?: string

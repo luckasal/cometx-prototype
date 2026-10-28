@@ -185,9 +185,9 @@ export function ArticleForm({ initial }: { initial: ArticleFormValues }) {
             onChange={(e) => set("required_entitlement", e.target.value)}
           >
             <option value="">None</option>
-            {entitlements.map((ent) => (
+            {entitlements.filter((ent) => !ent.archived_at || ent.key === form.required_entitlement).map((ent) => (
               <option key={ent.key} value={ent.key}>
-                {ent.name}
+                {ent.name}{ent.archived_at ? " (archived · existing content)" : ""}
               </option>
             ))}
           </select>

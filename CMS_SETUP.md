@@ -2,6 +2,8 @@
 
 Apply `drizzle/migrations/0003_cometx_cms_contacts_and_payments.sql` and then `drizzle/migrations/0004_event_publishing_workflow.sql` in the Supabase SQL editor after the existing migrations. They add the staff CMS tables, RLS policies, newsletter subscription RPC, event type/gallery fields, payment records, and the separate event publishing workflow.
 
+Production entitlement archive support is in `drizzle/migrations/0029_entitlement_archive.sql` and has been applied to the CometX Production project. It adds nullable `entitlements.archived_at`; archived definitions stay readable and existing plan/ticket/article references keep working, while the Back Office blocks new assignments. Deploy the matching application code only after the column exists.
+
 Run `supabase/real-content-2026.sql` once after the core migrations to seed the three verified event images and retire the older demo event records without deleting registrations.
 
 ## Environment settings

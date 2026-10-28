@@ -6,6 +6,7 @@ import {
   adminDeleteCustomEntitlement,
   adminListEntitlements,
   adminListPlans,
+  adminSetEntitlementArchived,
   adminSetPlanEntitlement,
   adminUpdateEntitlementDefinition,
 } from "@/lib/admin.functions";
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 import { benefitKind, benefitKindLabel, formatMembershipBenefit, isCatalogBenefit } from "@/lib/membership-benefit-catalog";
 
-type BenefitDefinition = { key: string; name: string; description: string | null };
+type BenefitDefinition = { key: string; name: string; description: string | null; archived_at: string | null };
 type PlanSummary = {
   id: string;
   name: string;
@@ -43,6 +44,7 @@ export function MembershipBenefitsManager() {
   const updateDefinition = useServerFn(adminUpdateEntitlementDefinition);
   const createBenefit = useServerFn(adminCreateEntitlement);
   const deleteBenefit = useServerFn(adminDeleteCustomEntitlement);
+  const setArchived = useServerFn(adminSetEntitlementArchived);
   const setAssignment = useServerFn(adminSetPlanEntitlement);
   const plans = useQuery({ queryKey: ["admin", "plans"], queryFn: () => fetchPlans() });
   const benefits = useQuery({ queryKey: ["admin", "benefits"], queryFn: () => fetchBenefits() });
@@ -74,14 +76,25 @@ export function MembershipBenefitsManager() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+  const archive = useMutation({
+    mutationFn: ({ key, archived }: { key: string; archived: boolean }) =>
+      setArchived({ data: { key, archived } }),
+    onSuccess: (_result, variables) => {
+      toast.success(variables.archived
+        ? "Entitlement archived. Existing plan and ticket references remain effective."
+        : "Entitlement restored and available for new assignments.");
+      refresh();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   return (
     <section id="membership-benefit-catalog" className="scroll-mt-6 space-y-5 rounded-2xl border border-border/60 bg-card p-6">
       <div>
         <h2 className="font-display text-xl font-bold">Membership benefits</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Open a benefit to edit its wording or which plans receive it. The plan cards above show the current customer-facing offer. Changes affect future checkouts, never past orders.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Entitlement labels and descriptions explain a benefit; they do not grant it. Only an assignment to a membership plan makes the entitlement available. The plan cards above show the current customer-facing offer. Changes affect future checkouts, never past orders.</p>
         <p className="mt-2 text-xs text-muted-foreground">Workshop credit is fixed at CHF 100 / CHF 300 by the current checkout rules. Newly created benefits grant access only; they do not create ticket discounts automatically.</p>
-        <p className="mt-2 text-xs text-muted-foreground">For a new partner benefit: create it unassigned, confirm its terms with the partner, then assign it to a plan. To end it, remove the assignment after honouring existing commitments. There is no automatic expiry or coupon redemption for custom benefits yet.</p>
+        <p className="mt-2 text-xs text-muted-foreground">For a new partner benefit: create it unassigned, confirm its terms with the partner, then assign it to a plan. To stop new use, remove plan assignments and archive it. Archived entitlements remain effective wherever already referenced, but cannot be assigned to new plans, tickets or articles. There is no automatic expiry or coupon redemption for custom benefits yet.</p>
       </div>
 
       {benefits.isError && (
@@ -98,6 +111,7 @@ export function MembershipBenefitsManager() {
         <details key={benefit.key} className="rounded-xl border border-border/60 p-4">
           <summary className="cursor-pointer font-medium">
             {benefit.name} <span className="text-xs font-normal text-muted-foreground">· {benefitKindLabel(benefitKind(benefit.key))}</span>
+            {benefit.archived_at && <span className="ml-2 text-xs font-normal text-destructive">· Archived</span>}
             <span className="ml-3 text-xs font-normal text-muted-foreground">
               {planRows.filter((plan) => plan.plan_entitlements?.some((entry) => entry.entitlements?.key === benefit.key)).map((plan) => plan.name).join(" · ") || "Unassigned · not offered to members"}
             </span>
@@ -119,7 +133,7 @@ export function MembershipBenefitsManager() {
               );
             }}
           >
-            <Field label="Benefit name" hint="Shown on Czech member pages. Built-in English benefit labels are maintained in the app translation catalogue.">
+            <Field label="Entitlement label" hint="Display wording only. This does not grant access or member pricing.">
               <input
                 name="name"
                 defaultValue={benefit.name}
@@ -128,7 +142,7 @@ export function MembershipBenefitsManager() {
                 className={inputClass}
               />
             </Field>
-            <Field label="Description">
+            <Field label="Informational description">
               <input
                 name="description"
                 defaultValue={benefit.description ?? ""}
@@ -143,8 +157,20 @@ export function MembershipBenefitsManager() {
             </div>
           </form>
           <p className="mt-2 text-xs text-muted-foreground">Internal key: {benefit.key} (fixed)</p>
-          {!isCatalogBenefit(benefit.key) && <div className="mt-3">
+          <div className="mt-3">
             <button
+              type="button"
+              className="mr-4 text-sm underline underline-offset-4"
+              disabled={archive.isPending}
+              onClick={() => {
+                const nextArchived = !benefit.archived_at;
+                const message = nextArchived
+                  ? `Archive “${benefit.name}”? Existing assignments and references will keep working; new assignments will be blocked.`
+                  : `Restore “${benefit.name}” so it can be assigned again?`;
+                if (window.confirm(message)) archive.mutate({ key: benefit.key, archived: nextArchived });
+              }}
+            >{benefit.archived_at ? "Restore entitlement" : "Archive entitlement"}</button>
+            {!isCatalogBenefit(benefit.key) && <button
               type="button"
               className="text-sm text-destructive underline underline-offset-4"
               disabled={remove.isPending}
@@ -152,9 +178,9 @@ export function MembershipBenefitsManager() {
                 if (window.confirm(`Delete “${benefit.name}”? Only unassigned benefits unused by tickets or articles can be deleted. This cannot be undone.`))
                   remove.mutate(benefit.key);
               }}
-            >Delete custom benefit</button>
-            <p className="mt-1 text-xs text-muted-foreground">First remove plan assignments and any ticket or article references. Built-in benefits cannot be deleted.</p>
-          </div>}
+            >Delete custom benefit</button>}
+            <p className="mt-1 text-xs text-muted-foreground">Archiving blocks new assignments while preserving existing grants. Deletion is allowed only after plan assignments and ticket/article references are removed; built-in entitlements cannot be deleted.</p>
+          </div>
           <div className="mt-4 grid gap-3 lg:grid-cols-3">
             {planRows.map((plan) => {
               const assignment = plan.plan_entitlements?.find(
@@ -218,7 +244,7 @@ export function MembershipBenefitsManager() {
                       name="enabled"
                       type="checkbox"
                       defaultChecked={!!assignment}
-                      disabled={fixedWorkshop}
+                      disabled={fixedWorkshop || (!!benefit.archived_at && !assignment)}
                     />
                     {plan.name}
                   </label>
@@ -247,13 +273,13 @@ export function MembershipBenefitsManager() {
                     <Button
                       type="submit"
                       variant="outline"
-                      disabled={run.isPending || fixedWorkshop}
+                      disabled={run.isPending || fixedWorkshop || (!!benefit.archived_at && !assignment)}
                     >
                       Save
                     </Button>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {assignment ? `${formatMembershipBenefit({ key: benefit.key, name: benefit.name, value: assignment.value })} · ` : ""}{benefitValueHint(benefit.key, plan.slug)}
+                    {assignment ? `${formatMembershipBenefit({ key: benefit.key, name: benefit.name, value: assignment.value })} · ` : ""}{benefit.archived_at && assignment ? "Existing grant remains effective; restore before reassigning. · " : ""}{benefitValueHint(benefit.key, plan.slug)}
                   </p>
                 </form>
               );
