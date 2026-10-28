@@ -1341,6 +1341,55 @@ export const adminListContactDirectory = createServerFn({ method: "GET" }).handl
   };
 });
 
+export const adminPrepareDirectoryContacts = createServerFn({ method: "POST" })
+  .validator((d: unknown) => z.object({ people: z.array(z.object({ email: z.string().trim().toLowerCase().email().max(320), memberId: z.string().uuid().nullable() })).min(1).max(100) }).parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin("contacts.write");
+    const { requireStaffPermission } = await import("./auth.server");
+    const actor = await requireStaffPermission("contacts.write");
+    const canReadMembers = hasStaffPermission(actor.staffRoles, "members.read");
+    const canReadAttendees = hasStaffPermission(actor.staffRoles, "attendees.read");
+    if (!canReadMembers && !canReadAttendees) throw new Error("This role cannot verify directory identities.");
+    const requested = [...new Map(data.people.map((person) => [normalizeContactEmail(person.email), person])).values()];
+    const existingIndex = await readContactEmailIndex(db);
+    const memberIds = requested.flatMap((person) => person.memberId ? [person.memberId] : []);
+    const members = memberIds.length && canReadMembers ? await db.from("profiles").select("id,email,first_name,last_name,phone,company").in("id", memberIds) : { data: [], error: null };
+    if (members.error) throw new Error(members.error.message);
+    const memberById = new Map((members.data ?? []).map((member) => [member.id, member]));
+    const guestEmails = new Set<string>();
+    if (requested.some((person) => !person.memberId) && canReadAttendees) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const attendeeDb = supabaseAdmin as unknown as GuestAttendeeQueryClient;
+      const attendees = await readAllAdminPages<GuestAttendeeDirectoryRow>(async (from, to) => {
+        const { data: rows, error } = await attendeeDb.from("ticket_attendees").select("id,attendee_name,attendee_email,event_id,status,created_at").is("user_id", null).order("created_at", { ascending: false }).range(from, to);
+        return { data: rows, error };
+      });
+      for (const attendee of attendees) guestEmails.add(normalizeContactEmail(attendee.attendee_email));
+    }
+    const contactIds: string[] = [];
+    let created = 0;
+    let skipped = 0;
+    for (const person of requested) {
+      const email = normalizeContactEmail(person.email);
+      const existing = existingIndex.get(email) ?? [];
+      if (existing.length > 1) { skipped++; continue; }
+      if (existing.length === 1) {
+        const { data: active, error: activeError } = await db.from("contacts").select("id").eq("id", existing[0]!.id).is("archived_at", null).maybeSingle();
+        if (activeError) throw new Error(activeError.message);
+        if (active) contactIds.push(active.id); else skipped++;
+        continue;
+      }
+      const member = person.memberId ? memberById.get(person.memberId) : null;
+      if (person.memberId ? !member || normalizeContactEmail(member.email ?? "") !== email : !guestEmails.has(email)) { skipped++; continue; }
+      const { data: inserted, error } = await db.from("contacts").insert({ email, first_name: member?.first_name ?? null, last_name: member?.last_name ?? null, phone: member?.phone ?? null, company: member?.company ?? null, member_id: member?.id ?? null, source: member ? "member_directory" : "guest_directory", newsletter_status: "pending" }).select("id").single();
+      if (error || !inserted) { skipped++; continue; }
+      created++;
+      contactIds.push(inserted.id);
+      existingIndex.set(email, [{ id: inserted.id, email }]);
+    }
+    return { contactIds, created, skipped };
+  });
+
 const contactSchema = z.object({
   id: z.string().uuid().optional(),
   email: z.string().trim().toLowerCase().email().max(320),
