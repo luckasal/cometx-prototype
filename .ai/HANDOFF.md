@@ -6,7 +6,7 @@ Update this at the end of each implementation cycle. Keep entries short and fact
 
 - Implementation commit `a44c4a1` on `codex/event-ticket-membership-entitlements-20261026`. `/admin/contacts` now has a searchable, type-filtered, read-only directory for contact records, member accounts, guest ticket attendees, partner organizations, and speakers. Server reads are gated by the current staff role's source permissions; records remain separate and are not merged by name or email. No schema migration or data changes.
 - `pnpm build`, changed-file ESLint (with the repository Prettier rule disabled for existing CRLF files), and diff check pass. No tests were run. `pnpm typecheck` still fails only on existing issues in StaffReadOnly, storage FileObject typing, staff-permissions, root/admin routes, and Stripe RPC; no CNT-03 diagnostics remain.
-- Not deployed. Next: deploy commit `a44c4a1` to Production and verify the directory in authenticated `/admin/contacts`.
+- Deployed to Vercel Production as `7pYM7iVWEqrNmpPMaBryjEoYjhRh` (Ready), commit `6893b21`, alias `cometx-prototype.vercel.app`. Authenticated `/admin/contacts` was refreshed and verified: 71 records loaded across all five sources, with no `ticket_attendees` permission error. The RLS issue was fixed by checking `attendees.read` and then using the server-only Supabase client for the attendee read. No database schema or data changes.
 
 ## 2026-10-28: CNT-01 contact detail and safe archive
 
