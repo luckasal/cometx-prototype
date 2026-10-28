@@ -1364,12 +1364,18 @@ const contactSchema = z.object({
 });
 
 export const adminListContacts = createServerFn({ method: "GET" })
-  .validator((d: unknown) => z.object({ query: z.string().max(160).default(""), status: z.enum(["all", "subscribed", "unsubscribed", "pending"]).default("all"), archive: z.enum(["active", "archived"]).default("active") }).parse(d))
+  .validator((d: unknown) => z.object({ query: z.string().max(160).default(""), status: z.enum(["all", "subscribed", "unsubscribed", "pending"]).default("all"), archive: z.enum(["active", "archived"]).default("active"), segmentId: z.string().uuid().nullable().default(null) }).parse(d))
   .handler(async ({ data }) => {
     const db = await admin("contacts.read");
     let request = db.from("contacts").select("*").order("created_at", { ascending: false }).limit(500);
     request = data.archive === "archived" ? request.not("archived_at", "is", null) : request.is("archived_at", null);
     if (data.status !== "all") request = request.eq("newsletter_status", data.status);
+    if (data.segmentId) {
+      const { data: assignments, error: assignmentError } = await db.from("contact_segment_assignments").select("contact_id").eq("segment_id", data.segmentId);
+      if (assignmentError) throw new Error(assignmentError.message);
+      if (!assignments?.length) return [];
+      request = request.in("id", assignments.map((row) => row.contact_id));
+    }
     if (data.query.trim()) {
       const term = data.query.trim().replace(/[,%()]/g, "");
       request = request.or(`email.ilike.%${term}%,first_name.ilike.%${term}%,last_name.ilike.%${term}%,company.ilike.%${term}%`);
@@ -1386,12 +1392,45 @@ export const adminListContactSegments = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const db = await admin("contacts.read");
     const [{ data: segments, error: segmentError }, assignmentsResult] = await Promise.all([
-      db.from("contact_segments").select("id,name,slug").order("name"),
+      db.from("contact_segments").select("id,name,slug,archived_at").order("name"),
       data.contactIds.length ? db.from("contact_segment_assignments").select("contact_id,segment_id").in("contact_id", data.contactIds) : Promise.resolve({ data: [], error: null }),
     ]);
     if (segmentError) throw new Error(segmentError.message);
     if (assignmentsResult.error) throw new Error(assignmentsResult.error.message);
     return { segments: segments ?? [], assignments: assignmentsResult.data ?? [] };
+  });
+
+const manageContactSegmentSchema = z.union([
+  z.object({ action: z.literal("create"), name: z.string().trim().min(1).max(80) }),
+  z.object({ action: z.literal("rename"), id: z.string().uuid(), name: z.string().trim().min(1).max(80) }),
+  z.object({ action: z.enum(["archive", "restore"]), id: z.string().uuid() }),
+]);
+
+export const adminManageContactSegment = createServerFn({ method: "POST" })
+  .validator((d: unknown) => manageContactSegmentSchema.parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin("contacts.write");
+    if (data.action === "create" || data.action === "rename") {
+      const name = data.name.trim().replace(/\s+/g, " ");
+      const slug = name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 100);
+      if (!slug) throw new Error("Use a segment name containing letters or numbers.");
+      const { data: existing, error: lookupError } = await db.from("contact_segments").select("id,name,slug");
+      if (lookupError) throw new Error(lookupError.message);
+      if (existing?.some((segment) => segment.id !== (data.action === "rename" ? data.id : undefined) && (segment.slug === slug || segment.name.toLocaleLowerCase() === name.toLocaleLowerCase()))) throw new Error("A segment with this name already exists. Restore it if archived.");
+      if (data.action === "create") {
+        const { error } = await db.from("contact_segments").insert({ name, slug });
+        if (error) throw new Error(error.message);
+      } else {
+        const { data: changed, error } = await db.from("contact_segments").update({ name, slug }).eq("id", data.id).select("id");
+        if (error) throw new Error(error.message);
+        if (!changed?.length) throw new Error("Segment no longer exists. Refresh and try again.");
+      }
+      return { message: data.action === "create" ? "Segment created." : "Segment renamed." };
+    }
+    const { data: changed, error } = await db.from("contact_segments").update({ archived_at: data.action === "archive" ? new Date().toISOString() : null }).eq("id", data.id).select("id");
+    if (error) throw new Error(error.message);
+    if (!changed?.length) throw new Error("Segment no longer exists. Refresh and try again.");
+    return { message: data.action === "archive" ? "Segment archived. Existing assignments remain." : "Segment restored." };
   });
 
 const contactBulkSchema = z.union([
@@ -1433,11 +1472,15 @@ export const adminBulkUpdateContacts = createServerFn({ method: "POST" })
       if (!slug) throw new Error("Enter a segment name containing letters or numbers.");
       const { error: createError } = await db.from("contact_segments").upsert({ name, slug }, { onConflict: "slug", ignoreDuplicates: true });
       if (createError) throw new Error(createError.message);
-      const { data: segment, error: lookupError } = await db.from("contact_segments").select("id").eq("slug", slug).single();
+      const { data: segment, error: lookupError } = await db.from("contact_segments").select("id,archived_at").eq("slug", slug).single();
       if (lookupError || !segment) throw new Error(lookupError?.message ?? "Could not create or find that segment.");
+      if (segment.archived_at) throw new Error("That segment is archived. Restore it before assigning contacts.");
       segmentId = segment.id;
     }
     if (data.action === "segment_assign") {
+      const { data: selectedSegment, error: segmentError } = await db.from("contact_segments").select("archived_at").eq("id", segmentId!).single();
+      if (segmentError || !selectedSegment) throw new Error(segmentError?.message ?? "Segment no longer exists.");
+      if (selectedSegment.archived_at) throw new Error("That segment is archived. Restore it before assigning contacts.");
       const { data: existingAssignments, error: existingError } = await db.from("contact_segment_assignments").select("contact_id").eq("segment_id", segmentId!).in("contact_id", data.contactIds);
       if (existingError) throw new Error(existingError.message);
       const alreadyAssigned = new Set((existingAssignments ?? []).map((row) => row.contact_id));

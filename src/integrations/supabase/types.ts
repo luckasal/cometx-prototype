@@ -260,9 +260,9 @@ export type Database = {
         Relationships: []
       }
       contact_segments: {
-        Row: { id: string; name: string; slug: string; created_at: string }
-        Insert: { id?: string; name: string; slug: string; created_at?: string }
-        Update: { name?: string; slug?: string }
+        Row: { id: string; name: string; slug: string; archived_at: string | null; created_at: string }
+        Insert: { id?: string; name: string; slug: string; archived_at?: string | null; created_at?: string }
+        Update: { name?: string; slug?: string; archived_at?: string | null }
         Relationships: []
       }
       contact_segment_assignments: {

@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { adminArchiveContact, adminBulkUpdateContacts, adminListContactDirectory, adminListContacts, adminListContactSegments, adminListMemberOptions, adminRestoreContact, adminSaveContact, type AdminBulkContactInput } from "@/lib/admin.functions";
+import { adminArchiveContact, adminBulkUpdateContacts, adminListContactDirectory, adminListContacts, adminListContactSegments, adminListMemberOptions, adminManageContactSegment, adminRestoreContact, adminSaveContact, type AdminBulkContactInput } from "@/lib/admin.functions";
 import { AdminPage, AdminTable, Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 import { Button } from "@/components/ui/button";
 import { EmptyBlock, ErrorBlock, LoadingBlock, StatusPill } from "@/components/site/Bits";
@@ -49,6 +49,11 @@ function ContactsPage() {
   const [directoryType, setDirectoryType] = useState<DirectoryType>("All types");
   const [status, setStatus] = useState<"all" | "subscribed" | "unsubscribed" | "pending">("all");
   const [archive, setArchive] = useState<"active" | "archived">("active");
+  const [segmentFilterId, setSegmentFilterId] = useState("");
+  const [segmentManagerOpen, setSegmentManagerOpen] = useState(false);
+  const [segmentName, setSegmentName] = useState("");
+  const [editingSegmentId, setEditingSegmentId] = useState<string | null>(null);
+  const [profileSegmentId, setProfileSegmentId] = useState("");
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<"subscribe" | "unsubscribe" | "segment_assign" | "segment_remove">("segment_assign");
   const [bulkSegmentId, setBulkSegmentId] = useState("");
@@ -74,16 +79,18 @@ function ContactsPage() {
   const fetchContacts = useServerFn(adminListContacts);
   const fetchContactSegments = useServerFn(adminListContactSegments);
   const runContactBulkUpdate = useServerFn(adminBulkUpdateContacts);
+  const manageContactSegment = useServerFn(adminManageContactSegment);
   const fetchDirectory = useServerFn(adminListContactDirectory);
   const fetchMembers = useServerFn(adminListMemberOptions);
   const saveContact = useServerFn(adminSaveContact);
   const previewContactImport = useServerFn(adminPreviewContactImport);
   const runContactImport = useServerFn(adminImportContacts);
   const cache = useQueryClient();
-  const contacts = useQuery({ queryKey: ["admin", "contacts", query, status, archive], queryFn: () => withRequestTimeout(fetchContacts({ data: { query, status, archive } }), 15000, "Loading contacts took too long. Please try again."), retry: false });
+  const contacts = useQuery({ queryKey: ["admin", "contacts", query, status, archive, segmentFilterId], queryFn: () => withRequestTimeout(fetchContacts({ data: { query, status, archive, segmentId: segmentFilterId || null } }), 15000, "Loading contacts took too long. Please try again."), retry: false });
   const visibleContactIds = contacts.data?.map((contact) => contact.id) ?? [];
-  const contactSegments = useQuery({ queryKey: ["admin", "contact-segments", visibleContactIds], queryFn: () => fetchContactSegments({ data: { contactIds: visibleContactIds } }), enabled: visibleContactIds.length > 0, retry: false });
-  useEffect(() => { setSelectedContactIds([]); setBulkResult(null); setBulkReviewOpen(false); }, [query, status, archive]);
+  const contactSegments = useQuery({ queryKey: ["admin", "contact-segments", visibleContactIds], queryFn: () => fetchContactSegments({ data: { contactIds: visibleContactIds } }), retry: false });
+  useEffect(() => { setSelectedContactIds([]); setBulkResult(null); setBulkReviewOpen(false); }, [query, status, archive, segmentFilterId]);
+  const activeSegments = contactSegments.data?.segments.filter((segment) => !segment.archived_at) ?? [];
   const directory = useQuery({ queryKey: ["admin", "contact-directory"], queryFn: () => withRequestTimeout(fetchDirectory(), 20000, "Loading the CometX directory took too long. Please try again."), retry: false });
   const members = useQuery({ queryKey: ["admin", "member-options"], queryFn: () => withRequestTimeout(fetchMembers(), 15000, "Loading linked accounts took too long. Please try again."), retry: false });
   const save = useMutation({
@@ -126,12 +133,25 @@ function ContactsPage() {
       setBulkResult(result);
       setSelectedContactIds([]);
       setBulkReviewOpen(false);
+      setProfileSegmentId("");
       setConsentConfirmed(false);
       cache.invalidateQueries({ queryKey: ["admin", "contacts"] });
       cache.invalidateQueries({ queryKey: ["admin", "contact-segments"] });
       cache.invalidateQueries({ queryKey: ["admin", "contact-directory"] });
       cache.invalidateQueries({ queryKey: ["admin", "newsletter"] });
       toast.success(`Bulk update finished: ${result.updated} updated, ${result.skipped} unchanged, ${result.failed} failed.`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const updateSegment = useMutation({
+    mutationFn: (data: { action: "create"; name: string } | { action: "rename"; id: string; name: string } | { action: "archive" | "restore"; id: string }) => manageContactSegment({ data }),
+    onSuccess: (result) => {
+      toast.success(result.message);
+      setSegmentName("");
+      setEditingSegmentId(null);
+      setBulkSegmentId("");
+      cache.invalidateQueries({ queryKey: ["admin", "contact-segments"] });
+      cache.invalidateQueries({ queryKey: ["admin", "contacts"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -189,6 +209,8 @@ function ContactsPage() {
   const duplicateFileRows = importRows.filter((row) => row.duplicateOfRow !== null).length;
   const ambiguousExistingRows = importRows.filter((row) => (existingByEmail[row.values.email] ?? 0) > 1).length;
   const selectedContact = contacts.data?.find((contact) => contact.id === selectedContactId) ?? null;
+  const selectedContactSegments = contactSegments.data?.assignments.filter((assignment) => assignment.contact_id === selectedContactId).map((assignment) => contactSegments.data?.segments.find((segment) => segment.id === assignment.segment_id)).filter((segment): segment is NonNullable<typeof segment> => Boolean(segment)) ?? [];
+  const availableProfileSegments = activeSegments.filter((segment) => !selectedContactSegments.some((assigned) => assigned.id === segment.id));
   const selectedMember = selectedContact?.member_id ? members.data?.find((member) => member.id === selectedContact.member_id) : null;
   const directoryEntries = (directory.data?.entries ?? []).filter((entry) => {
     const matchesType = directoryType === "All types" || entry.types.includes(directoryType);
@@ -293,17 +315,19 @@ function ContactsPage() {
     </section>}
     {activeView === "manage" && <section id="contacts-records" className="mb-10" aria-labelledby="contact-records-title">
     <div className="mb-4"><h2 id="contact-records-title" className="font-display text-xl font-bold">Manage contact records</h2><p className="mt-1 text-sm text-muted-foreground">Select rows below to update newsletter consent or segments. Other directory records need a contact profile before they can be bulk edited.</p></div>
-    <div className="mb-6 grid gap-3 sm:grid-cols-[1fr_180px_180px_auto]">
+    <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_180px_180px_200px_auto_auto]">
       <input className={inputClass} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, email or company" />
       <select aria-label="Newsletter status" className={inputClass} value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="all">All newsletter states</option><option value="subscribed">Subscribed</option><option value="pending">Pending</option><option value="unsubscribed">Unsubscribed</option></select>
       <select aria-label="Contact archive status" className={inputClass} value={archive} onChange={(event) => setArchive(event.target.value as typeof archive)}><option value="active">Active contacts</option><option value="archived">Archived contacts</option></select>
+      <select aria-label="Filter by segment" className={inputClass} value={segmentFilterId} onChange={(event) => setSegmentFilterId(event.target.value)}><option value="">All segments</option>{(contactSegments.data?.segments ?? []).map((segment) => <option key={segment.id} value={segment.id}>{segment.name}{segment.archived_at ? " (archived)" : ""}</option>)}</select>
+      <Button type="button" variant="outlineInk" onClick={() => setSegmentManagerOpen(true)}>Manage segments</Button>
       <Button type="button" variant="outlineInk" onClick={exportContacts} disabled={!contacts.data?.length}>Export CSV</Button>
     </div>
     {bulkResult && <p className="mb-4 rounded-lg border border-border/60 p-3 text-sm" role="status">Bulk update complete: {bulkResult.updated} updated · {bulkResult.skipped} unchanged · {bulkResult.failed} failed.</p>}
     {archive === "active" && contacts.data && contacts.data.length > 0 && <section className="mb-5 space-y-4 rounded-2xl border border-border/60 bg-card p-5" aria-label="Bulk contact actions">
       <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold">1. Select contacts</h3><p className="text-sm text-muted-foreground">{selectedContactIds.length} of {visibleContactIds.length} loaded contacts selected. Filters apply before selection.</p></div><div className="flex gap-2"><Button type="button" variant="outlineInk" onClick={() => { setSelectedContactIds(visibleContactIds); setBulkResult(null); }}>Select all shown</Button><Button type="button" variant="outlineInk" onClick={() => setSelectedContactIds([])} disabled={!selectedContactIds.length}>Clear</Button></div></div>
       <div className="space-y-3 border-t border-border/60 pt-4"><h3 className="font-semibold">2. Choose one change</h3><div className="flex flex-wrap gap-2" role="group" aria-label="Bulk action">{([['segment_assign', 'Add segment'], ['segment_remove', 'Remove segment'], ['subscribe', 'Mark subscribed'], ['unsubscribe', 'Unsubscribe']] as const).map(([action, label]) => <Button key={action} type="button" variant={bulkAction === action ? "ink" : "outlineInk"} aria-pressed={bulkAction === action} onClick={() => { setBulkAction(action); setConsentConfirmed(false); setBulkResult(null); setBulkReviewOpen(false); }}>{label}</Button>)}</div>
-        {bulkAction === "segment_assign" && <>{contactSegments.data?.segments.length ? <select aria-label="Segment to assign" className={`${inputClass} max-w-64`} value={bulkSegmentId} onChange={(event) => setBulkSegmentId(event.target.value)}><option value="">Create a new segment…</option>{contactSegments.data.segments.map((segment) => <option key={segment.id} value={segment.id}>{segment.name}</option>)}</select> : null}{!bulkSegmentId && <input aria-label="New segment name" className={`${inputClass} max-w-64`} value={bulkSegmentName} onChange={(event) => setBulkSegmentName(event.target.value)} placeholder="New segment name" maxLength={80} />}</>}
+        {bulkAction === "segment_assign" && <>{activeSegments.length ? <select aria-label="Segment to assign" className={`${inputClass} max-w-64`} value={bulkSegmentId} onChange={(event) => setBulkSegmentId(event.target.value)}><option value="">Create a new segment…</option>{activeSegments.map((segment) => <option key={segment.id} value={segment.id}>{segment.name}</option>)}</select> : null}{!bulkSegmentId && <input aria-label="New segment name" className={`${inputClass} max-w-64`} value={bulkSegmentName} onChange={(event) => setBulkSegmentName(event.target.value)} placeholder="New segment name" maxLength={80} />}</>}
         {bulkAction === "segment_remove" && <select aria-label="Segment to remove" className={`${inputClass} max-w-64`} value={bulkSegmentId} onChange={(event) => setBulkSegmentId(event.target.value)}><option value="">Choose segment…</option>{(contactSegments.data?.segments ?? []).map((segment) => <option key={segment.id} value={segment.id}>{segment.name}</option>)}</select>}
         {bulkAction === "subscribe" && <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={consentConfirmed} onChange={(event) => setConsentConfirmed(event.target.checked)} /><span>I confirm current opt-in consent is documented for every selected contact.</span></label>}
         {bulkAction === "unsubscribe" && <p className="text-sm text-muted-foreground">This marks selected contacts unsubscribed and keeps their recorded consent timestamp.</p>}
@@ -340,6 +364,21 @@ function ContactsPage() {
       {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
       <div className="flex gap-3"><Button type="submit" variant="ink" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save contact"}</Button><Button type="button" variant="outlineInk" disabled={save.isPending} onClick={() => { setDraft(blank); setSaveError(""); }}>Cancel</Button></div>
     </form>
+    <Dialog open={segmentManagerOpen} onOpenChange={setSegmentManagerOpen}>
+      <DialogContent className="max-h-[88dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-2xl bg-card">
+        <DialogTitle className="font-display text-xl font-bold">Manage contact segments</DialogTitle>
+        <DialogDescription>Create labels for contacts. A contact can have several segments; newsletter consent is managed separately.</DialogDescription>
+        <form className="flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); if (editingSegmentId) updateSegment.mutate({ action: "rename", id: editingSegmentId, name: segmentName }); else updateSegment.mutate({ action: "create", name: segmentName }); }}>
+          <input aria-label={editingSegmentId ? "Rename segment" : "New segment name"} className={`${inputClass} min-w-48 flex-1`} required maxLength={80} value={segmentName} onChange={(event) => setSegmentName(event.target.value)} placeholder={editingSegmentId ? "Rename segment" : "New segment name"} />
+          <Button type="submit" variant="ink" disabled={updateSegment.isPending || !segmentName.trim()}>{editingSegmentId ? "Save name" : "Create segment"}</Button>
+          {editingSegmentId && <Button type="button" variant="outlineInk" onClick={() => { setEditingSegmentId(null); setSegmentName(""); }}>Cancel edit</Button>}
+        </form>
+        {contactSegments.isLoading && <LoadingBlock label="Loading segments" />}
+        {contactSegments.error && <ErrorBlock error={contactSegments.error} />}
+        {contactSegments.data?.segments.length === 0 && <p className="text-sm text-muted-foreground">No segments yet. Create the first one above.</p>}
+        <ul className="space-y-2">{(contactSegments.data?.segments ?? []).map((segment) => <li key={segment.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 p-3 text-sm"><span><strong>{segment.name}</strong>{segment.archived_at && <span className="ml-2 text-muted-foreground">Archived · existing assignments kept</span>}</span><span className="flex gap-2"><Button type="button" variant="outlineInk" disabled={updateSegment.isPending} onClick={() => { setEditingSegmentId(segment.id); setSegmentName(segment.name); }}>Rename</Button>{segment.archived_at ? <Button type="button" variant="outlineInk" disabled={updateSegment.isPending} onClick={() => updateSegment.mutate({ action: "restore", id: segment.id })}>Restore</Button> : <Button type="button" variant="outlineInk" disabled={updateSegment.isPending} onClick={() => { if (window.confirm(`Archive “${segment.name}”? Existing contact assignments remain, and you can restore it later.`)) updateSegment.mutate({ action: "archive", id: segment.id }); }}>Archive</Button>}</span></li>)}</ul>
+      </DialogContent>
+    </Dialog>
     <Dialog open={bulkReviewOpen} onOpenChange={(open) => { if (!bulkUpdateContacts.isPending) setBulkReviewOpen(open); }}>
       <DialogContent className="w-[calc(100%-2rem)] max-w-lg rounded-2xl bg-card">
         <DialogTitle className="font-display text-xl font-bold">Review bulk change</DialogTitle>
@@ -368,6 +407,7 @@ function ContactsPage() {
             <div className="sm:col-span-2"><dt className="text-xs uppercase tracking-wider text-muted-foreground">Notes</dt><dd className="mt-1 whitespace-pre-wrap">{selectedContact.notes || "—"}</dd></div>
           </dl>
           {selectedContact.archived_at && <p className="rounded-lg bg-muted p-3 text-sm">Archived on {new Date(selectedContact.archived_at).toLocaleDateString("en-GB")}. The record and its history are preserved.</p>}
+          <div className="space-y-3 rounded-xl border border-border/60 p-4"><h3 className="font-semibold">Segments</h3><p className="text-xs text-muted-foreground">These labels can be combined. They do not change newsletter consent.</p><div className="flex flex-wrap gap-2">{selectedContactSegments.length ? selectedContactSegments.map((segment) => <span key={segment.id} className="inline-flex items-center gap-2 rounded-full border border-border/60 px-3 py-1 text-sm">{segment.name}{segment.archived_at && " (archived)"}<button type="button" className="underline" disabled={bulkUpdateContacts.isPending || selectedContact.archived_at !== null} onClick={() => { if (window.confirm(`Remove “${segment.name}” from this contact?`)) bulkUpdateContacts.mutate({ action: "segment_remove", contactIds: [selectedContact.id], segmentId: segment.id }); }}>Remove</button></span>) : <span className="text-sm text-muted-foreground">No segments assigned</span>}</div>{selectedContact.archived_at === null && <div className="flex flex-wrap gap-2"><select aria-label="Add segment to contact" className={`${inputClass} max-w-64`} value={profileSegmentId} onChange={(event) => setProfileSegmentId(event.target.value)}><option value="">Choose a segment…</option>{availableProfileSegments.map((segment) => <option key={segment.id} value={segment.id}>{segment.name}</option>)}</select><Button type="button" variant="outlineInk" disabled={!profileSegmentId || bulkUpdateContacts.isPending} onClick={() => bulkUpdateContacts.mutate({ action: "segment_assign", contactIds: [selectedContact.id], segmentId: profileSegmentId })}>Add segment</Button></div>}</div>
           <div className="flex flex-wrap gap-3"><Button type="button" variant="ink" disabled={selectedContact.archived_at !== null || members.isLoading} onClick={() => startEditingContact(selectedContact)}>Edit contact</Button>{selectedContact.archived_at ? <Button type="button" variant="outlineInk" disabled={restoreMutation.isPending} onClick={() => restoreMutation.mutate(selectedContact.id)}>{restoreMutation.isPending ? "Restoring…" : "Restore contact"}</Button> : <Button type="button" variant="outlineInk" disabled={archiveMutation.isPending} onClick={() => confirmArchive(selectedContact)}>{archiveMutation.isPending ? "Archiving…" : "Archive contact"}</Button>}<Button type="button" variant="outlineInk" onClick={() => { setSelectedContactId(null); setEditingSelected(false); }}>Close</Button></div>
           <p className="text-xs leading-relaxed text-muted-foreground">Archiving preserves this contact and all linked order, ticket, payment, membership and registration history. Permanent deletion is not available here.</p>
         </>}

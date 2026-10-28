@@ -1132,6 +1132,12 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - Matching app deployment and authenticated admin verification remain. Keep CNT-02 in review until the Production deployment is Ready and the admin form is checked.
 # CNT-06 — Bulk contact subscriptions and segments (2026-10-28)
 
+## 2026-10-28: NWS-01 admin segment management
+
+- Added create, rename, archive and restore controls for contact segments, a contact-list segment filter, and per-contact multi-segment assignment/removal. Newsletter consent remains separate. Archived segments retain existing assignments and cannot be newly assigned.
+- Applied additive Production migration `0033_contact_segment_archive.sql`; verified `contact_segments.archived_at` is nullable. No existing segment or contact rows changed.
+- Local production build, changed-file lint and diff check pass. Full typecheck still reports only the existing unrelated project errors. Hosted acceptance is pending.
+
 - Follow-up UX fix: `/admin/contacts` now opens on a separate Manage contacts view, with Everyone in CometX one click away. Bulk editing is visible above the contact table and follows select → choose action → review → apply. The review dialog names the action, segment and selected count; consent confirmation remains mandatory for subscription. This changes no server pricing, permission, contact profile or segment schema logic.
 
 - User backlog row: CNT-03 “Bulk edit subscriptions / segments”. Internal ID is CNT-06 because this repository already assigns CNT-03 to the unified contact directory.
