@@ -1117,6 +1117,15 @@ const contactSchema = z.object({
   last_name: z.string().max(120).nullable().default(null),
   phone: z.string().max(80).nullable().default(null),
   company: z.string().max(160).nullable().default(null),
+  linkedin_url: z.string().trim().url().max(2048).refine((value) => {
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" && (url.hostname === "linkedin.com" || url.hostname.endsWith(".linkedin.com"));
+    } catch {
+      return false;
+    }
+  }, "Enter a valid HTTPS LinkedIn URL.").nullable().default(null),
+  birth_year: z.number().int().min(1900).max(new Date().getFullYear()).nullable().default(null),
   source: z.string().min(2).max(80).default("manual"),
   newsletter_status: z.enum(["subscribed", "unsubscribed", "pending"]),
   member_id: z.string().uuid().nullable().default(null),

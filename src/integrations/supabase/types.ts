@@ -254,9 +254,9 @@ export type Database = {
         Relationships: []
       }
       contacts: {
-        Row: { id: string; email: string; first_name: string | null; last_name: string | null; phone: string | null; company: string | null; source: string; consent_at: string | null; newsletter_status: Database["public"]["Enums"]["contact_status"]; member_id: string | null; notes: string | null; created_at: string; updated_at: string }
-        Insert: { id?: string; email: string; first_name?: string | null; last_name?: string | null; phone?: string | null; company?: string | null; source?: string; consent_at?: string | null; newsletter_status?: Database["public"]["Enums"]["contact_status"]; member_id?: string | null; notes?: string | null; created_at?: string; updated_at?: string }
-        Update: { email?: string; first_name?: string | null; last_name?: string | null; phone?: string | null; company?: string | null; source?: string; consent_at?: string | null; newsletter_status?: Database["public"]["Enums"]["contact_status"]; member_id?: string | null; notes?: string | null; updated_at?: string }
+        Row: { id: string; email: string; first_name: string | null; last_name: string | null; phone: string | null; company: string | null; linkedin_url: string | null; birth_year: number | null; source: string; consent_at: string | null; newsletter_status: Database["public"]["Enums"]["contact_status"]; member_id: string | null; notes: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; email: string; first_name?: string | null; last_name?: string | null; phone?: string | null; company?: string | null; linkedin_url?: string | null; birth_year?: number | null; source?: string; consent_at?: string | null; newsletter_status?: Database["public"]["Enums"]["contact_status"]; member_id?: string | null; notes?: string | null; created_at?: string; updated_at?: string }
+        Update: { email?: string; first_name?: string | null; last_name?: string | null; phone?: string | null; company?: string | null; linkedin_url?: string | null; birth_year?: number | null; source?: string; consent_at?: string | null; newsletter_status?: Database["public"]["Enums"]["contact_status"]; member_id?: string | null; notes?: string | null; updated_at?: string }
         Relationships: []
       }
       content_entries: {

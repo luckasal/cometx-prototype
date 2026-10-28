@@ -1101,3 +1101,12 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - Focused CSV tests pass (5/5); production build passes; helper/tests lint and changed TS/TSX lint (with Prettier line-ending rule disabled) pass; diff check passes. Full `pnpm typecheck` still reports existing errors in unrelated staff/admin/root/Stripe code and the pre-existing storage typing in `admin.functions.ts`; no diagnostics point to the importer changes.
 - Local only: commit was not pushed or deployed, as this task requested implementation, checks, task notes and commit, not a release. No Production import was performed.
 - Next: stop and wait for the next specifically assigned task. Broader contact segments and bulk newsletter-status editing in `BOSS-P2-CONTACT-BULK-01` remain separate and unclaimed.
+
+## 2026-10-28: CNT-02 contact LinkedIn and birth year fields (Production migration applied, app deployment pending)
+
+- Added nullable `contacts.linkedin_url` and `contacts.birth_year` via additive migration `drizzle/migrations/0030_contact_linkedin_birth_year.sql`; existing contacts remain unchanged.
+- Contact create/edit form now accepts an optional HTTPS LinkedIn URL on `linkedin.com` and its subdomains and an optional integer birth year from 1900 through the current year. Server validation enforces the same rules; the database adds format/range checks.
+- Contact list shows a profile link and birth year when set. CSV export now includes both fields. Generated Supabase contact types are updated. CSV import behavior remains unchanged.
+- `pnpm build` passes. `pnpm typecheck` reports the existing unrelated project errors in staff/admin/root/Stripe files and the pre-existing Storage typing at `src/lib/admin.functions.ts:392`; it reports no CNT-02 diagnostics. `git -c core.whitespace=cr-at-eol diff --check` passes. No tests were run.
+- Migration `0030_contact_linkedin_birth_year.sql` was applied to Supabase Production project `vlcssswzlvamtscyobbv`; read-only verification confirmed both nullable columns and both constraints. No Production contact rows were read or changed.
+- Matching app deployment and authenticated admin verification remain. Keep CNT-02 in review until the Production deployment is Ready and the admin form is checked.
