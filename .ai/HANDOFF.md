@@ -1092,3 +1092,12 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - Commit `03f16c3` is pushed to `origin` under the `luckasal` GitHub account. Vercel Production deployment `B5jRUpTF2N1arCgnHu1R7oghcewY` is Ready, sourced from that commit and assigned to `cometx-prototype.vercel.app`.
 - Read-only verification of Production `/admin/plans` confirms the help text distinguishes entitlement labels from actual plan grants, displays plan mappings, and exposes the archive action. Existing assignments were not changed. No test records were created.
 - Remaining acceptance: test save denial with a designated restricted-role admin account; the current signed-in account is an Admin, so it cannot demonstrate restricted-role behavior. Until that check is run, keep EVT-02 in `review`.
+
+## 2026-10-28: CNT-04 reusable contact CSV import
+
+- Implementation commit `9e8c2a3` on `codex/event-ticket-membership-entitlements-20261026`; task `CNT-04` marked done. Files: `src/routes/admin.contacts.tsx`, `src/lib/admin.functions.ts`, `src/lib/contact-import.ts`, `tests/contact-import.test.mjs`, `.ai/TASKS.md`.
+- Added a reusable `/admin/contacts` CSV flow with header mapping, RFC-style quoted-cell parsing, preview, field validation, within-file and normalized database email duplicate detection, and import summary with per-row results. Maximum file size 5 MB and 2,000 rows per import.
+- Existing contacts are skipped by default. Updating is an explicit choice and only updates mapped, non-empty fields. Email, newsletter status, consent history, and member links are preserved on updates. New records start with pending newsletter status and create no Auth/member account. Existing CSV export remains untouched. No database migration or live contact changes.
+- Focused CSV tests pass (5/5); production build passes; helper/tests lint and changed TS/TSX lint (with Prettier line-ending rule disabled) pass; diff check passes. Full `pnpm typecheck` still reports existing errors in unrelated staff/admin/root/Stripe code and the pre-existing storage typing in `admin.functions.ts`; no diagnostics point to the importer changes.
+- Local only: commit was not pushed or deployed, as this task requested implementation, checks, task notes and commit, not a release. No Production import was performed.
+- Next: stop and wait for the next specifically assigned task. Broader contact segments and bulk newsletter-status editing in `BOSS-P2-CONTACT-BULK-01` remain separate and unclaimed.
