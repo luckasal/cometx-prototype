@@ -1112,7 +1112,7 @@ export const getAdminIntegrationStatus = createServerFn({ method: "GET" }).handl
 
 const contactSchema = z.object({
   id: z.string().uuid().optional(),
-  email: z.string().email().max(320),
+  email: z.string().trim().toLowerCase().email().max(320),
   first_name: z.string().max(120).nullable().default(null),
   last_name: z.string().max(120).nullable().default(null),
   phone: z.string().max(80).nullable().default(null),
@@ -1126,17 +1126,18 @@ const contactSchema = z.object({
     }
   }, "Enter a valid HTTPS LinkedIn URL.").nullable().default(null),
   birth_year: z.number().int().min(1900).max(new Date().getFullYear()).nullable().default(null),
-  source: z.string().min(2).max(80).default("manual"),
+  source: z.string().trim().min(2).max(80).default("manual"),
   newsletter_status: z.enum(["subscribed", "unsubscribed", "pending"]),
   member_id: z.string().uuid().nullable().default(null),
   notes: z.string().max(5000).nullable().default(null),
 });
 
 export const adminListContacts = createServerFn({ method: "GET" })
-  .inputValidator((d: unknown) => z.object({ query: z.string().max(160).default(""), status: z.enum(["all", "subscribed", "unsubscribed", "pending"]).default("all") }).parse(d))
+  .validator((d: unknown) => z.object({ query: z.string().max(160).default(""), status: z.enum(["all", "subscribed", "unsubscribed", "pending"]).default("all"), archive: z.enum(["active", "archived"]).default("active") }).parse(d))
   .handler(async ({ data }) => {
     const db = await admin("contacts.read");
     let request = db.from("contacts").select("*").order("created_at", { ascending: false }).limit(500);
+    request = data.archive === "archived" ? request.not("archived_at", "is", null) : request.is("archived_at", null);
     if (data.status !== "all") request = request.eq("newsletter_status", data.status);
     if (data.query.trim()) {
       const term = data.query.trim().replace(/[,%()]/g, "");
@@ -1148,17 +1149,49 @@ export const adminListContacts = createServerFn({ method: "GET" })
   });
 
 export const adminSaveContact = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => contactSchema.parse(d))
+  .validator((d: unknown) => contactSchema.parse(d))
   .handler(async ({ data }) => {
     const db = await admin("contacts.write");
     const { id, ...fields } = data;
+    const emailIndex = await readContactEmailIndex(db);
+    const duplicates = (emailIndex.get(fields.email) ?? []).filter((contact) => contact.id !== id);
+    if (duplicates.length) throw new Error("A contact with this normalized email already exists. Open the existing record instead.");
+
+    let current: { newsletter_status: "subscribed" | "unsubscribed" | "pending"; consent_at: string | null } | null = null;
+    if (id) {
+      const { data: existing, error: lookupError } = await db.from("contacts").select("newsletter_status,consent_at").eq("id", id).is("archived_at", null).maybeSingle();
+      if (lookupError) throw new Error(lookupError.message);
+      if (!existing) throw new Error("This contact is archived or no longer exists. Restore it before editing.");
+      current = existing;
+    }
     const payload = {
       ...fields,
-      email: fields.email.trim().toLowerCase(),
-      ...(fields.newsletter_status === "subscribed" ? { consent_at: new Date().toISOString() } : {}),
+      consent_at: fields.newsletter_status === "subscribed"
+        ? current?.newsletter_status === "subscribed" ? current.consent_at : new Date().toISOString()
+        : current?.consent_at ?? null,
     };
-    const { error } = id ? await db.from("contacts").update(payload).eq("id", id) : await db.from("contacts").insert(payload);
+    const { error } = id ? await db.from("contacts").update(payload).eq("id", id).is("archived_at", null) : await db.from("contacts").insert(payload);
     if (error) throw new Error(error.code === "23505" ? "A contact with this email already exists." : error.message);
+    return { ok: true };
+  });
+
+export const adminArchiveContact = createServerFn({ method: "POST" })
+  .validator((d: unknown) => idSchema.parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin("contacts.write");
+    const { data: contact, error } = await db.from("contacts").update({ archived_at: new Date().toISOString() }).eq("id", data.id).is("archived_at", null).select("id").maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!contact) throw new Error("This contact is already archived or no longer exists.");
+    return { ok: true };
+  });
+
+export const adminRestoreContact = createServerFn({ method: "POST" })
+  .validator((d: unknown) => idSchema.parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin("contacts.write");
+    const { data: contact, error } = await db.from("contacts").update({ archived_at: null }).eq("id", data.id).not("archived_at", "is", null).select("id").maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!contact) throw new Error("This contact is active already or no longer exists.");
     return { ok: true };
   });
 
@@ -1196,7 +1229,7 @@ async function readContactEmailIndex(db: SupabaseClient) {
 }
 
 export const adminPreviewContactImport = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ emails: z.array(z.string().email().max(320)).max(2000) }).parse(d))
+  .validator((d: unknown) => z.object({ emails: z.array(z.string().email().max(320)).max(2000) }).parse(d))
   .handler(async ({ data }) => {
     const db = await admin("contacts.read");
     const emailIndex = await readContactEmailIndex(db);
@@ -1210,7 +1243,7 @@ export const adminPreviewContactImport = createServerFn({ method: "POST" })
   });
 
 export const adminImportContacts = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({
+  .validator((d: unknown) => z.object({
     mode: z.enum(["skip_existing", "update_existing"]),
     rows: z.array(contactImportRowSchema).min(1).max(2000),
   }).parse(d))

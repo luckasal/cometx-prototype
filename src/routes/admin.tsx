@@ -87,10 +87,10 @@ function AdminLayout() {
       });
     } else if (pathname === "/admin/contacts") {
       void cache.prefetchQuery({
-        queryKey: ["admin", "contacts", "", "all"],
+        queryKey: ["admin", "contacts", "", "all", "active"],
         queryFn: () =>
           withRequestTimeout(
-            fetchContacts({ data: { query: "", status: "all" } }),
+            fetchContacts({ data: { query: "", status: "all", archive: "active" } }),
             15000,
             "Loading contacts took too long. Please try again.",
           ),

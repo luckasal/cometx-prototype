@@ -3,11 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { adminListContacts, adminListMemberOptions, adminSaveContact } from "@/lib/admin.functions";
+import { adminArchiveContact, adminListContacts, adminListMemberOptions, adminRestoreContact, adminSaveContact } from "@/lib/admin.functions";
 import { AdminPage, AdminTable, Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 import { Button } from "@/components/ui/button";
 import { EmptyBlock, ErrorBlock, LoadingBlock, StatusPill } from "@/components/site/Bits";
 import { withRequestTimeout } from "@/lib/request-timeout";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
   CONTACT_IMPORT_FIELDS,
   mapContactCsvRows,
@@ -22,6 +23,7 @@ import { adminImportContacts, adminPreviewContactImport } from "@/lib/admin.func
 export const Route = createFileRoute("/admin/contacts")({ component: ContactsPage });
 
 type ContactDraft = { id?: string; email: string; first_name: string; last_name: string; phone: string; company: string; linkedin_url: string; birth_year: string; source: string; newsletter_status: "subscribed" | "unsubscribed" | "pending"; member_id: string; notes: string };
+type MemberOption = { id: string; email: string | null; first_name: string | null; last_name: string | null };
 const blank: ContactDraft = { email: "", first_name: "", last_name: "", phone: "", company: "", linkedin_url: "", birth_year: "", source: "manual", newsletter_status: "pending", member_id: "", notes: "" };
 const contactFieldLabels: Record<ContactImportField, string> = {
   email: "Email (required)",
@@ -42,7 +44,11 @@ type ContactImportResult = {
 function ContactsPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | "subscribed" | "unsubscribed" | "pending">("all");
+  const [archive, setArchive] = useState<"active" | "archived">("active");
   const [draft, setDraft] = useState<ContactDraft>(blank);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [editingSelected, setEditingSelected] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [csvRows, setCsvRows] = useState<string[][]>([]);
   const [csvFileName, setCsvFileName] = useState("");
@@ -60,11 +66,23 @@ function ContactsPage() {
   const previewContactImport = useServerFn(adminPreviewContactImport);
   const runContactImport = useServerFn(adminImportContacts);
   const cache = useQueryClient();
-  const contacts = useQuery({ queryKey: ["admin", "contacts", query, status], queryFn: () => withRequestTimeout(fetchContacts({ data: { query, status } }), 15000, "Loading contacts took too long. Please try again."), retry: false });
+  const contacts = useQuery({ queryKey: ["admin", "contacts", query, status, archive], queryFn: () => withRequestTimeout(fetchContacts({ data: { query, status, archive } }), 15000, "Loading contacts took too long. Please try again."), retry: false });
   const members = useQuery({ queryKey: ["admin", "member-options"], queryFn: () => withRequestTimeout(fetchMembers(), 15000, "Loading linked accounts took too long. Please try again."), retry: false });
   const save = useMutation({
     mutationFn: () => saveContact({ data: { ...draft, first_name: draft.first_name || null, last_name: draft.last_name || null, phone: draft.phone || null, company: draft.company || null, linkedin_url: draft.linkedin_url.trim() || null, birth_year: draft.birth_year === "" ? null : Number(draft.birth_year), notes: draft.notes || null, member_id: draft.member_id || null } }),
-    onSuccess: () => { toast.success("Contact saved"); setDraft(blank); cache.invalidateQueries({ queryKey: ["admin", "contacts"] }); },
+    onSuccess: () => { toast.success("Contact saved"); setSaveError(""); if (draft.id) { setSelectedContactId(null); setEditingSelected(false); } else setArchive("active"); setDraft(blank); cache.invalidateQueries({ queryKey: ["admin", "contacts"] }); cache.invalidateQueries({ queryKey: ["admin", "newsletter"] }); },
+    onError: (error: Error) => { setSaveError(error.message); toast.error(error.message); },
+  });
+  const archiveContact = useServerFn(adminArchiveContact);
+  const restoreContact = useServerFn(adminRestoreContact);
+  const archiveMutation = useMutation({
+    mutationFn: (id: string) => archiveContact({ data: { id } }),
+    onSuccess: () => { toast.success("Contact archived. Its record and history are preserved."); setSelectedContactId(null); cache.invalidateQueries({ queryKey: ["admin", "contacts"] }); cache.invalidateQueries({ queryKey: ["admin", "newsletter"] }); },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const restoreMutation = useMutation({
+    mutationFn: (id: string) => restoreContact({ data: { id } }),
+    onSuccess: () => { toast.success("Contact restored"); setSelectedContactId(null); cache.invalidateQueries({ queryKey: ["admin", "contacts"] }); cache.invalidateQueries({ queryKey: ["admin", "newsletter"] }); },
     onError: (error: Error) => toast.error(error.message),
   });
   const importContacts = useMutation({
@@ -137,6 +155,25 @@ function ContactsPage() {
   const invalidImportRows = importRows.filter((row) => row.errors.length > 0 && row.duplicateOfRow === null).length;
   const duplicateFileRows = importRows.filter((row) => row.duplicateOfRow !== null).length;
   const ambiguousExistingRows = importRows.filter((row) => (existingByEmail[row.values.email] ?? 0) > 1).length;
+  const selectedContact = contacts.data?.find((contact) => contact.id === selectedContactId) ?? null;
+  const selectedMember = selectedContact?.member_id ? members.data?.find((member) => member.id === selectedContact.member_id) : null;
+
+  function openContact(contact: NonNullable<typeof contacts.data>[number]) {
+    setSelectedContactId(contact.id);
+    setEditingSelected(false);
+    setDraft(blank);
+    setSaveError("");
+  }
+
+  function startEditingContact(contact: NonNullable<typeof contacts.data>[number]) {
+    setDraft({ id: contact.id, email: contact.email, first_name: contact.first_name ?? "", last_name: contact.last_name ?? "", phone: contact.phone ?? "", company: contact.company ?? "", linkedin_url: contact.linkedin_url ?? "", birth_year: contact.birth_year === null ? "" : String(contact.birth_year), source: contact.source, newsletter_status: contact.newsletter_status, member_id: contact.member_id ?? "", notes: contact.notes ?? "" });
+    setEditingSelected(true);
+    setSaveError("");
+  }
+
+  function confirmArchive(contact: NonNullable<typeof contacts.data>[number]) {
+    if (window.confirm(`Archive ${contact.email}? This hides the contact from active and newsletter views but preserves the record and all linked history. You can restore it later.`)) archiveMutation.mutate(contact.id);
+  }
 
   function exportContacts() {
     const rows = contacts.data ?? [];
@@ -146,9 +183,10 @@ function ContactsPage() {
   }
 
   return <AdminPage title="Contacts" description="Newsletter and event leads. Contacts stay separate from authenticated members." action={<div className="flex flex-wrap gap-2"><Button type="button" onClick={() => setImportOpen((open) => !open)} variant="outlineInk">{importOpen ? "Close CSV import" : "Import CSV"}</Button><Button onClick={() => document.getElementById("new-contact")?.scrollIntoView({ behavior: "smooth" })} variant="ink">New contact</Button></div>}>
-    <div className="mb-6 grid gap-3 sm:grid-cols-[1fr_180px_auto]">
+    <div className="mb-6 grid gap-3 sm:grid-cols-[1fr_180px_180px_auto]">
       <input className={inputClass} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, email or company" />
-      <select className={inputClass} value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="all">All newsletter states</option><option value="subscribed">Subscribed</option><option value="pending">Pending</option><option value="unsubscribed">Unsubscribed</option></select>
+      <select aria-label="Newsletter status" className={inputClass} value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="all">All newsletter states</option><option value="subscribed">Subscribed</option><option value="pending">Pending</option><option value="unsubscribed">Unsubscribed</option></select>
+      <select aria-label="Contact archive status" className={inputClass} value={archive} onChange={(event) => setArchive(event.target.value as typeof archive)}><option value="active">Active contacts</option><option value="archived">Archived contacts</option></select>
       <Button type="button" variant="outlineInk" onClick={exportContacts} disabled={!contacts.data?.length}>Export CSV</Button>
     </div>
     {importOpen && <section className="mb-8 space-y-5 rounded-2xl border border-border/60 bg-card p-6" aria-labelledby="contact-csv-import-title">
@@ -170,12 +208,55 @@ function ContactsPage() {
     </section>}
     {contacts.isLoading && <LoadingBlock label="Loading contacts" />}
     {contacts.error && <div className="mb-5 space-y-3"><ErrorBlock error={contacts.error} /><Button variant="outlineInk" onClick={() => contacts.refetch()}>Try again</Button></div>}
-    {contacts.data?.length === 0 && <EmptyBlock title="No contacts found" />}
-    {contacts.data && contacts.data.length > 0 && <AdminTable head={["Contact", "Company", "Source", "Newsletter", "Linked member", "Added", ""]}>{contacts.data.map((contact) => <tr key={contact.id} className="[&>td]:px-4 [&>td]:py-3"><td><p className="font-medium">{[contact.first_name, contact.last_name].filter(Boolean).join(" ") || "-"}</p><p className="text-xs text-muted-foreground">{contact.email}</p>{contact.linkedin_url && <p className="text-xs"><a href={contact.linkedin_url} target="_blank" rel="noreferrer" className="underline">LinkedIn profile</a></p>}{contact.birth_year && <p className="text-xs text-muted-foreground">Birth year: {contact.birth_year}</p>}</td><td>{contact.company ?? "-"}</td><td>{contact.source}</td><td><StatusPill tone={contact.newsletter_status === "subscribed" ? "success" : "muted"}>{contact.newsletter_status}</StatusPill></td><td>{contact.member_id ? "Linked" : "-"}</td><td>{new Date(contact.created_at).toLocaleDateString("en-GB")}</td><td><button className="text-xs underline" onClick={() => { setDraft({ id: contact.id, email: contact.email, first_name: contact.first_name ?? "", last_name: contact.last_name ?? "", phone: contact.phone ?? "", company: contact.company ?? "", linkedin_url: contact.linkedin_url ?? "", birth_year: contact.birth_year === null ? "" : String(contact.birth_year), source: contact.source, newsletter_status: contact.newsletter_status, member_id: contact.member_id ?? "", notes: contact.notes ?? "" }); document.getElementById("new-contact")?.scrollIntoView({ behavior: "smooth" }); }}>Edit</button></td></tr>)}</AdminTable>}
+    {contacts.data?.length === 0 && <EmptyBlock title={archive === "archived" ? "No archived contacts found" : "No contacts found"} />}
+    {contacts.data && contacts.data.length > 0 && <AdminTable head={["Contact", "Company", "Source", "Newsletter", "Linked member", "Added", "Actions"]}>{contacts.data.map((contact) => <tr key={contact.id} className="[&>td]:px-4 [&>td]:py-3"><td><button type="button" className="text-left" onClick={() => openContact(contact)}><span className="font-medium underline">{[contact.first_name, contact.last_name].filter(Boolean).join(" ") || "Unnamed contact"}</span></button><p className="text-xs text-muted-foreground">{contact.email}</p>{contact.linkedin_url && <p className="text-xs"><a href={contact.linkedin_url} target="_blank" rel="noreferrer" className="underline">LinkedIn profile</a></p>}{contact.birth_year && <p className="text-xs text-muted-foreground">Birth year: {contact.birth_year}</p>}</td><td>{contact.company ?? "-"}</td><td>{contact.source}</td><td><StatusPill tone={contact.newsletter_status === "subscribed" ? "success" : "muted"}>{contact.newsletter_status}</StatusPill></td><td>{contact.member_id ? "Linked" : "-"}</td><td>{new Date(contact.created_at).toLocaleDateString("en-GB")}</td><td><div className="flex flex-wrap gap-3"><button type="button" className="text-xs underline" onClick={() => openContact(contact)}>View</button>{archive === "active" ? <button type="button" className="text-xs underline" disabled={archiveMutation.isPending} onClick={() => confirmArchive(contact)}>Archive</button> : <button type="button" className="text-xs underline" disabled={restoreMutation.isPending} onClick={() => restoreMutation.mutate(contact.id)}>Restore</button>}</div></td></tr>)}</AdminTable>}
     <form id="new-contact" className="mt-10 space-y-5 rounded-2xl border border-border/60 bg-card p-6" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
-      <h2 className="font-display text-lg font-bold">{draft.id ? "Edit contact" : "Add contact"}</h2>
-      <div className="grid gap-4 sm:grid-cols-2"><Field label="Email"><input required type="email" className={inputClass} value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} /></Field><Field label="Source"><input required className={inputClass} value={draft.source} onChange={(event) => setDraft({ ...draft, source: event.target.value })} /></Field><Field label="First name"><input className={inputClass} value={draft.first_name} onChange={(event) => setDraft({ ...draft, first_name: event.target.value })} /></Field><Field label="Last name"><input className={inputClass} value={draft.last_name} onChange={(event) => setDraft({ ...draft, last_name: event.target.value })} /></Field><Field label="Company"><input className={inputClass} value={draft.company} onChange={(event) => setDraft({ ...draft, company: event.target.value })} /></Field><Field label="LinkedIn URL" hint="Optional. Use an HTTPS LinkedIn profile or company URL."><input type="url" maxLength={2048} placeholder="https://www.linkedin.com/in/..." className={inputClass} value={draft.linkedin_url} onChange={(event) => setDraft({ ...draft, linkedin_url: event.target.value })} /></Field><Field label="Birth year" hint={`Optional. Enter a year from 1900 to ${new Date().getFullYear()}.`}><input type="number" inputMode="numeric" min={1900} max={new Date().getFullYear()} step={1} className={inputClass} value={draft.birth_year} onChange={(event) => setDraft({ ...draft, birth_year: event.target.value })} /></Field><Field label="Newsletter"><select className={inputClass} value={draft.newsletter_status} onChange={(event) => setDraft({ ...draft, newsletter_status: event.target.value as typeof draft.newsletter_status })}><option value="pending">Pending</option><option value="subscribed">Subscribed</option><option value="unsubscribed">Unsubscribed</option></select></Field><Field label="Link to member"><select className={inputClass} value={draft.member_id} onChange={(event) => setDraft({ ...draft, member_id: event.target.value })}><option value="">No linked member</option>{members.data?.map((member) => <option key={member.id} value={member.id}>{[member.first_name, member.last_name].filter(Boolean).join(" ") || member.email} · {member.email}</option>)}</select></Field></div>
-      <Field label="Notes"><textarea className={textareaClass} value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} /></Field><div className="flex gap-3"><Button type="submit" variant="ink" disabled={save.isPending}>{save.isPending ? "Saving..." : "Save contact"}</Button>{draft.id && <Button type="button" variant="outlineInk" onClick={() => setDraft(blank)}>New contact</Button>}</div>
+      <h2 className="font-display text-lg font-bold">Add contact</h2>
+      <ContactEditorFields draft={draft} members={members.data ?? []} onChange={setDraft} />
+      {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
+      <div className="flex gap-3"><Button type="submit" variant="ink" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save contact"}</Button><Button type="button" variant="outlineInk" disabled={save.isPending} onClick={() => { setDraft(blank); setSaveError(""); }}>Cancel</Button></div>
     </form>
+    {selectedContact && <Dialog open onOpenChange={(open) => { if (!open) { setSelectedContactId(null); setEditingSelected(false); setDraft(blank); } }}>
+      <DialogContent className="max-h-[88dvh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto rounded-2xl bg-card">
+        <div className="pr-7"><DialogTitle className="font-display text-xl font-bold">{editingSelected ? "Edit contact" : "Contact details"}</DialogTitle><DialogDescription className="mt-1">{selectedContact.email}</DialogDescription></div>
+        {editingSelected ? <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
+          <ContactEditorFields draft={draft} members={members.data ?? []} onChange={setDraft} />
+          {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
+          <div className="flex flex-wrap gap-3"><Button type="submit" variant="ink" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save changes"}</Button><Button type="button" variant="outlineInk" disabled={save.isPending} onClick={() => { setEditingSelected(false); setDraft(blank); setSaveError(""); }}>Cancel</Button></div>
+        </form> : <>
+          <dl className="grid gap-4 rounded-xl border border-border/60 p-4 sm:grid-cols-2">
+            <ContactValue label="First name" value={selectedContact.first_name} /><ContactValue label="Last name" value={selectedContact.last_name} /><ContactValue label="Email" value={selectedContact.email} /><ContactValue label="Phone" value={selectedContact.phone} /><ContactValue label="Company" value={selectedContact.company} /><ContactValue label="Source" value={selectedContact.source} />
+            <div><dt className="text-xs uppercase tracking-wider text-muted-foreground">LinkedIn URL</dt><dd className="mt-1 break-all">{selectedContact.linkedin_url ? <a href={selectedContact.linkedin_url} target="_blank" rel="noreferrer" className="underline">{selectedContact.linkedin_url}</a> : "—"}</dd></div>
+            <ContactValue label="Birth year" value={selectedContact.birth_year?.toString() ?? null} /><ContactValue label="Newsletter status" value={selectedContact.newsletter_status} /><ContactValue label="Consent recorded" value={selectedContact.consent_at ? new Date(selectedContact.consent_at).toLocaleString("en-GB") : "No recorded consent"} /><ContactValue label="Linked member" value={selectedContact.member_id ? selectedMember ? `${[selectedMember.first_name, selectedMember.last_name].filter(Boolean).join(" ") || "Member"} · ${selectedMember.email ?? ""}` : "Linked member record" : "No linked member"} /><ContactValue label="Created" value={new Date(selectedContact.created_at).toLocaleString("en-GB")} /><ContactValue label="Last updated" value={new Date(selectedContact.updated_at).toLocaleString("en-GB")} />
+            <div className="sm:col-span-2"><dt className="text-xs uppercase tracking-wider text-muted-foreground">Notes</dt><dd className="mt-1 whitespace-pre-wrap">{selectedContact.notes || "—"}</dd></div>
+          </dl>
+          {selectedContact.archived_at && <p className="rounded-lg bg-muted p-3 text-sm">Archived on {new Date(selectedContact.archived_at).toLocaleDateString("en-GB")}. The record and its history are preserved.</p>}
+          <div className="flex flex-wrap gap-3"><Button type="button" variant="ink" disabled={selectedContact.archived_at !== null || members.isLoading} onClick={() => startEditingContact(selectedContact)}>Edit contact</Button>{selectedContact.archived_at ? <Button type="button" variant="outlineInk" disabled={restoreMutation.isPending} onClick={() => restoreMutation.mutate(selectedContact.id)}>{restoreMutation.isPending ? "Restoring…" : "Restore contact"}</Button> : <Button type="button" variant="outlineInk" disabled={archiveMutation.isPending} onClick={() => confirmArchive(selectedContact)}>{archiveMutation.isPending ? "Archiving…" : "Archive contact"}</Button>}<Button type="button" variant="outlineInk" onClick={() => { setSelectedContactId(null); setEditingSelected(false); }}>Close</Button></div>
+          <p className="text-xs leading-relaxed text-muted-foreground">Archiving preserves this contact and all linked order, ticket, payment, membership and registration history. Permanent deletion is not available here.</p>
+        </>}
+      </DialogContent>
+    </Dialog>}
   </AdminPage>;
+}
+
+function ContactEditorFields({ draft, members, onChange }: { draft: ContactDraft; members: MemberOption[]; onChange: (draft: ContactDraft) => void }) {
+  return <>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Field label="Email" hint="Saved in lowercase with surrounding spaces removed."><input required type="email" maxLength={320} className={inputClass} autoComplete="email" value={draft.email} onChange={(event) => onChange({ ...draft, email: event.target.value })} /></Field>
+      <Field label="Source"><input required minLength={2} maxLength={80} className={inputClass} value={draft.source} onChange={(event) => onChange({ ...draft, source: event.target.value })} /></Field>
+      <Field label="First name"><input maxLength={120} className={inputClass} autoComplete="given-name" value={draft.first_name} onChange={(event) => onChange({ ...draft, first_name: event.target.value })} /></Field>
+      <Field label="Last name"><input maxLength={120} className={inputClass} autoComplete="family-name" value={draft.last_name} onChange={(event) => onChange({ ...draft, last_name: event.target.value })} /></Field>
+      <Field label="Phone"><input type="tel" maxLength={80} className={inputClass} autoComplete="tel" value={draft.phone} onChange={(event) => onChange({ ...draft, phone: event.target.value })} /></Field>
+      <Field label="Company"><input maxLength={160} className={inputClass} autoComplete="organization" value={draft.company} onChange={(event) => onChange({ ...draft, company: event.target.value })} /></Field>
+      <Field label="LinkedIn URL" hint="Optional. Use an HTTPS LinkedIn profile or company URL."><input type="url" maxLength={2048} placeholder="https://www.linkedin.com/in/..." className={inputClass} value={draft.linkedin_url} onChange={(event) => onChange({ ...draft, linkedin_url: event.target.value })} /></Field>
+      <Field label="Birth year" hint={`Optional. Enter a year from 1900 to ${new Date().getFullYear()}.`}><input type="number" inputMode="numeric" min={1900} max={new Date().getFullYear()} step={1} className={inputClass} value={draft.birth_year} onChange={(event) => onChange({ ...draft, birth_year: event.target.value })} /></Field>
+      <Field label="Newsletter consent"><select className={inputClass} value={draft.newsletter_status} onChange={(event) => onChange({ ...draft, newsletter_status: event.target.value as ContactDraft["newsletter_status"] })}><option value="pending">Pending</option><option value="subscribed">Subscribed</option><option value="unsubscribed">Unsubscribed</option></select><span className="block text-xs text-muted-foreground">Only mark as subscribed when consent has been recorded.</span></Field>
+      <Field label="Link to member"><select className={inputClass} value={draft.member_id} onChange={(event) => onChange({ ...draft, member_id: event.target.value })}><option value="">No linked member</option>{members.map((member) => <option key={member.id} value={member.id}>{[member.first_name, member.last_name].filter(Boolean).join(" ") || member.email} · {member.email}</option>)}</select></Field>
+    </div>
+    <Field label="Notes"><textarea maxLength={5000} className={textareaClass} value={draft.notes} onChange={(event) => onChange({ ...draft, notes: event.target.value })} /></Field>
+  </>;
+}
+
+function ContactValue({ label, value }: { label: string; value: string | null }) {
+  return <div><dt className="text-xs uppercase tracking-wider text-muted-foreground">{label}</dt><dd className="mt-1 break-words">{value || "—"}</dd></div>;
 }
