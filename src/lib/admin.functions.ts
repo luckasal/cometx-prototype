@@ -6,6 +6,7 @@ import { managedEventMediaPath } from "./event-media-rules";
 import type { StaffPermission } from "./staff-permissions";
 import { membershipBenefitValueIssue } from "./membership-benefit-rules";
 import { isCatalogBenefit } from "./membership-benefit-catalog";
+import { normalizeContactEmail } from "./contact-import";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
@@ -1150,6 +1151,153 @@ export const adminSaveContact = createServerFn({ method: "POST" })
     const { error } = id ? await db.from("contacts").update(payload).eq("id", id) : await db.from("contacts").insert(payload);
     if (error) throw new Error(error.code === "23505" ? "A contact with this email already exists." : error.message);
     return { ok: true };
+  });
+
+const contactImportFieldsSchema = z.object({
+  first_name: z.string().max(120).optional(),
+  last_name: z.string().max(120).optional(),
+  phone: z.string().max(80).optional(),
+  company: z.string().max(160).optional(),
+  source: z.string().min(2).max(80).optional(),
+  notes: z.string().max(5000).optional(),
+}).strict();
+
+const contactImportRowSchema = z.object({
+  rowNumber: z.number().int().min(2).max(100_000),
+  email: z.string().email().max(320),
+  fields: contactImportFieldsSchema,
+});
+
+async function readContactEmailIndex(db: SupabaseClient) {
+  const matches = new Map<string, { id: string; email: string }[]>();
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await db.from("contacts").select("id,email").order("id", { ascending: true }).range(offset, offset + pageSize - 1);
+    if (error) throw new Error(error.message);
+    for (const contact of data ?? []) {
+      const email = normalizeContactEmail(contact.email);
+      if (!email) continue;
+      const values = matches.get(email) ?? [];
+      values.push({ id: contact.id, email: contact.email });
+      matches.set(email, values);
+    }
+    if (!data || data.length < pageSize) break;
+  }
+  return matches;
+}
+
+export const adminPreviewContactImport = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ emails: z.array(z.string().email().max(320)).max(2000) }).parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin("contacts.read");
+    const emailIndex = await readContactEmailIndex(db);
+    const emails = [...new Set(data.emails.map(normalizeContactEmail))];
+    return {
+      matches: emails.flatMap((email) => {
+        const count = emailIndex.get(email)?.length ?? 0;
+        return count > 0 ? [{ email, count }] : [];
+      }),
+    };
+  });
+
+export const adminImportContacts = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({
+    mode: z.enum(["skip_existing", "update_existing"]),
+    rows: z.array(contactImportRowSchema).min(1).max(2000),
+  }).parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin("contacts.write");
+    const emailIndex = await readContactEmailIndex(db);
+    const seenInFile = new Set<string>();
+    const summary = { created: 0, updated: 0, skipped: 0, failed: 0 };
+    const results: { rowNumber: number; email: string; status: "created" | "updated" | "skipped" | "failed"; message: string }[] = [];
+
+    for (const row of data.rows) {
+      const email = normalizeContactEmail(row.email);
+      if (seenInFile.has(email)) {
+        summary.skipped += 1;
+        results.push({ rowNumber: row.rowNumber, email, status: "skipped", message: "Duplicate email in this file; the first row was kept." });
+        continue;
+      }
+      seenInFile.add(email);
+
+      const existing = emailIndex.get(email) ?? [];
+      if (existing.length > 1) {
+        summary.failed += 1;
+        results.push({ rowNumber: row.rowNumber, email, status: "failed", message: "More than one existing contact has this normalized email. Resolve those records before importing." });
+        continue;
+      }
+
+      if (existing.length === 1) {
+        if (data.mode === "skip_existing") {
+          summary.skipped += 1;
+          results.push({ rowNumber: row.rowNumber, email, status: "skipped", message: "An existing contact was found and the selected mode skips existing contacts." });
+          continue;
+        }
+
+        const firstName = row.fields.first_name?.trim();
+        const lastName = row.fields.last_name?.trim();
+        const phone = row.fields.phone?.trim();
+        const company = row.fields.company?.trim();
+        const source = row.fields.source?.trim();
+        const notes = row.fields.notes?.trim();
+        const fields = {
+          ...(firstName ? { first_name: firstName } : {}),
+          ...(lastName ? { last_name: lastName } : {}),
+          ...(phone ? { phone } : {}),
+          ...(company ? { company } : {}),
+          ...(source ? { source } : {}),
+          ...(notes ? { notes } : {}),
+        };
+        if (Object.keys(fields).length === 0) {
+          summary.skipped += 1;
+          results.push({ rowNumber: row.rowNumber, email, status: "skipped", message: "No non-empty mapped fields to update." });
+          continue;
+        }
+
+        const existingContact = existing[0];
+        if (!existingContact) {
+          summary.failed += 1;
+          results.push({ rowNumber: row.rowNumber, email, status: "failed", message: "The contact could not be identified for update." });
+          continue;
+        }
+        const { data: updated, error } = await db.from("contacts").update(fields).eq("id", existingContact.id).select("id").maybeSingle();
+        if (error || !updated) {
+          summary.failed += 1;
+          results.push({ rowNumber: row.rowNumber, email, status: "failed", message: error?.message ?? "The contact no longer exists." });
+          continue;
+        }
+        summary.updated += 1;
+        results.push({ rowNumber: row.rowNumber, email, status: "updated", message: "Updated mapped, non-empty fields; email, newsletter status and member link were preserved." });
+        continue;
+      }
+
+      const payload = {
+        email,
+        first_name: row.fields.first_name ?? null,
+        last_name: row.fields.last_name ?? null,
+        phone: row.fields.phone ?? null,
+        company: row.fields.company ?? null,
+        source: row.fields.source ?? "csv_import",
+        notes: row.fields.notes ?? null,
+        newsletter_status: "pending" as const,
+      };
+      const { error } = await db.from("contacts").insert(payload);
+      if (error?.code === "23505") {
+        summary.skipped += 1;
+        results.push({ rowNumber: row.rowNumber, email, status: "skipped", message: "A contact with this email was added during import; this row was skipped." });
+        continue;
+      }
+      if (error) {
+        summary.failed += 1;
+        results.push({ rowNumber: row.rowNumber, email, status: "failed", message: error.message });
+        continue;
+      }
+      summary.created += 1;
+      results.push({ rowNumber: row.rowNumber, email, status: "created", message: "Created a contact with newsletter status pending. No member account was created." });
+    }
+
+    return { summary, results };
   });
 
 export const adminListPayments = createServerFn({ method: "GET" }).handler(async () => {
