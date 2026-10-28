@@ -259,6 +259,18 @@ export type Database = {
         Update: { email?: string; first_name?: string | null; last_name?: string | null; phone?: string | null; company?: string | null; linkedin_url?: string | null; birth_year?: number | null; source?: string; consent_at?: string | null; newsletter_status?: Database["public"]["Enums"]["contact_status"]; member_id?: string | null; notes?: string | null; archived_at?: string | null; updated_at?: string }
         Relationships: []
       }
+      contact_segments: {
+        Row: { id: string; name: string; slug: string; created_at: string }
+        Insert: { id?: string; name: string; slug: string; created_at?: string }
+        Update: { name?: string; slug?: string }
+        Relationships: []
+      }
+      contact_segment_assignments: {
+        Row: { contact_id: string; segment_id: string; created_at: string }
+        Insert: { contact_id: string; segment_id: string; created_at?: string }
+        Update: { created_at?: string }
+        Relationships: []
+      }
       content_entries: {
         Row: { id: string; content_type: Database["public"]["Enums"]["content_type"]; title: string; title_en: string | null; slug: string; summary: string | null; summary_en: string | null; body: string | null; body_en: string | null; hero_image_url: string | null; media_urls: Json; status: Database["public"]["Enums"]["article_status"]; published_at: string | null; created_at: string; updated_at: string }
         Insert: { id?: string; content_type: Database["public"]["Enums"]["content_type"]; title: string; title_en?: string | null; slug: string; summary?: string | null; summary_en?: string | null; body?: string | null; body_en?: string | null; hero_image_url?: string | null; media_urls?: Json; status?: Database["public"]["Enums"]["article_status"]; published_at?: string | null; created_at?: string; updated_at?: string }

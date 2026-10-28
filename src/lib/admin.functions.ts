@@ -1379,6 +1379,82 @@ export const adminListContacts = createServerFn({ method: "GET" })
     return contacts ?? [];
   });
 
+const contactIdsSchema = z.array(z.string().uuid()).min(1).max(500);
+
+export const adminListContactSegments = createServerFn({ method: "POST" })
+  .validator((d: unknown) => z.object({ contactIds: z.array(z.string().uuid()).max(500).refine((ids) => new Set(ids).size === ids.length) }).parse(d))
+  .handler(async ({ data }) => {
+    const db = await admin("contacts.read");
+    const [{ data: segments, error: segmentError }, assignmentsResult] = await Promise.all([
+      db.from("contact_segments").select("id,name,slug").order("name"),
+      data.contactIds.length ? db.from("contact_segment_assignments").select("contact_id,segment_id").in("contact_id", data.contactIds) : Promise.resolve({ data: [], error: null }),
+    ]);
+    if (segmentError) throw new Error(segmentError.message);
+    if (assignmentsResult.error) throw new Error(assignmentsResult.error.message);
+    return { segments: segments ?? [], assignments: assignmentsResult.data ?? [] };
+  });
+
+const contactBulkSchema = z.union([
+  z.object({ action: z.literal("newsletter"), contactIds: contactIdsSchema, status: z.enum(["subscribed", "unsubscribed"]), consentConfirmed: z.boolean() }),
+  z.object({ action: z.literal("segment_assign"), contactIds: contactIdsSchema, segmentId: z.string().uuid().optional(), segmentName: z.string().trim().min(1).max(80).optional() }),
+  z.object({ action: z.literal("segment_remove"), contactIds: contactIdsSchema, segmentId: z.string().uuid() }),
+]);
+export type AdminBulkContactInput = z.infer<typeof contactBulkSchema>;
+
+export const adminBulkUpdateContacts = createServerFn({ method: "POST" })
+  .validator((d: unknown) => contactBulkSchema.parse(d))
+  .handler(async ({ data }) => {
+    if (new Set(data.contactIds).size !== data.contactIds.length) throw new Error("Choose each contact only once.");
+    const permission = data.action === "newsletter" ? "newsletter.write" : "contacts.write";
+    const db = await admin(permission);
+    if (data.action === "newsletter" && !data.consentConfirmed) throw new Error("Confirm the consent or unsubscribe action before continuing.");
+
+    const { data: activeContacts, error: contactError } = await db.from("contacts").select("id,newsletter_status").in("id", data.contactIds).is("archived_at", null);
+    if (contactError) throw new Error(contactError.message);
+    if ((activeContacts ?? []).length !== data.contactIds.length) throw new Error("One or more selected contacts are archived or no longer available. Refresh the list and try again.");
+
+    if (data.action === "newsletter") {
+      const changedIds = (activeContacts ?? []).filter((contact) => contact.newsletter_status !== data.status).map((contact) => contact.id);
+      if (changedIds.length === 0) return { updated: 0, skipped: data.contactIds.length, failed: 0 };
+      const fields = data.status === "subscribed"
+        ? { newsletter_status: "subscribed" as const, consent_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+        : { newsletter_status: "unsubscribed" as const, updated_at: new Date().toISOString() };
+      const { data: updated, error } = await db.from("contacts").update(fields).in("id", changedIds).is("archived_at", null).select("id");
+      if (error) throw new Error(error.message);
+      const updatedCount = updated?.length ?? 0;
+      return { updated: updatedCount, skipped: data.contactIds.length - changedIds.length, failed: changedIds.length - updatedCount };
+    }
+
+    let segmentId = data.action === "segment_remove" ? data.segmentId : data.segmentId;
+    if (data.action === "segment_assign" && !segmentId) {
+      if (!data.segmentName) throw new Error("Choose or enter a segment.");
+      const name = data.segmentName.trim().replace(/\s+/g, " ");
+      const slug = name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 100);
+      if (!slug) throw new Error("Enter a segment name containing letters or numbers.");
+      const { error: createError } = await db.from("contact_segments").upsert({ name, slug }, { onConflict: "slug", ignoreDuplicates: true });
+      if (createError) throw new Error(createError.message);
+      const { data: segment, error: lookupError } = await db.from("contact_segments").select("id").eq("slug", slug).single();
+      if (lookupError || !segment) throw new Error(lookupError?.message ?? "Could not create or find that segment.");
+      segmentId = segment.id;
+    }
+    if (data.action === "segment_assign") {
+      const { data: existingAssignments, error: existingError } = await db.from("contact_segment_assignments").select("contact_id").eq("segment_id", segmentId!).in("contact_id", data.contactIds);
+      if (existingError) throw new Error(existingError.message);
+      const alreadyAssigned = new Set((existingAssignments ?? []).map((row) => row.contact_id));
+      const missing = data.contactIds.filter((id) => !alreadyAssigned.has(id));
+      if (!missing.length) return { updated: 0, skipped: data.contactIds.length, failed: 0 };
+      const { data: inserted, error } = await db.from("contact_segment_assignments").upsert(missing.map((contact_id) => ({ contact_id, segment_id: segmentId! })), { onConflict: "contact_id,segment_id", ignoreDuplicates: true }).select("contact_id");
+      if (error) throw new Error(error.message);
+      const updatedCount = inserted?.length ?? 0;
+      return { updated: updatedCount, skipped: data.contactIds.length - missing.length, failed: missing.length - updatedCount };
+    }
+
+    const { data: removed, error } = await db.from("contact_segment_assignments").delete().eq("segment_id", segmentId!).in("contact_id", data.contactIds).select("contact_id");
+    if (error) throw new Error(error.message);
+    const updatedCount = removed?.length ?? 0;
+    return { updated: updatedCount, skipped: data.contactIds.length - updatedCount, failed: 0 };
+  });
+
 export const adminSaveContact = createServerFn({ method: "POST" })
   .validator((d: unknown) => contactSchema.parse(d))
   .handler(async ({ data }) => {
