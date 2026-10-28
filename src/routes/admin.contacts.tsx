@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { adminArchiveContact, adminListContacts, adminListMemberOptions, adminRestoreContact, adminSaveContact } from "@/lib/admin.functions";
+import { adminArchiveContact, adminListContactDirectory, adminListContacts, adminListMemberOptions, adminRestoreContact, adminSaveContact } from "@/lib/admin.functions";
 import { AdminPage, AdminTable, Field, inputClass, textareaClass } from "@/components/admin/AdminBits";
 import { Button } from "@/components/ui/button";
 import { EmptyBlock, ErrorBlock, LoadingBlock, StatusPill } from "@/components/site/Bits";
@@ -40,9 +40,12 @@ type ContactImportResult = {
   summary: { created: number; updated: number; skipped: number; failed: number };
   results: { rowNumber: number; email: string; status: "created" | "updated" | "skipped" | "failed"; message: string }[];
 };
+type DirectoryType = "All types" | "Contact record" | "Member account" | "Guest attendee" | "Partner organization" | "Speaker";
 
 function ContactsPage() {
   const [query, setQuery] = useState("");
+  const [directoryQuery, setDirectoryQuery] = useState("");
+  const [directoryType, setDirectoryType] = useState<DirectoryType>("All types");
   const [status, setStatus] = useState<"all" | "subscribed" | "unsubscribed" | "pending">("all");
   const [archive, setArchive] = useState<"active" | "archived">("active");
   const [draft, setDraft] = useState<ContactDraft>(blank);
@@ -61,12 +64,14 @@ function ContactsPage() {
   const [previewReady, setPreviewReady] = useState(false);
   const [importResult, setImportResult] = useState<ContactImportResult | null>(null);
   const fetchContacts = useServerFn(adminListContacts);
+  const fetchDirectory = useServerFn(adminListContactDirectory);
   const fetchMembers = useServerFn(adminListMemberOptions);
   const saveContact = useServerFn(adminSaveContact);
   const previewContactImport = useServerFn(adminPreviewContactImport);
   const runContactImport = useServerFn(adminImportContacts);
   const cache = useQueryClient();
   const contacts = useQuery({ queryKey: ["admin", "contacts", query, status, archive], queryFn: () => withRequestTimeout(fetchContacts({ data: { query, status, archive } }), 15000, "Loading contacts took too long. Please try again."), retry: false });
+  const directory = useQuery({ queryKey: ["admin", "contact-directory"], queryFn: () => withRequestTimeout(fetchDirectory(), 20000, "Loading the CometX directory took too long. Please try again."), retry: false });
   const members = useQuery({ queryKey: ["admin", "member-options"], queryFn: () => withRequestTimeout(fetchMembers(), 15000, "Loading linked accounts took too long. Please try again."), retry: false });
   const save = useMutation({
     mutationFn: () => saveContact({ data: { ...draft, first_name: draft.first_name || null, last_name: draft.last_name || null, phone: draft.phone || null, company: draft.company || null, linkedin_url: draft.linkedin_url.trim() || null, birth_year: draft.birth_year === "" ? null : Number(draft.birth_year), notes: draft.notes || null, member_id: draft.member_id || null } }),
@@ -157,6 +162,13 @@ function ContactsPage() {
   const ambiguousExistingRows = importRows.filter((row) => (existingByEmail[row.values.email] ?? 0) > 1).length;
   const selectedContact = contacts.data?.find((contact) => contact.id === selectedContactId) ?? null;
   const selectedMember = selectedContact?.member_id ? members.data?.find((member) => member.id === selectedContact.member_id) : null;
+  const directoryEntries = (directory.data?.entries ?? []).filter((entry) => {
+    const matchesType = directoryType === "All types" || entry.type === directoryType;
+    const needle = directoryQuery.trim().toLocaleLowerCase();
+    const matchesSearch = !needle || [entry.name, entry.email, entry.organization, entry.details]
+      .some((value) => value?.toLocaleLowerCase().includes(needle));
+    return matchesType && matchesSearch;
+  });
 
   function openContact(contact: NonNullable<typeof contacts.data>[number]) {
     setSelectedContactId(contact.id);
@@ -182,7 +194,16 @@ function ContactsPage() {
     const link = document.createElement("a"); link.href = url; link.download = "cometx-contacts.csv"; link.click(); URL.revokeObjectURL(url);
   }
 
-  return <AdminPage title="Contacts" description="Newsletter and event leads. Contacts stay separate from authenticated members." action={<div className="flex flex-wrap gap-2"><Button type="button" onClick={() => setImportOpen((open) => !open)} variant="outlineInk">{importOpen ? "Close CSV import" : "Import CSV"}</Button><Button onClick={() => document.getElementById("new-contact")?.scrollIntoView({ behavior: "smooth" })} variant="ink">New contact</Button></div>}>
+  return <AdminPage title="Contacts" description="One directory for people and organizations across CometX, with each record kept in its original section." action={<div className="flex flex-wrap gap-2"><Button type="button" onClick={() => setImportOpen((open) => !open)} variant="outlineInk">{importOpen ? "Close CSV import" : "Import CSV"}</Button><Button onClick={() => document.getElementById("new-contact")?.scrollIntoView({ behavior: "smooth" })} variant="ink">New contact</Button></div>}>
+    <section className="mb-10 space-y-4" aria-labelledby="cometx-directory-title">
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="cometx-directory-title" className="font-display text-xl font-bold">Everyone in CometX</h2><p className="mt-1 text-sm text-muted-foreground">Members, event guests, partners, speakers and contact records. This overview is read-only; edit each record in its original section.</p></div><span className="text-sm text-muted-foreground">{directoryEntries.length} {directoryType === "All types" ? "records" : directoryType.toLocaleLowerCase() + (directoryEntries.length === 1 ? "" : "s")}</span></div>
+      <div className="grid gap-3 sm:grid-cols-[1fr_240px]"><input aria-label="Search everyone in CometX" className={inputClass} value={directoryQuery} onChange={(event) => setDirectoryQuery(event.target.value)} placeholder="Search name, email, company or event" /><select aria-label="Directory record type" className={inputClass} value={directoryType} onChange={(event) => setDirectoryType(event.target.value as DirectoryType)}><option>All types</option>{(directory.data?.availableTypes ?? []).map((type) => <option key={type}>{type}</option>)}</select></div>
+      {directory.isLoading && <LoadingBlock label="Loading the CometX directory" />}
+      {directory.error && <div className="space-y-3"><ErrorBlock error={directory.error} /><Button variant="outlineInk" onClick={() => directory.refetch()}>Try again</Button></div>}
+      {directory.data && directoryEntries.length === 0 && <EmptyBlock title="No directory records found" />}
+      {directory.data && directoryEntries.length > 0 && <AdminTable head={["Type", "Name", "Email / website", "Organization", "Details", "Added"]}>{directoryEntries.map((entry) => <tr key={entry.id} className="[&>td]:px-4 [&>td]:py-3"><td><StatusPill tone={entry.type === "Partner organization" ? "success" : "muted"}>{entry.type}</StatusPill></td><td className="font-medium">{entry.name || "Unnamed"}</td><td>{entry.email ?? (entry.organization?.startsWith("http") ? <a className="underline" href={entry.organization} target="_blank" rel="noreferrer">Website</a> : "—")}</td><td>{entry.type === "Partner organization" ? "—" : entry.organization ?? "—"}</td><td className="text-sm text-muted-foreground">{entry.details ?? "—"}</td><td>{entry.created_at ? new Date(entry.created_at).toLocaleDateString("en-GB") : "—"}</td></tr>)}</AdminTable>}
+      <p className="text-xs text-muted-foreground">The same person may appear more than once when they have separate member, guest, speaker or contact records. No records are merged here.</p>
+    </section>
     <div className="mb-6 grid gap-3 sm:grid-cols-[1fr_180px_180px_auto]">
       <input className={inputClass} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, email or company" />
       <select aria-label="Newsletter status" className={inputClass} value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="all">All newsletter states</option><option value="subscribed">Subscribed</option><option value="pending">Pending</option><option value="unsubscribed">Unsubscribed</option></select>

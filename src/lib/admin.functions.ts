@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { earliestTicketSaleStart, eventScheduleIssue } from "./event-admin";
 import { managedEventMediaPath } from "./event-media-rules";
-import type { StaffPermission } from "./staff-permissions";
+import { hasStaffPermission, type StaffPermission } from "./staff-permissions";
 import { membershipBenefitValueIssue } from "./membership-benefit-rules";
 import { isCatalogBenefit } from "./membership-benefit-catalog";
 import { normalizeContactEmail } from "./contact-import";
@@ -1109,6 +1109,159 @@ export const getAdminIntegrationStatus = createServerFn({ method: "GET" }).handl
 });
 
 /* ---------------------- contacts, newsletter and payments --------------------- */
+
+type ContactDirectoryEntry = {
+  id: string;
+  type: "Contact record" | "Member account" | "Guest attendee" | "Partner organization" | "Speaker";
+  name: string;
+  email: string | null;
+  organization: string | null;
+  details: string | null;
+  created_at: string | null;
+};
+type GuestAttendeeDirectoryRow = {
+  id: string;
+  attendee_name: string;
+  attendee_email: string;
+  event_id: string;
+  status: string;
+  created_at: string;
+};
+type GuestAttendeeQueryClient = {
+  from(table: "ticket_attendees"): {
+    select(columns: string): {
+      is(column: "user_id", value: null): {
+        order(column: "created_at", options: { ascending: false }): {
+          range(from: number, to: number): PromiseLike<{
+            data: GuestAttendeeDirectoryRow[] | null;
+            error: { message: string } | null;
+          }>;
+        };
+      };
+    };
+  };
+};
+
+async function readAllAdminPages<T>(
+  fetchPage: (from: number, to: number) => Promise<{ data: T[] | null; error: { message: string } | null }>,
+) {
+  const rows: T[] = [];
+  const pageSize = 500;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await fetchPage(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    rows.push(...(data ?? []));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
+
+export const adminListContactDirectory = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireStaffPermission } = await import("./auth.server");
+  const actor = await requireStaffPermission("contacts.read");
+  const canRead = (permission: StaffPermission) => hasStaffPermission(actor.staffRoles, permission);
+  const entries: ContactDirectoryEntry[] = [];
+
+  const [contacts, profiles, attendees, partners, speakers] = await Promise.all([
+    (async () => {
+      const db = await admin("contacts.read");
+      return readAllAdminPages(async (from, to) => db.from("contacts")
+        .select("id,email,first_name,last_name,company,source,newsletter_status,member_id,archived_at,created_at")
+        .order("created_at", { ascending: false }).range(from, to));
+    })(),
+    canRead("members.read") ? (async () => {
+      const db = await admin("members.read");
+      return readAllAdminPages(async (from, to) => db.from("profiles")
+        .select("id,first_name,last_name,email,company,created_at")
+        .order("created_at", { ascending: false }).range(from, to));
+    })() : Promise.resolve([]),
+    canRead("attendees.read") ? (async () => {
+      // ticket_attendees exists in Production but is missing from the generated
+      // Supabase Database type; keep this cast scoped to this read-only query.
+      const db = await admin("attendees.read") as unknown as GuestAttendeeQueryClient;
+      return readAllAdminPages<GuestAttendeeDirectoryRow>(async (from, to) => {
+        const { data, error } = await db.from("ticket_attendees")
+          .select("id,attendee_name,attendee_email,event_id,status,created_at")
+          .is("user_id", null).order("created_at", { ascending: false }).range(from, to);
+        return { data, error };
+      });
+    })() : Promise.resolve([]),
+    canRead("partners.read") ? (async () => {
+      const db = await admin("partners.read");
+      return readAllAdminPages(async (from, to) => db.from("partners")
+        .select("id,name,website_url,description,tier,active,created_at")
+        .order("name").range(from, to));
+    })() : Promise.resolve([]),
+    canRead("events.read") ? (async () => {
+      const db = await admin("events.read");
+      return readAllAdminPages(async (from, to) => db.from("speakers")
+        .select("id,name,job_title,company,linkedin_url,website_url,event_id,created_at")
+        .order("name").range(from, to));
+    })() : Promise.resolve([]),
+  ]);
+
+  entries.push(...contacts.map((contact) => ({
+    id: `contact:${contact.id}`,
+    type: "Contact record" as const,
+    name: [contact.first_name, contact.last_name].filter(Boolean).join(" ") || contact.email,
+    email: contact.email,
+    organization: contact.company,
+    details: `${contact.archived_at ? "Archived · " : ""}${contact.newsletter_status} · ${contact.source}${contact.member_id ? " · linked account" : ""}`,
+    created_at: contact.created_at,
+  })));
+  entries.push(...profiles.map((profile) => ({
+    id: `member:${profile.id}`,
+    type: "Member account" as const,
+    name: [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.email || "Unnamed account",
+    email: profile.email,
+    organization: profile.company,
+    details: "CometX account",
+    created_at: profile.created_at,
+  })));
+
+  let eventNames = new Map<string, string>();
+  if (attendees.length && canRead("events.read")) {
+    const eventIds = [...new Set(attendees.map((attendee) => attendee.event_id))];
+    const db = await admin("events.read");
+    for (let from = 0; from < eventIds.length; from += 500) {
+      const { data, error } = await db.from("events").select("id,title").in("id", eventIds.slice(from, from + 500));
+      if (error) throw new Error("Guest attendee events could not be loaded.");
+      eventNames = new Map([...eventNames, ...(data ?? []).map((event) => [event.id, event.title] as const)]);
+    }
+  }
+  entries.push(...attendees.map((attendee) => ({
+    id: `attendee:${attendee.id}`,
+    type: "Guest attendee" as const,
+    name: attendee.attendee_name,
+    email: attendee.attendee_email,
+    organization: null,
+    details: `${eventNames.get(attendee.event_id) ?? "Event ticket"} · ${attendee.status}`,
+    created_at: attendee.created_at,
+  })));
+  entries.push(...partners.map((partner) => ({
+    id: `partner:${partner.id}`,
+    type: "Partner organization" as const,
+    name: partner.name,
+    email: null,
+    organization: partner.website_url,
+    details: `${partner.active ? "Active" : "Inactive"}${partner.tier ? ` · ${partner.tier}` : ""}`,
+    created_at: partner.created_at,
+  })));
+  entries.push(...speakers.map((speaker) => ({
+    id: `speaker:${speaker.id}`,
+    type: "Speaker" as const,
+    name: speaker.name,
+    email: null,
+    organization: speaker.company,
+    details: [speaker.job_title, speaker.event_id ? "Event-specific speaker" : "Reusable speaker"]
+      .filter(Boolean).join(" · "),
+    created_at: speaker.created_at,
+  })));
+
+  return {
+    entries: entries.sort((left, right) => (right.created_at ?? "").localeCompare(left.created_at ?? "")),
+    availableTypes: ["Contact record", ...(canRead("members.read") ? ["Member account"] : []), ...(canRead("attendees.read") ? ["Guest attendee"] : []), ...(canRead("partners.read") ? ["Partner organization"] : []), ...(canRead("events.read") ? ["Speaker"] : [])],
+  };
+});
 
 const contactSchema = z.object({
   id: z.string().uuid().optional(),
