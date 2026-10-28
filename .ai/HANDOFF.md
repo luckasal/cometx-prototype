@@ -2,6 +2,12 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-10-28: CNT-03 combined Contacts directory
+
+- Implementation commit `a44c4a1` on `codex/event-ticket-membership-entitlements-20261026`. `/admin/contacts` now has a searchable, type-filtered, read-only directory for contact records, member accounts, guest ticket attendees, partner organizations, and speakers. Server reads are gated by the current staff role's source permissions; records remain separate and are not merged by name or email. No schema migration or data changes.
+- `pnpm build`, changed-file ESLint (with the repository Prettier rule disabled for existing CRLF files), and diff check pass. No tests were run. `pnpm typecheck` still fails only on existing issues in StaffReadOnly, storage FileObject typing, staff-permissions, root/admin routes, and Stripe RPC; no CNT-03 diagnostics remain.
+- Not deployed. Next: deploy commit `a44c4a1` to Production and verify the directory in authenticated `/admin/contacts`.
+
 ## 2026-10-28: CNT-01 contact detail and safe archive
 
 - Implementation commit `340db7d` on `codex/event-ticket-membership-entitlements-20261026`. Contact admin now has a readable detail dialog, full editable contact fields, cancel/save/error feedback, lowercased trimmed email storage and normalized duplicate detection. Existing newsletter consent timestamps are retained when editing; a new timestamp is recorded only when status changes to subscribed.
