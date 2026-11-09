@@ -1776,7 +1776,8 @@ export const adminImportContacts = createServerFn({ method: "POST" })
   });
 
 export const adminListPayments = createServerFn({ method: "GET" }).handler(async () => {
-  const db = await admin("payments.read");
+  await (await import("./auth.server")).requireStaffPermission("payments.read");
+  const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
   const { data, error } = await db.from("payments").select("id,user_id,registration_id,membership_id,amount,currency,status,invoice_url,receipt_url,created_at").order("created_at", { ascending: false }).limit(300);
   if (error) throw new Error(error.message);
   return data ?? [];
