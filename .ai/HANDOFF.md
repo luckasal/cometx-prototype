@@ -1167,3 +1167,10 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - Focused tests: 18/18 pass with Node type stripping. Build passed before the final small type adjustment. Full TypeScript check still reports existing unrelated project errors in StaffReadOnly, admin storage, staff permissions, root, admin, and the membership invoice RPC typing; the new invoice type diagnostic was fixed. Diff check passed.
 - Migration `0036` has not been applied; no hosted deployment or real Stripe sandbox API write was performed. Run an end-to-end Stripe test-mode invoice with the migration applied and verify the hosted admin/webhook before release. Production data and Stripe live mode were untouched.
 - Next task: release review of `cdf833d`, apply migration `0036` to the chosen environment, then deploy and run an authorized test-mode invoice workflow. Preserve the separate migration/deployment steps.
+
+## 2026-11-09: protected CometX superadmin
+
+- Implementation commit `114fd2e` on `codex/pay-02-03-stripe-invoicing-20261109`. Files: `drizzle/migrations/0037_protected_superadmin.sql`, `src/lib/admin.functions.ts`, `src/routes/admin.members.tsx`, `tests/admin-members-safety.test.mjs`, `.ai/TASKS.md`.
+- User selected `lucia.salanicova@cometx.ch`. Production migration `protected_superadmin` applied. Read-only verification confirms this account retains the admin role, the role-removal trigger is enabled, and the foreign key restricts Auth-user deletion. The private members admin labels it Superadmin and blocks role revocation/deletion in the UI and server. Project database owners retain ultimate control of database migrations; this protection concerns Back Office and normal Auth deletion.
+- Focused admin and Stripe tests: 18/18 pass. Production build passes. Existing generated `src/routeTree.gen.ts` remains dirty and was not staged. No account or role was removed.
+- Back Office code is not deployed yet. Next task: resume PAY-02/PAY-03 release, apply migration `0036`, review and deploy the committed app changes, and verify Stripe test-mode invoice flows and the hosted superadmin badge.
