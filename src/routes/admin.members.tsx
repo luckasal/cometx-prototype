@@ -48,6 +48,7 @@ function AdminMembersPage() {
     planName: string | null;
     membershipStatus: string | null;
     isAdmin: boolean;
+    isProtectedSuperadmin: boolean;
     staffRoles: StaffRole[];
   };
   const members = (data ?? []) as MemberSummary[];
@@ -128,7 +129,7 @@ function AdminMembersPage() {
               </td>
               <td>
                 {member.isAdmin ? (
-                  <StatusPill tone="signal">Admin</StatusPill>
+                  <StatusPill tone="signal">{member.isProtectedSuperadmin ? "Superadmin" : "Admin"}</StatusPill>
                 ) : (
                   <span className="text-xs text-muted-foreground">
                     {member.staffRoles?.length
@@ -206,7 +207,7 @@ function AdminMembersPage() {
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 {selected.isAdmin
-                  ? "Administrator — full Back Office access"
+                  ? selected.isProtectedSuperadmin ? "Protected superadmin — full Back Office access" : "Administrator — full Back Office access"
                   : selected.staffRoles?.length
                     ? `${selected.staffRoles.map((role) => staffRoleLabels[role]).join(" · ")} — role-specific Back Office access`
                     : "Member — no Back Office access"}
@@ -235,7 +236,7 @@ function AdminMembersPage() {
                     type="button"
                     variant="outlineInk"
                     className="mt-3"
-                    disabled={grant.isPending || revoke.isPending || selected.id === user?.id}
+                    disabled={grant.isPending || revoke.isPending || selected.id === user?.id || selected.isProtectedSuperadmin}
                     onClick={() => {
                       if (
                         window.confirm(
@@ -250,6 +251,11 @@ function AdminMembersPage() {
                   {selected.id === user?.id && (
                     <p className="mt-2 text-xs text-muted-foreground">
                       Another administrator must remove your admin role to prevent locking you out.
+                    </p>
+                  )}
+                  {selected.isProtectedSuperadmin && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      This owner account cannot be removed or have its administrator access revoked by Back Office staff.
                     </p>
                   )}
                 </>
@@ -294,7 +300,7 @@ function AdminMembersPage() {
                 type="button"
                 variant="destructive"
                 disabled={
-                  remove.isPending || grant.isPending || revoke.isPending || selected.isAdmin
+                  remove.isPending || grant.isPending || revoke.isPending || selected.isAdmin || selected.isProtectedSuperadmin
                 }
                 title={
                   selected.isAdmin

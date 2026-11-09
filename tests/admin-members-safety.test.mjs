@@ -41,7 +41,7 @@ test("table displays role names while role management stays inside the details d
   const page = await readFile("src/routes/admin.members.tsx", "utf8");
   const table = page.slice(page.indexOf("<AdminTable"), page.indexOf("</AdminTable>"));
   assert.doesNotMatch(table, /Assign admin role|Unassign admin role|grant\.mutate/);
-  assert.match(table, /<StatusPill tone="signal">Admin<\/StatusPill>/);
+  assert.match(table, /member\.isProtectedSuperadmin \? "Superadmin" : "Admin"/);
   assert.match(table, /View details/);
   assert.match(page, /<DialogContent/);
   const dialog = page.slice(page.indexOf("<DialogContent"));
@@ -66,6 +66,21 @@ test("unassigning admin is authorized, scoped to the admin role, and prevents se
   assert.doesNotMatch(revoke, /deleteUser|from\("profiles"\)|from\("payments"\)/);
 });
 
+test("protected owner cannot be unassigned or deleted by Back Office actions", async () => {
+  const server = await readFile("src/lib/admin.functions.ts", "utf8");
+  const page = await readFile("src/routes/admin.members.tsx", "utf8");
+  const migration = await readFile("drizzle/migrations/0037_protected_superadmin.sql", "utf8");
+  const revoke = server.slice(server.indexOf("export const adminRevokeMemberAdmin"), server.indexOf("export const adminDeleteMemberAccount"));
+  const deletion = server.slice(server.indexOf("export const adminDeleteMemberAccount"), server.indexOf("export const adminListPartners"));
+  assert.match(revoke, /await assertNotProtectedSuperadmin\(db, data\.id\)/);
+  assert.match(deletion, /await assertNotProtectedSuperadmin\(db, data\.id\)/);
+  assert.match(server, /if \(error\) throw new Error\("Could not verify protected account status/);
+  assert.match(page, /selected\.isProtectedSuperadmin/);
+  assert.match(migration, /on delete restrict/);
+  assert.match(migration, /before update or delete on public\.user_roles/);
+  assert.match(migration, /enable row level security/);
+});
+
 test("unassign handler blocks unauthorized/self requests and deletes only the target admin role", async () => {
   const server = await readFile("src/lib/admin.functions.ts", "utf8");
   const source = server
@@ -74,6 +89,7 @@ test("unassign handler blocks unauthorized/self requests and deletes only the ta
       server.indexOf("export const adminDeleteMemberAccount"),
     )
     .replace("export const", "const")
+    .replace("await assertNotProtectedSuperadmin(db, data.id);", "await guard(db, data.id);")
     .replace('(await import("./auth.server"))', "auth")
     .replace('await import("@/integrations/supabase/client.server")', "clients");
   const js = ts.transpileModule(source, {
@@ -108,6 +124,7 @@ test("unassign handler blocks unauthorized/self requests and deletes only the ta
     "memberRoleSchema",
     "auth",
     "clients",
+    "guard",
     `${js}; return adminRevokeMemberAdmin;`,
   )(
     () => ({ validator: () => ({ handler: (handler) => handler }) }),
@@ -119,6 +136,7 @@ test("unassign handler blocks unauthorized/self requests and deletes only the ta
       },
     },
     { supabaseAdmin: db },
+    async () => {},
   );
   actor = null;
   await assert.rejects(handler({ data: { id: "target" } }), /Admin access required/);

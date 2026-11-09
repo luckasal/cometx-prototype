@@ -822,7 +822,7 @@ export const adminListMembers = createServerFn({ method: "GET" }).handler(async 
   const userIds = ((profiles ?? []) as { id: string }[]).map((profile) => profile.id);
   if (!userIds.length) return [];
   const now = new Date().toISOString();
-  const [{ data: memberships, error: membershipsError }, { data: roles, error: rolesError }] = await Promise.all([
+  const [{ data: memberships, error: membershipsError }, { data: roles, error: rolesError }, { data: protectedAdmins, error: protectedError }] = await Promise.all([
     db.from("memberships")
       .select("user_id,status,ends_at,membership_plans(name)")
       .in("user_id", userIds)
@@ -831,9 +831,11 @@ export const adminListMembers = createServerFn({ method: "GET" }).handler(async 
       .or(`ends_at.is.null,ends_at.gt.${now}`)
       .order("starts_at", { ascending: false }),
     db.from("user_roles").select("user_id,role").in("user_id", userIds),
+    db.from("protected_superadmins").select("user_id").in("user_id", userIds),
   ]);
   if (membershipsError) throw new Error(membershipsError.message);
   if (rolesError) throw new Error(rolesError.message);
+  if (protectedError) throw new Error(protectedError.message);
   const relatedLoadedAt = performance.now();
   if (relatedLoadedAt - startedAt > 1000) {
     console.info("[admin latency] members", {
@@ -868,6 +870,7 @@ export const adminListMembers = createServerFn({ method: "GET" }).handler(async 
   const admins = new Set(
     roleRows.filter((role) => role.role === "admin").map((role) => role.user_id),
   );
+  const protectedIds = new Set(((protectedAdmins ?? []) as { user_id: string }[]).map((row) => row.user_id));
   return memberProfiles.map((p) => {
     const plan = byUser.get(p.id)?.membership_plans;
     return {
@@ -875,12 +878,19 @@ export const adminListMembers = createServerFn({ method: "GET" }).handler(async 
       planName: Array.isArray(plan) ? (plan[0]?.name ?? null) : (plan?.name ?? null),
       membershipStatus: byUser.get(p.id)?.status ?? null,
       isAdmin: admins.has(p.id),
+      isProtectedSuperadmin: protectedIds.has(p.id),
       staffRoles: roleRows.filter((role) => role.user_id === p.id).map((role) => role.role).filter((role) => ["admin", "event_manager", "data_analyst", "marketing"].includes(role)),
     };
   });
 });
 
 const memberRoleSchema = z.object({ id: z.string().uuid() });
+
+async function assertNotProtectedSuperadmin(db: SupabaseClient, userId: string) {
+  const { data, error } = await db.from("protected_superadmins").select("user_id").eq("user_id", userId).maybeSingle();
+  if (error) throw new Error("Could not verify protected account status. No change was made.");
+  if (data) throw new Error("This is the protected CometX superadmin account. Its access and account cannot be removed here.");
+}
 
 export const adminGrantMemberAdmin = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => memberRoleSchema.parse(input))
@@ -919,6 +929,7 @@ export const adminRevokeMemberAdmin = createServerFn({ method: "POST" })
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as unknown as SupabaseClient;
+    await assertNotProtectedSuperadmin(db, data.id);
     // Remove only this privilege; keep all other roles, the account and its history.
     const { error } = await db
       .from("user_roles")
@@ -939,6 +950,7 @@ export const adminDeleteMemberAccount = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as unknown as SupabaseClient;
+    await assertNotProtectedSuperadmin(db, data.id);
     const { data: profile, error: profileError } = await db
       .from("profiles")
       .select("id")
