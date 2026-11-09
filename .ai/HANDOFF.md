@@ -1174,3 +1174,10 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - User selected `lucia.salanicova@cometx.ch`. Production migration `protected_superadmin` applied. Read-only verification confirms this account retains the admin role, the role-removal trigger is enabled, and the foreign key restricts Auth-user deletion. The private members admin labels it Superadmin and blocks role revocation/deletion in the UI and server. Project database owners retain ultimate control of database migrations; this protection concerns Back Office and normal Auth deletion.
 - Focused admin and Stripe tests: 18/18 pass. Production build passes. Existing generated `src/routeTree.gen.ts` remains dirty and was not staged. No account or role was removed.
 - Back Office code is not deployed yet. Next task: resume PAY-02/PAY-03 release, apply migration `0036`, review and deploy the committed app changes, and verify Stripe test-mode invoice flows and the hosted superadmin badge.
+
+## 2026-11-09: PAY-02/PAY-03 release preparation
+
+- Applied additive Production migration `stripe_invoicing_sync` (`0036`); read-only verification found all eight new columns in each of `manual_bank_payments` and `ticket_invoice_requests`.
+- Stripe CometX test endpoint `we_1UJtK90A7SoM9pRtZ91gedYV` now subscribes to `invoice.finalized`, `invoice.sent`, `invoice.paid`, `invoice.voided`, and `invoice.marked_uncollectible` while retaining its four existing Checkout events. Read-only Stripe verification confirmed the endpoint remains enabled and test-mode only.
+- Pushed branch `codex/pay-02-03-stripe-invoicing-20261109` to `luckasal/cometx-prototype`. Local Production build passes; focused admin and Stripe tests passed 18/18. No Stripe customer or invoice was created and no live payment was charged.
+- Production deployment and hosted admin/test invoice acceptance remain. Browser control reports disabled in Codex Work settings, and there is no authenticated Vercel CLI in this worktree. Next: enable browser use or provide an authenticated release path, deploy the pushed commit to Vercel Production, then verify the owner badge and both test-mode invoice flows.
