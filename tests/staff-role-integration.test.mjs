@@ -81,12 +81,13 @@ test("staff assignment is full-admin-only, self-protected, validated, idempotent
     { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
   ).outputText;
   let actor = "admin";
+  let protectedId = null;
   let error = null;
   const writes = [];
   const db = {
     from: (table) => ({
       select: () => ({
-        eq: () => ({ maybeSingle: async () => ({ data: { id: "target" }, error: null }) }),
+        eq: (_column, id) => ({ maybeSingle: async () => ({ data: table === "protected_superadmins" ? (id === protectedId ? { user_id: id } : null) : { id }, error: null }) }),
       }),
       insert: async (payload) => {
         writes.push({ table, payload });
@@ -141,8 +142,17 @@ test("staff assignment is full-admin-only, self-protected, validated, idempotent
     table: "user_roles",
     payload: { user_id: "target", role: "marketing" },
   });
+  protectedId = "owner";
+  await assert.rejects(
+    handler({ data: { id: "owner", role: "marketing", assigned: true } }),
+    /Only the protected account owner/,
+  );
+  actor = "owner";
+  assert.deepEqual(await handler({ data: { id: "owner", role: "marketing", assigned: true } }), { ok: true });
+  assert.deepEqual(writes[1], { table: "user_roles", payload: { user_id: "owner", role: "marketing" } });
+  actor = "admin";
   await handler({ data: { id: "target", role: "marketing", assigned: false } });
-  assert.deepEqual(writes[1], {
+  assert.deepEqual(writes[2], {
     table: "user_roles",
     key: "user_id",
     id: "target",

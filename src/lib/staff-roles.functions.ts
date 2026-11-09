@@ -12,10 +12,14 @@ export const adminChangeStaffRole = createServerFn({ method: "POST" })
   .validator((input: unknown) => roleChange.parse(input))
   .handler(async ({ data }) => {
     const actor = await (await import("./auth.server")).requireAdmin();
-    if (actor.userId === data.id)
-      throw new Error("Another administrator must change your own staff roles.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as unknown as SupabaseClient;
+    const protectedOwner = await db.from("protected_superadmins").select("user_id").eq("user_id", data.id).maybeSingle();
+    if (protectedOwner.error) throw new Error("Could not verify protected account status. No role was changed.");
+    if (protectedOwner.data && actor.userId !== data.id)
+      throw new Error("Only the protected account owner can change their additional staff roles.");
+    if (!protectedOwner.data && actor.userId === data.id)
+      throw new Error("Another administrator must change your own staff roles.");
     const profile = await db.from("profiles").select("id").eq("id", data.id).maybeSingle();
     if (profile.error || !profile.data) throw new Error("This account could not be found.");
     const result = data.assigned

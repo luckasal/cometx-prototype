@@ -232,11 +232,11 @@ function AdminMembersPage() {
               )}
               {selected.isAdmin && (
                 <>
-                  <Button
+                  {!selected.isProtectedSuperadmin && <Button
                     type="button"
                     variant="outlineInk"
                     className="mt-3"
-                    disabled={grant.isPending || revoke.isPending || selected.id === user?.id || selected.isProtectedSuperadmin}
+                    disabled={grant.isPending || revoke.isPending || selected.id === user?.id}
                     onClick={() => {
                       if (
                         window.confirm(
@@ -247,15 +247,15 @@ function AdminMembersPage() {
                     }}
                   >
                     {revoke.isPending ? "Removing access…" : "Unassign admin role"}
-                  </Button>
-                  {selected.id === user?.id && (
+                  </Button>}
+                  {selected.id === user?.id && !selected.isProtectedSuperadmin && (
                     <p className="mt-2 text-xs text-muted-foreground">
                       Another administrator must remove your admin role to prevent locking you out.
                     </p>
                   )}
                   {selected.isProtectedSuperadmin && (
                     <p className="mt-2 text-xs text-muted-foreground">
-                      This owner account cannot be removed or have its administrator access revoked by Back Office staff.
+                      Your owner administrator role is protected and cannot be removed in Back Office. Only you can change your additional staff roles; other administrators cannot change this account or delete it here.
                     </p>
                   )}
                 </>
@@ -277,7 +277,9 @@ function AdminMembersPage() {
                           staffChange.isPending ||
                           grant.isPending ||
                           revoke.isPending ||
-                          selected.id === user?.id
+                          (selected.isProtectedSuperadmin
+                            ? selected.id !== user?.id
+                            : selected.id === user?.id)
                         }
                         onClick={() => {
                           if (
