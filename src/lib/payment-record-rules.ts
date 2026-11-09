@@ -5,6 +5,7 @@ export const optionalPaymentText = (max: number) => z.string().trim().max(max).o
 export const invoiceBillingSchema = z.object({
   name: z.string().trim().min(1).max(240),
   address: z.string().trim().min(1).max(1000),
+  email: z.union([z.string().trim().email().max(254), z.literal("")]).optional(),
   vatUid: optionalPaymentText(80),
   note: optionalPaymentText(1000),
 });

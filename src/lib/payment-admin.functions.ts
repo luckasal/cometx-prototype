@@ -34,11 +34,11 @@ export const adminListManualPaymentsAndInvoices = createServerFn({ method: "GET"
   const bankRows = banks.data ?? [];
   const ticketRows = requests.data ?? [];
   return { banks: canManageInvoices ? bankRows : bankRows.map((bank) => ({ ...bank,
-      billing_name: null, billing_address: null, vat_uid: null, invoice_note: null,
-      stripe_invoice_id: null, external_invoice_id: null, invoice_url: null })),
+      billing_name: null, billing_address: null, billing_email: null, vat_uid: null, invoice_note: null,
+      stripe_customer_id: null, stripe_invoice_id: null, stripe_invoice_status: null, external_invoice_id: null, invoice_url: null, invoice_pdf_url: null })),
     requests: canManageInvoices ? ticketRows : ticketRows.map((request) => ({ ...request,
-      billing_name: "", billing_address: "", vat_uid: null, note: null,
-      stripe_invoice_id: null, external_invoice_id: null, invoice_url: null })),
+      billing_name: "", billing_address: "", billing_email: null, vat_uid: null, note: null,
+      stripe_customer_id: null, stripe_invoice_id: null, stripe_invoice_status: null, external_invoice_id: null, invoice_url: null, invoice_pdf_url: null })),
     partners: partners.data ?? [],
     batches: (batches.data ?? []) as { id: string; buyer_name: string; buyer_email: string; status: string }[],
     recorders: recorders.data ?? [],
@@ -70,6 +70,7 @@ export const adminRecordBankTransfer = createServerFn({ method: "POST" })
       invoice_requested_at: data.invoice || data.externalInvoiceId ? new Date().toISOString() : null,
       billing_name: data.invoice?.name ?? null,
       billing_address: data.invoice?.address ?? null,
+      billing_email: data.invoice?.email || null,
       vat_uid: data.invoice?.vatUid ?? null,
       invoice_note: data.invoice?.note ?? null,
       invoice_status: data.externalInvoiceId ? "issued" : data.invoice ? "requested" : "none",
@@ -90,7 +91,8 @@ export const adminRequestBankInvoice = createServerFn({ method: "POST" })
     const saved = await db.from("manual_bank_payments").update({
       invoice_requested: true, invoice_status: "requested", invoice_requested_by: actor.userId,
       invoice_requested_at: new Date().toISOString(), billing_name: data.billing.name,
-      billing_address: data.billing.address, vat_uid: data.billing.vatUid, invoice_note: data.billing.note,
+      billing_address: data.billing.address, billing_email: data.billing.email || null,
+      vat_uid: data.billing.vatUid, invoice_note: data.billing.note,
     }).eq("id", data.id).eq("status", "paid").eq("invoice_status", "none").select("id").maybeSingle();
     if (saved.error || !saved.data) throw new Error("Invoice request could not be added to this bank record.");
     return { id: saved.data.id };
@@ -114,21 +116,22 @@ export const adminSaveInvoiceReference = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireStaffPermission } = await import("./auth.server");
     const actor = await requireStaffPermission("payments.manage_invoices");
+    if (data.stripeInvoiceId) throw new Error("Create Stripe invoices through the Stripe invoice action.");
     const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
     const now = new Date().toISOString();
     const reference = {
-      stripe_invoice_id: data.stripeInvoiceId || null,
       external_invoice_id: data.externalInvoiceId,
       invoice_url: data.invoiceUrl || null,
       invoice_updated_by: actor.userId,
       invoice_updated_at: now,
     };
     if (data.source === "bank") {
-      const existing = await db.from("manual_bank_payments").select("invoice_status,status,invoice_issued_by,invoice_issued_at").eq("id", data.id).maybeSingle();
+      const existing = await db.from("manual_bank_payments").select("invoice_status,status,invoice_issued_by,invoice_issued_at,stripe_invoice_id").eq("id", data.id).maybeSingle();
       if (existing.error || !existing.data || existing.data.status !== "paid" || existing.data.invoice_status === "none") {
         throw new Error("This bank transfer has no active invoice request.");
       }
       if (existing.data.invoice_status === "issued" && data.invoiceStatus !== "issued") throw new Error("An issued invoice cannot be returned to requested.");
+      if (existing.data.stripe_invoice_id) throw new Error("Stripe invoices are managed through Stripe actions.");
       const saved = await db.from("manual_bank_payments").update({ ...reference, invoice_status: data.invoiceStatus,
         invoice_issued_by: data.invoiceStatus === "issued" ? existing.data.invoice_issued_by ?? actor.userId : null,
         invoice_issued_at: data.invoiceStatus === "issued" ? existing.data.invoice_issued_at ?? now : null,
@@ -137,9 +140,10 @@ export const adminSaveInvoiceReference = createServerFn({ method: "POST" })
       return { id: saved.data.id };
     }
     if (data.source === "ticket") {
-      const request = await db.from("ticket_invoice_requests").select("checkout_batch_id,invoice_status,issued_by,issued_at").eq("id", data.id).maybeSingle();
+      const request = await db.from("ticket_invoice_requests").select("checkout_batch_id,invoice_status,issued_by,issued_at,stripe_invoice_id").eq("id", data.id).maybeSingle();
       if (request.error || !request.data) throw new Error("Invoice request not found.");
       if (request.data.invoice_status === "issued" && data.invoiceStatus !== "issued") throw new Error("An issued invoice cannot be returned to requested.");
+      if (request.data.stripe_invoice_id) throw new Error("Stripe invoices are managed through Stripe actions.");
       const batch = await (db as unknown as SupabaseClient).from("ticket_checkout_batches").select("status").eq("id", request.data.checkout_batch_id).maybeSingle();
       if (batch.error || !batch.data || (data.invoiceStatus === "issued" && !["confirmed", "free"].includes(batch.data.status))) {
         throw new Error("Only a confirmed ticket purchase can be marked invoiced.");

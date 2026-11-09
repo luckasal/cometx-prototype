@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { isPaidCheckout } from "@/lib/checkout";
-import { stripeWebhookEventSchema } from "@/lib/stripe-webhook-event";
+import { isCometxManualInvoiceEvent, stripeWebhookEventSchema } from "@/lib/stripe-webhook-event";
 
 export const Route = createFileRoute("/api/public/stripe-webhook")({
   server: { handlers: {
@@ -13,9 +13,16 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
         console.error("[stripe-webhook] verification or payload validation failed", error instanceof Error ? error.message : "Unknown error");
         return new Response("Invalid webhook", { status: 400 });
       }
-      if (["checkout.session.completed", "checkout.session.async_payment_succeeded","checkout.session.expired","checkout.session.async_payment_failed", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid"].includes(event.type)) {
+      if (["checkout.session.completed", "checkout.session.async_payment_succeeded","checkout.session.expired","checkout.session.async_payment_failed", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid", "invoice.finalized", "invoice.sent", "invoice.voided", "invoice.marked_uncollectible"].includes(event.type)) {
         try {
-          if (event.type === "invoice.paid") {
+          if (isCometxManualInvoiceEvent(event)) {
+            const invoice = event.data.object;
+            const source = invoice.metadata?.["cometx_source"] as "bank" | "ticket";
+            const requestId = invoice.metadata?.["cometx_request_id"] as string;
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const { syncCometxInvoiceEvent } = await import("@/lib/invoice-webhook-sync");
+            await syncCometxInvoiceEvent(supabaseAdmin, invoice.id, source, requestId);
+          } else if (event.type === "invoice.paid") {
             const invoice = event.data.object;
             const parent = invoice["parent"] as Record<string, unknown> | undefined;
             const subscriptionDetails = parent?.["subscription_details"] as Record<string, unknown> | undefined;

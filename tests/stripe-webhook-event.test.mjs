@@ -1,6 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stripeWebhookEventSchema } from '../src/lib/stripe-webhook-event.ts';
+import { isCometxManualInvoiceEvent, stripeWebhookEventSchema } from '../src/lib/stripe-webhook-event.ts';
+
+test('routes only CometX manual invoice events to invoice status sync', () => {
+  const manual = { type: 'invoice.paid', data: { object: { id: 'in_test', metadata: {
+    kind: 'cometx_manual_invoice', cometx_source: 'ticket',
+    cometx_request_id: '11111111-1111-4111-8111-111111111111',
+  } } } };
+  assert.equal(isCometxManualInvoiceEvent(manual), true);
+  assert.equal(isCometxManualInvoiceEvent({ ...manual, data: { object: { ...manual.data.object, metadata: { kind: 'cometx_membership' } } } }), false);
+  assert.equal(isCometxManualInvoiceEvent({ ...manual, type: 'checkout.session.completed' }), false);
+});
 
 test('accepts a completed Stripe Checkout Session with nullable fields', () => {
   const event = {
