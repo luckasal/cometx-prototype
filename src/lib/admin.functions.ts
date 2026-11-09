@@ -821,6 +821,7 @@ export const adminListMembers = createServerFn({ method: "GET" }).handler(async 
 
   const userIds = ((profiles ?? []) as { id: string }[]).map((profile) => profile.id);
   if (!userIds.length) return [];
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const now = new Date().toISOString();
   const [{ data: memberships, error: membershipsError }, { data: roles, error: rolesError }, { data: protectedAdmins, error: protectedError }] = await Promise.all([
     db.from("memberships")
@@ -831,7 +832,7 @@ export const adminListMembers = createServerFn({ method: "GET" }).handler(async 
       .or(`ends_at.is.null,ends_at.gt.${now}`)
       .order("starts_at", { ascending: false }),
     db.from("user_roles").select("user_id,role").in("user_id", userIds),
-    db.from("protected_superadmins").select("user_id").in("user_id", userIds),
+    supabaseAdmin.from("protected_superadmins").select("user_id").in("user_id", userIds),
   ]);
   if (membershipsError) throw new Error(membershipsError.message);
   if (rolesError) throw new Error(rolesError.message);
