@@ -1195,3 +1195,10 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - Corrected the contradictory owner wording. The protected admin role remains locked by the Production database trigger. The role-change server action now rejects other administrators changing any additional staff role of the protected owner; the owner can manage their own additional staff roles. Back Office hides the admin-removal action for the owner and disables additional-role controls for other admins.
 - Focused role/admin tests pass (6/6 selected); Production build passed. Vercel Production deployment `BriAH43PGSnXYU64ptpxZHfqbwQx` is Ready on `cometx-prototype.vercel.app`. Authenticated hosted owner detail verified the protected message, no admin-removal action, and available owner-only additional-role controls. No role assignment was changed during acceptance.
 - Next task: PAY-02/PAY-03 awaits a genuine finance-verified transfer or paid Checkout invoice request for end-to-end Stripe test-mode acceptance.
+
+## 2026-11-13: default light website palette
+
+- Task `UI-DEFAULT-WHITE-20261113`; implementation commit `7574bbd` on `codex/site-default-white-20261113`. File: `src/styles.css`.
+- Changed the default page, cards, popovers, secondary/muted surfaces, text, borders, and browser control color scheme to a readable light palette. Existing CometX dark ink header/footer and admin navigation remain intentionally dark.
+- Verification: `pnpm build` passes; `git -c core.whitespace=cr-at-eol diff --check` passes. Build prints existing TanStack `inputValidator()` deprecation warnings. No tests were added or run.
+- Not deployed; Production and Supabase were not changed. Next task: release this branch and verify the hosted site only if requested.
