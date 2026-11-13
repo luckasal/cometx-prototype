@@ -63,6 +63,7 @@
 
 :root {
   /* Brandbook pp. 45-49. Keep brand names separate from UI roles. */
+  color-scheme: light;
   --brand-deep-space: #212020;
   --brand-connection-lime: #e1f03c;
   --brand-cloud-white: #ececec;
@@ -75,27 +76,27 @@
   --brand-symbol-clear-space: 0.5rem;
   --radius: 1rem;
 
-  /* Official palette: Deep Space, Connection Lime and neutral support tones. */
-  --background: var(--brand-deep-space);
-  --foreground: var(--brand-bright-white);
+  /* Light default: white canvas, dark text, and CometX lime accents. */
+  --background: var(--brand-bright-white);
+  --foreground: var(--brand-deep-space);
 
-  --card: #2b2a2a;
-  --card-foreground: var(--brand-bright-white);
-  --popover: #2b2a2a;
-  --popover-foreground: var(--brand-bright-white);
+  --card: var(--brand-bright-white);
+  --card-foreground: var(--brand-deep-space);
+  --popover: var(--brand-bright-white);
+  --popover-foreground: var(--brand-deep-space);
 
   --ink: var(--brand-deep-space);
   --ink-foreground: var(--brand-bright-white);
-  --paper: #292828;
+  --paper: #f4f4f4;
 
   --primary: var(--brand-connection-lime);
   --primary-foreground: var(--brand-deep-space);
 
-  --secondary: var(--brand-night-gray);
-  --secondary-foreground: var(--brand-bright-white);
+  --secondary: var(--brand-cloud-white);
+  --secondary-foreground: var(--brand-deep-space);
 
-  --muted: var(--brand-night-gray);
-  --muted-foreground: var(--brand-cloud-white);
+  --muted: #f4f4f4;
+  --muted-foreground: var(--brand-night-gray);
 
   --accent: var(--brand-connection-lime);
   --accent-foreground: var(--brand-deep-space);
@@ -108,8 +109,8 @@
   --success: var(--brand-electric-cyan);
   --success-foreground: var(--brand-deep-space);
 
-  --border: rgb(236 236 236 / 12%);
-  --input: rgb(236 236 236 / 24%);
+  --border: rgb(33 32 32 / 12%);
+  --input: rgb(33 32 32 / 24%);
   --ring: var(--brand-connection-lime);
 
   --chart-1: var(--brand-connection-lime);
@@ -128,7 +129,7 @@
   --sidebar-ring: var(--brand-connection-lime);
 }
 
-/* Dark is the default; nested .dark surfaces inherit the same brand tokens. */
+/* Content surfaces default to light; branded ink sections stay dark. */
 
 @layer base {
   * {
