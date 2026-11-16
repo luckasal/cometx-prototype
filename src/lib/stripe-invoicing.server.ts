@@ -3,11 +3,15 @@ import { stripeRequest } from "./stripe.server.ts";
 export type StripeInvoice = {
   id: string;
   customer: string;
+  customer_email: string | null;
+  collection_method: "charge_automatically" | "send_invoice";
   status: "draft" | "open" | "paid" | "void" | "uncollectible";
   paid_out_of_band: boolean;
   amount_due: number;
+  amount_remaining: number;
   total: number;
   currency: string;
+  number: string | null;
   hosted_invoice_url: string | null;
   invoice_pdf: string | null;
   livemode: boolean;
@@ -141,6 +145,22 @@ export async function sendStripeInvoice(id: string, requestKey: string): Promise
   const current = await retrieveStripeInvoice(id);
   if (current.status !== "paid") throw new Error("Confirm the existing payment before emailing this invoice.");
   return stripeRequest<StripeInvoice>(`/invoices/${encodeURIComponent(id)}/send`, {}, `cometx-invoice-send-${requestKey}`);
+}
+
+export async function setStripeInvoiceQrReference(invoice: StripeInvoice, reference: string): Promise<StripeInvoice> {
+  if (invoice.status !== "open" || invoice.amount_remaining <= 0) throw new Error("A QR payment reference can only be attached to an unpaid invoice.");
+  const existing = invoice.metadata?.["cometx_qr_reference"];
+  if (existing && existing !== reference) throw new Error("This Stripe invoice already has a different QR payment reference.");
+  if (existing && invoice.metadata?.["cometx_qr_bill"] === "true") return invoice;
+  return stripeRequest<StripeInvoice>(`/invoices/${encodeURIComponent(invoice.id)}`, {
+    metadata: { ...invoice.metadata, cometx_qr_reference: reference, cometx_qr_bill: "true" },
+  }, `cometx-invoice-qr-ref-${invoice.id}`);
+}
+
+export async function markStripeInvoiceQrEmailSent(invoice: StripeInvoice): Promise<StripeInvoice> {
+  return stripeRequest<StripeInvoice>(`/invoices/${encodeURIComponent(invoice.id)}`, {
+    metadata: { ...invoice.metadata, cometx_qr_email_sent: "true" },
+  }, `cometx-qr-email-sent-${invoice.id}`);
 }
 
 export async function verifyPaidCheckoutSession(batch: {

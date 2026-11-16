@@ -27,6 +27,7 @@ export async function syncCometxInvoiceEvent(db: {
   assertInvoiceMatchesRequest(invoice, { source, requestId, amountMinor, currency, checkoutSessionId, paymentIntentId });
   const updated = await db.from(table).update({
     stripe_invoice_status: invoice.status,
+    stripe_payment_reference: invoice.metadata?.["cometx_qr_reference"] ?? null,
     invoice_url: invoice.hosted_invoice_url,
     invoice_pdf_url: invoice.invoice_pdf,
   }).eq("id", requestId).eq("stripe_invoice_id", invoiceId);

@@ -14,6 +14,7 @@ type InvoiceRecord = {
   id: string; invoice_requested: boolean; invoice_status: string; stripe_invoice_id: string | null;
   stripe_customer_id: string | null; billing_email: string | null; billing_name: string; billing_address: string;
   stripe_invoice_status: string | null; external_invoice_id: string | null; vat_uid: string | null;
+  stripe_payment_reference?: string | null;
   invoice_sent_at: string | null; invoice_issued_by?: string | null; invoice_issued_at?: string | null; issued_by?: string | null; issued_at?: string | null;
   paid_outside_confirmed_by?: string | null; paid_outside_confirmed_at?: string | null; paid_outside_note?: string | null;
   amount_minor?: number; currency?: string; reference?: string;
@@ -59,6 +60,7 @@ async function saveInvoice(ctx: Context, invoice: StripeInvoice, customerId: str
   const patch: Record<string, unknown> = {
     stripe_customer_id: customerId, stripe_invoice_id: invoice.id, billing_email: email,
     stripe_invoice_status: invoice.status, invoice_status: "issued",
+    stripe_payment_reference: invoice.metadata?.["cometx_qr_reference"] ?? null,
     invoice_url: invoice.hosted_invoice_url, invoice_pdf_url: invoice.invoice_pdf,
     invoice_updated_by: actorId, invoice_updated_at: now,
     ...(ctx.source === "bank" ? { invoice_issued_by: ctx.record.invoice_issued_by || actorId, invoice_issued_at: ctx.record.invoice_issued_at || now } : { issued_by: ctx.record.issued_by || actorId, issued_at: ctx.record.issued_at || now }),
@@ -166,7 +168,8 @@ export const adminSendStripeInvoice = createServerFn({ method: "POST" })
     const ctx = await context(data.source, data.id);
     if (!ctx.record.stripe_invoice_id) throw new Error("Create the Stripe invoice first.");
     if (ctx.record.invoice_sent_at) return { id: ctx.record.stripe_invoice_id, alreadySent: true };
-    validateLinkedInvoice(ctx, await retrieveStripeInvoice(ctx.record.stripe_invoice_id));
+    const current = await retrieveStripeInvoice(ctx.record.stripe_invoice_id);
+    validateLinkedInvoice(ctx, current);
     const invoice = await sendStripeInvoice(ctx.record.stripe_invoice_id, `${data.source}-${data.id}`);
     const result = await saveInvoice(ctx, invoice, invoice.customer, ctx.record.billing_email || ctx.batch?.buyer_email || "", actor.userId);
     const table = data.source === "bank" ? "manual_bank_payments" : "ticket_invoice_requests";

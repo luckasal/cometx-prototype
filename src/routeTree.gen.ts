@@ -49,6 +49,7 @@ import { Route as AdminArticlesNewRouteImport } from './routes/admin.articles.ne
 import { Route as AdminEventsIndexRouteImport } from './routes/admin.events.index'
 import { Route as AdminEventsIdRouteImport } from './routes/admin.events.$id'
 import { Route as AdminEventsNewRouteImport } from './routes/admin.events.new'
+import { Route as ApiPublicBankFeedRouteImport } from './routes/api.public.bank-feed'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as CommunityArticlesSlugRouteImport } from './routes/community.articles.$slug'
 
@@ -252,6 +253,11 @@ const AdminEventsNewRoute = AdminEventsNewRouteImport.update({
   path: '/events/new',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPublicBankFeedRoute = ApiPublicBankFeedRouteImport.update({
+  id: '/api/public/bank-feed',
+  path: '/api/public/bank-feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api/public/stripe-webhook',
   path: '/api/public/stripe-webhook',
@@ -302,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/admin/articles/new': typeof AdminArticlesNewRoute
   '/admin/events/$id': typeof AdminEventsIdRoute
   '/admin/events/new': typeof AdminEventsNewRoute
+  '/api/public/bank-feed': typeof ApiPublicBankFeedRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/community/articles/$slug': typeof CommunityArticlesSlugRoute
   '/admin/articles/': typeof AdminArticlesIndexRoute
@@ -344,6 +351,7 @@ export interface FileRoutesByTo {
   '/admin/articles/new': typeof AdminArticlesNewRoute
   '/admin/events/$id': typeof AdminEventsIdRoute
   '/admin/events/new': typeof AdminEventsNewRoute
+  '/api/public/bank-feed': typeof ApiPublicBankFeedRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/community/articles/$slug': typeof CommunityArticlesSlugRoute
   '/admin/articles': typeof AdminArticlesIndexRoute
@@ -389,6 +397,7 @@ export interface FileRoutesById {
   '/admin/articles/new': typeof AdminArticlesNewRoute
   '/admin/events/$id': typeof AdminEventsIdRoute
   '/admin/events/new': typeof AdminEventsNewRoute
+  '/api/public/bank-feed': typeof ApiPublicBankFeedRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/community/articles/$slug': typeof CommunityArticlesSlugRoute
   '/admin/articles/': typeof AdminArticlesIndexRoute
@@ -435,6 +444,7 @@ export interface FileRouteTypes {
     | '/admin/articles/new'
     | '/admin/events/$id'
     | '/admin/events/new'
+    | '/api/public/bank-feed'
     | '/api/public/stripe-webhook'
     | '/community/articles/$slug'
     | '/admin/articles/'
@@ -477,6 +487,7 @@ export interface FileRouteTypes {
     | '/admin/articles/new'
     | '/admin/events/$id'
     | '/admin/events/new'
+    | '/api/public/bank-feed'
     | '/api/public/stripe-webhook'
     | '/community/articles/$slug'
     | '/admin/articles'
@@ -521,6 +532,7 @@ export interface FileRouteTypes {
     | '/admin/articles/new'
     | '/admin/events/$id'
     | '/admin/events/new'
+    | '/api/public/bank-feed'
     | '/api/public/stripe-webhook'
     | '/community/articles/$slug'
     | '/admin/articles/'
@@ -544,6 +556,7 @@ export interface RootRouteChildren {
   TicketsGuestRoute: typeof TicketsGuestRoute
   CommunityIndexRoute: typeof CommunityIndexRoute
   EventsIndexRoute: typeof EventsIndexRoute
+  ApiPublicBankFeedRoute: typeof ApiPublicBankFeedRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   CommunityArticlesSlugRoute: typeof CommunityArticlesSlugRoute
 }
@@ -830,6 +843,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEventsNewRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/public/bank-feed': {
+      id: '/api/public/bank-feed'
+      path: '/api/public/bank-feed'
+      fullPath: '/api/public/bank-feed'
+      preLoaderRoute: typeof ApiPublicBankFeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/stripe-webhook': {
       id: '/api/public/stripe-webhook'
       path: '/api/public/stripe-webhook'
@@ -929,6 +949,7 @@ const rootRouteChildren: RootRouteChildren = {
   TicketsGuestRoute: TicketsGuestRoute,
   CommunityIndexRoute: CommunityIndexRoute,
   EventsIndexRoute: EventsIndexRoute,
+  ApiPublicBankFeedRoute: ApiPublicBankFeedRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   CommunityArticlesSlugRoute: CommunityArticlesSlugRoute,
 }

@@ -22,6 +22,12 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
             const { syncCometxInvoiceEvent } = await import("@/lib/invoice-webhook-sync");
             await syncCometxInvoiceEvent(supabaseAdmin, invoice.id, source, requestId);
+          } else if (event.type === "invoice.finalized") {
+            const { sendFinalizedStripeInvoiceWithSwissQr } = await import("@/lib/swiss-qr-bill.server");
+            await sendFinalizedStripeInvoiceWithSwissQr(event.data.object.id);
+          } else if (event.type === "invoice.paid" && event.data.object["paid_out_of_band"] === true) {
+            // Outside-Stripe settlement only updates invoice/bank-feed records. It must never enter
+            // Checkout fulfillment or activate a membership through the Stripe-paid path.
           } else if (event.type === "invoice.paid") {
             const invoice = event.data.object;
             const parent = invoice["parent"] as Record<string, unknown> | undefined;
