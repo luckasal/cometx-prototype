@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f7f8fc" />
+    <title>Virtual Conference — Stripe Checkout Test</title>
+    <script async src="https://js.stripe.com/v3/buy-button.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #1b2340;
+        background: #f7f8fc;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        --ink: #1b2340;
+        --muted: #66708b;
+        --line: #e4e8f0;
+        --purple: #5946e8;
+        --pale: #f0efff;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-width: 320px; }
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 20px max(24px, calc((100vw - 1120px) / 2));
+        background: #fff; border-bottom: 1px solid var(--line);
+      }
+      .brand { display: flex; gap: 12px; align-items: center; font-weight: 750; letter-spacing: -.02em; }
+      .brand-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 11px; background: var(--purple); color: #fff; }
+      .sandbox { display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; color: #804900; background: #fff5df; border: 1px solid #f3d99f; border-radius: 999px; font-size: 12px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+      .sandbox::before { width: 7px; height: 7px; content: ""; background: #dc8a00; border-radius: 50%; }
+      main { width: min(1120px, calc(100% - 40px)); margin: 54px auto 72px; }
+      .intro { max-width: 760px; margin-bottom: 30px; }
+      .eyebrow { margin: 0 0 10px; color: var(--purple); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(32px, 5vw, 48px); line-height: 1.08; letter-spacing: -.045em; }
+      .lead { margin: 15px 0 0; color: var(--muted); font-size: 17px; line-height: 1.65; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr); gap: 22px; align-items: start; }
+      .card { overflow: hidden; background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 30px rgba(37, 43, 80, .055); }
+      .card-head { padding: 22px 24px 18px; border-bottom: 1px solid var(--line); }
+      .step { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+      .step-number { display: grid; width: 25px; height: 25px; place-items: center; color: var(--purple); background: var(--pale); border-radius: 50%; font-size: 12px; letter-spacing: 0; }
+      h2 { margin: 0; font-size: 20px; letter-spacing: -.025em; }
+      .card-body { padding: 24px; }
+      label { display: block; margin: 0 0 8px; font-size: 13px; font-weight: 700; }
+      .field { margin-bottom: 18px; }
+      input { width: 100%; height: 47px; padding: 0 13px; color: var(--ink); background: #fff; border: 1px solid #cbd2e0; border-radius: 10px; outline: none; font: inherit; }
+      input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(89, 70, 232, .13); }
+      .hint { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+      .primary { display: inline-flex; min-height: 46px; align-items: center; justify-content: center; gap: 8px; padding: 0 18px; color: #fff; background: var(--purple); border: 0; border-radius: 10px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 750; }
+      .primary:hover { background: #4635cf; }
+      .secondary { min-height: 35px; padding: 0 11px; color: #4a5571; background: #fff; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font: inherit; font-size: 12px; font-weight: 650; }
+      .message { display: none; margin: 0 0 16px; padding: 11px 13px; border-radius: 9px; font-size: 13px; line-height: 1.5; }
+      .message.error { display: block; color: #8f2d2d; background: #fff0f0; border: 1px solid #f1caca; }
+      .message.success { display: block; color: #205f42; background: #effaf4; border: 1px solid #cce8d8; }
+      .price-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 20px; padding: 15px 16px; background: #fafaff; border: 1px solid #e8e6ff; border-radius: 12px; }
+      .price-name { font-size: 14px; font-weight: 700; }
+      .price-amount { color: var(--ink); font-size: 20px; font-weight: 800; }
+      .button-zone { min-height: 80px; }
+      .placeholder { padding: 17px; color: var(--muted); background: #fafbfe; border: 1px dashed #cbd2e0; border-radius: 12px; font-size: 13px; line-height: 1.55; }
+      .status { margin-top: 18px; padding: 15px 16px; background: #f7f8fc; border-radius: 12px; }
+      .status-title { display: flex; align-items: center; gap: 8px; margin: 0 0 5px; font-size: 13px; font-weight: 750; }
+      .status-dot { width: 8px; height: 8px; background: #9aa3b6; border-radius: 50%; }
+      .status-text { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+      .code-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+      .code-head h3 { margin: 0; font-size: 14px; }
+      pre { overflow: auto; min-height: 171px; margin: 0; padding: 16px; color: #e8eaff; background: #171a2b; border-radius: 12px; font: 12px/1.75 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+      .data-flow { display: grid; gap: 12px; margin-top: 20px; }
+      .flow-row { display: grid; grid-template-columns: 26px 1fr; gap: 10px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+      .flow-icon { display: grid; width: 24px; height: 24px; place-items: center; color: var(--purple); background: var(--pale); border-radius: 7px; font-size: 12px; font-weight: 800; }
+      .flow-row strong { color: var(--ink); }
+      .note { margin-top: 14px; padding: 13px 14px; color: #735318; background: #fff8e8; border: 1px solid #f3e2b8; border-radius: 10px; font-size: 12px; line-height: 1.55; }
+      .note strong { color: #63450b; }
+      .footer { margin: 24px 0 0; color: #818aa0; font-size: 11px; line-height: 1.6; text-align: center; }
+      @media (max-width: 820px) { main { margin-top: 34px; } .layout { grid-template-columns: 1fr; } }
+      @media (max-width: 480px) { .topbar { padding: 15px 18px; } main { width: calc(100% - 28px); margin-top: 28px; } .card-head, .card-body { padding-left: 18px; padding-right: 18px; } .sandbox { padding: 6px 8px; font-size: 10px; } }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">X</span><span>Virtual Conference</span></div>
+      <span class="sandbox">Stripe test mode</span>
+    </header>
+
+    <main>
+      <section class="intro">
+        <p class="eyebrow">External conference website · integration demo</p>
+        <h1>Register once.<br />Pay securely with Stripe.</h1>
+        <p class="lead">Enter your details as you would on the conference website. This page shows how the saved registration email and reference are passed to the CometX Sandbox Buy Button.</p>
+      </section>
+
+      <div class="layout">
+        <section class="card" aria-labelledby="registration-heading">
+          <div class="card-head">
+            <div class="step"><span class="step-number">1</span> Conference registration</div>
+            <h2 id="registration-heading">Your attendee details</h2>
+          </div>
+          <div class="card-body">
+            <div id="message" class="message" role="status" aria-live="polite"></div>
+            <form id="registration-form">
+              <div class="field">
+                <label for="full-name">Full name</label>
+                <input id="full-name" name="fullName" autocomplete="name" required maxlength="120" placeholder="e.g. Alex Novak" />
+                <p class="hint">A real conference site saves the name server-side. This Buy Button does not pass it to Stripe.</p>
+              </div>
+              <div class="field">
+                <label for="email">Email address</label>
+                <input id="email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com" />
+                <p class="hint">This saved email is passed to Stripe Checkout and prefilled there.</p>
+              </div>
+              <button class="primary" type="submit">Continue to test payment <span aria-hidden="true">→</span></button>
+            </form>
+
+            <div class="price-line" style="margin-top: 23px">
+              <span class="price-name">Virtual Conference TEST · one-time payment</span>
+              <span class="price-amount">CHF 10.00</span>
+            </div>
+
+            <div id="button-zone" class="button-zone">
+              <div class="placeholder">Submit the registration form to load the Stripe Buy Button with this attendee’s email and a unique registration reference.</div>
+            </div>
+
+            <div class="status" aria-live="polite">
+              <p class="status-title"><span id="status-dot" class="status-dot"></span><span id="status-title">Waiting for registration</span></p>
+              <p id="status-text" class="status-text">After payment, the conference server must verify Stripe’s webhook before it marks the registration paid or unlocks access. This local page does not receive webhooks or unlock content.</p>
+            </div>
+          </div>
+        </section>
+
+        <aside class="card" aria-labelledby="code-heading">
+          <div class="card-head">
+            <div class="step"><span class="step-number">2</span> What the website sends</div>
+            <h2 id="code-heading">The button code</h2>
+          </div>
+          <div class="card-body">
+            <div class="code-head">
+              <h3>Generated for this registration</h3>
+              <button id="copy-code" class="secondary" type="button">Copy code</button>
+            </div>
+            <pre><code id="code-preview">&lt;script async src="https://js.stripe.com/v3/buy-button.js"&gt;&lt;/script&gt;
+
+&lt;stripe-buy-button
+  buy-button-id="buy_btn_1Ud6vR0A7SoM9pRta8GIbGuQ"
+  publishable-key="pk_test_..."
+  customer-email="email-from-registration"
+  client-reference-id="REG-generated-id"
+&gt;&lt;/stripe-buy-button&gt;</code></pre>
+
+            <div class="data-flow">
+              <div class="flow-row"><span class="flow-icon">A</span><span><strong>Conference site</strong> saves name and email, then creates a registration reference.</span></div>
+              <div class="flow-row"><span class="flow-icon">B</span><span><strong>Stripe Checkout</strong> receives the registration email and reference. The attendee completes a test payment.</span></div>
+              <div class="flow-row"><span class="flow-icon">C</span><span><strong>Conference backend</strong> verifies the signed webhook, checks the registration and amount, then grants access once.</span></div>
+            </div>
+
+            <div class="note"><strong>Name setting:</strong> If Stripe asks for the name again, turn off <em>Collect full names</em> in this Payment Link. The name remains in the conference registration; this Buy Button has no name-prefill attribute.</div>
+            <div class="note"><strong>Duplicate protection:</strong> This demo can flag a repeated email in the current browser tab only. Production must enforce uniqueness on the conference server before checkout and make webhook fulfillment idempotent. A reusable Payment Link by itself cannot prevent a second charge.</div>
+          </div>
+        </aside>
+      </div>
+      <p class="footer">Sandbox only. Use Stripe’s test card details at checkout. No real payment is taken, and this demo sends no name to Stripe.</p>
+    </main>
+
+    <script>
+      const BUY_BUTTON_ID = "buy_btn_1Ud6vR0A7SoM9pRta8GIbGuQ";
+      const PUBLISHABLE_KEY = "pk_test_51UJVUI0A7SoM9pRtpi50x4V4cRd9DMzlHrvVnBXxQpm4MKfKUoxFiYpceA6BoMy81NPQcAhsE4Jlpyix7352rdbW00kX3XLX7H";
+      const usedEmails = new Set(); // Demo-only. Production uniqueness must be enforced in the conference database.
+
+      const form = document.querySelector("#registration-form");
+      const message = document.querySelector("#message");
+      const buttonZone = document.querySelector("#button-zone");
+      const codePreview = document.querySelector("#code-preview");
+      const statusDot = document.querySelector("#status-dot");
+      const statusTitle = document.querySelector("#status-title");
+      const statusText = document.querySelector("#status-text");
+      let activeCode = "";
+
+      function showMessage(text, kind) {
+        message.textContent = text;
+        message.className = "message " + kind;
+      }
+
+      function escapeAttribute(value) {
+        return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const attendeeName = form.elements.fullName.value.trim();
+        const email = form.elements.email.value.trim().toLowerCase();
+
+        if (!attendeeName || !email) {
+          showMessage("Enter the name and email saved on the conference registration.", "error");
+          return;
+        }
+        if (usedEmails.has(email)) {
+          showMessage("This email already has a registration in this demo tab. Production must check this on its server before opening checkout.", "error");
+          return;
+        }
+
+        usedEmails.add(email);
+        const registrationId = "REG-" + crypto.randomUUID();
+        const escapedEmail = escapeAttribute(email);
+        const escapedRegistrationId = escapeAttribute(registrationId);
+        activeCode = '<script async src="https://js.stripe.com/v3/buy-button.js"></script>\n\n<stripe-buy-button\n  buy-button-id="' + BUY_BUTTON_ID + '"\n  publishable-key="' + PUBLISHABLE_KEY + '"\n  customer-email="' + email + '"\n  client-reference-id="' + registrationId + '"\n></stripe-buy-button>';
+
+        const stripeButton = document.createElement("stripe-buy-button");
+        stripeButton.setAttribute("buy-button-id", BUY_BUTTON_ID);
+        stripeButton.setAttribute("publishable-key", PUBLISHABLE_KEY);
+        stripeButton.setAttribute("customer-email", email);
+        stripeButton.setAttribute("client-reference-id", registrationId);
+        buttonZone.replaceChildren(stripeButton);
+        codePreview.textContent = '<script async src="https://js.stripe.com/v3/buy-button.js"></script>\n\n<stripe-buy-button\n  buy-button-id="' + BUY_BUTTON_ID + '"\n  publishable-key="' + PUBLISHABLE_KEY + '"\n  customer-email="' + escapedEmail + '"\n  client-reference-id="' + escapedRegistrationId + '"\n></stripe-buy-button>';
+
+        statusDot.style.background = "#d28a08";
+        statusTitle.textContent = "Details ready · awaiting payment";
+        statusText.textContent = attendeeName + " · " + email + " · " + registrationId + ". These values are held in this browser tab only. The demo has no registration database or webhook endpoint, so it cannot confirm payment or unlock conference content.";
+        showMessage("Registration details are ready. The Stripe test button now uses this email and reference.", "success");
+      });
+
+      document.querySelector("#copy-code").addEventListener("click", async (event) => {
+        if (!activeCode) {
+          showMessage("Submit the registration form first to generate attendee-specific button code.", "error");
+          return;
+        }
+        const copyButton = event.currentTarget;
+        try {
+          await navigator.clipboard.writeText(activeCode);
+          copyButton.textContent = "Copied";
+          window.setTimeout(() => { copyButton.textContent = "Copy code"; }, 1500);
+        } catch {
+          showMessage("Clipboard access is unavailable. Select and copy the code shown above.", "error");
+        }
+      });
+    </script>
+  </body>
+</html>
