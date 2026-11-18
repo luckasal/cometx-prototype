@@ -1226,3 +1226,9 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - The user could not reach `http://127.0.0.1:4173` because the Codex command runner's isolated server process was not exposed to the local browser. Added `docs/external-conference-test/RUN-LOCAL-DEMO.cmd`; launching it from the user's Windows session serves only this demo folder on loopback. Updated the README and task board with the run steps and limitation.
 - No local server remains running from the restricted command session. No Stripe payment or settings were changed.
 - Exact next task: user double-clicks `RUN-LOCAL-DEMO.cmd`, keeps its window open, then refreshes the local browser at `http://127.0.0.1:4173`. If it loads, test the email prefill using Stripe test details. Stop the server with Ctrl+C.
+
+## 2026-11-18: private hosted Stripe demo
+
+- Task `EXT-STRIPE-CHECKOUT-HANDOFF-20261117`; standalone demo source was copied into the dedicated Sites project `CometX Stripe Sandbox Checkout Demo`, pushed to its own source repository, and deployed privately. Site source commit `25217420049751e3d6f47b4e5df1c0352a436edc`; deployment succeeded at `https://cometx-stripe-test-checkout-20261118.fulldeck2.chatgpt.site`. Site access is limited to the owner account.
+- Open-in-Codex request was queued for the current thread. Share the URL above if the browser panel does not appear automatically. No CometX Vercel project, production app, Stripe live settings, secrets, or actual payment were changed.
+- Visual acceptance remains pending. Exact next task: user opens the private hosted page, enters a name/email, confirms the displayed Buy Button code and Stripe Checkout test flow. The demo does not implement a conference registration database, uniqueness guarantee, webhook receiver, or access-unlock behavior.
