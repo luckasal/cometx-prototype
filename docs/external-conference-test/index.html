@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#f7f8fc" />
     <title>Virtual Conference — Stripe Checkout Test</title>
     <script async src="https://js.stripe.com/v3/buy-button.js"></script>
+    <script defer src="./demo.js"></script>
     <style>
       :root {
         color-scheme: light;
@@ -97,6 +98,7 @@
             <h2 id="registration-heading">Your attendee details</h2>
           </div>
           <div class="card-body">
+            <div id="script-warning" class="message error" role="alert">The demo’s interactive script did not load. Refresh the page; if this message remains, the browser is blocking JavaScript.</div>
             <div id="message" class="message" role="status" aria-live="polite"></div>
             <form id="registration-form">
               <div class="field">
@@ -161,77 +163,5 @@
       <p class="footer">Sandbox only. Use Stripe’s test card details at checkout. No real payment is taken, and this demo sends no name to Stripe.</p>
     </main>
 
-    <script>
-      const BUY_BUTTON_ID = "buy_btn_1Ud6vR0A7SoM9pRta8GIbGuQ";
-      const PUBLISHABLE_KEY = "pk_test_51UJVUI0A7SoM9pRtpi50x4V4cRd9DMzlHrvVnBXxQpm4MKfKUoxFiYpceA6BoMy81NPQcAhsE4Jlpyix7352rdbW00kX3XLX7H";
-      const usedEmails = new Set(); // Demo-only. Production uniqueness must be enforced in the conference database.
-
-      const form = document.querySelector("#registration-form");
-      const message = document.querySelector("#message");
-      const buttonZone = document.querySelector("#button-zone");
-      const codePreview = document.querySelector("#code-preview");
-      const statusDot = document.querySelector("#status-dot");
-      const statusTitle = document.querySelector("#status-title");
-      const statusText = document.querySelector("#status-text");
-      let activeCode = "";
-
-      function showMessage(text, kind) {
-        message.textContent = text;
-        message.className = "message " + kind;
-      }
-
-      function escapeAttribute(value) {
-        return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-      }
-
-      form.addEventListener("submit", (event) => {
-        event.preventDefault();
-        const attendeeName = form.elements.fullName.value.trim();
-        const email = form.elements.email.value.trim().toLowerCase();
-
-        if (!attendeeName || !email) {
-          showMessage("Enter the name and email saved on the conference registration.", "error");
-          return;
-        }
-        if (usedEmails.has(email)) {
-          showMessage("This email already has a registration in this demo tab. Production must check this on its server before opening checkout.", "error");
-          return;
-        }
-
-        usedEmails.add(email);
-        const registrationId = "REG-" + crypto.randomUUID();
-        const escapedEmail = escapeAttribute(email);
-        const escapedRegistrationId = escapeAttribute(registrationId);
-        activeCode = '<script async src="https://js.stripe.com/v3/buy-button.js"></script>\n\n<stripe-buy-button\n  buy-button-id="' + BUY_BUTTON_ID + '"\n  publishable-key="' + PUBLISHABLE_KEY + '"\n  customer-email="' + email + '"\n  client-reference-id="' + registrationId + '"\n></stripe-buy-button>';
-
-        const stripeButton = document.createElement("stripe-buy-button");
-        stripeButton.setAttribute("buy-button-id", BUY_BUTTON_ID);
-        stripeButton.setAttribute("publishable-key", PUBLISHABLE_KEY);
-        stripeButton.setAttribute("customer-email", email);
-        stripeButton.setAttribute("client-reference-id", registrationId);
-        buttonZone.replaceChildren(stripeButton);
-        codePreview.textContent = '<script async src="https://js.stripe.com/v3/buy-button.js"></script>\n\n<stripe-buy-button\n  buy-button-id="' + BUY_BUTTON_ID + '"\n  publishable-key="' + PUBLISHABLE_KEY + '"\n  customer-email="' + escapedEmail + '"\n  client-reference-id="' + escapedRegistrationId + '"\n></stripe-buy-button>';
-
-        statusDot.style.background = "#d28a08";
-        statusTitle.textContent = "Details ready · awaiting payment";
-        statusText.textContent = attendeeName + " · " + email + " · " + registrationId + ". These values are held in this browser tab only. The demo has no registration database or webhook endpoint, so it cannot confirm payment or unlock conference content.";
-        showMessage("Registration details are ready. The Stripe test button now uses this email and reference.", "success");
-      });
-
-      document.querySelector("#copy-code").addEventListener("click", async (event) => {
-        if (!activeCode) {
-          showMessage("Submit the registration form first to generate attendee-specific button code.", "error");
-          return;
-        }
-        const copyButton = event.currentTarget;
-        try {
-          await navigator.clipboard.writeText(activeCode);
-          copyButton.textContent = "Copied";
-          window.setTimeout(() => { copyButton.textContent = "Copy code"; }, 1500);
-        } catch {
-          showMessage("Clipboard access is unavailable. Select and copy the code shown above.", "error");
-        }
-      });
-    </script>
   </body>
 </html>
