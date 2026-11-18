@@ -1,6 +1,8 @@
 # External conference Stripe checkout test
 
-Open this standalone page over localhost so the Stripe Buy Button can render:
+To start the standalone page on this PC, double-click `RUN-LOCAL-DEMO.cmd` in this folder. Keep the command window open while using the demo, then open or refresh <http://127.0.0.1:4173> in your local browser. Press Ctrl+C in the command window to stop the server.
+
+Alternatively, from the repository root run:
 
 ~~~powershell
 py -m http.server 4173 --bind 127.0.0.1 --directory docs/external-conference-test
