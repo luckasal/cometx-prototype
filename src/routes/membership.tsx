@@ -2,16 +2,20 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Check } from "lucide-react";
-import { getMembershipPlans, startMembershipCheckout } from "@/lib/membership.functions";
+import { ArrowDown, ArrowRight, Check, ExternalLink } from "lucide-react";
+import {
+  getMembershipPlans,
+  getMembershipSavingsEvents,
+  startMembershipCheckout,
+} from "@/lib/membership.functions";
 import { formatMoney } from "@/lib/pricing";
 import { formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
 import { Button } from "@/components/ui/button";
-import { ErrorBlock, LoadingBlock, PageHero, Section } from "@/components/site/Bits";
+import { ErrorBlock, LoadingBlock } from "@/components/site/Bits";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trackEvent } from "@/lib/analytics";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { listPartners } from "@/lib/public.functions";
 
 export const Route = createFileRoute("/membership")({
   head: () => ({
@@ -63,13 +68,56 @@ function MembershipPage() {
     motivation: "",
     missingFromSubscription: "",
   });
+  const [requestedEventCount, setRequestedEventCount] = useState(2);
   const fetchPlans = useServerFn(getMembershipPlans);
+  const fetchSavingsEvents = useServerFn(getMembershipSavingsEvents);
+  const fetchPartners = useServerFn(listPartners);
   const startCheckout = useServerFn(startMembershipCheckout);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["plans"],
     queryFn: () => fetchPlans(),
   });
+  const {
+    data: savingsEvents = [],
+    isLoading: savingsLoading,
+    error: savingsError,
+  } = useQuery({
+    queryKey: ["membership-savings-events"],
+    queryFn: () => fetchSavingsEvents(),
+  });
+  const {
+    data: partners = [],
+    isLoading: partnersLoading,
+    error: partnersError,
+  } = useQuery({
+    queryKey: ["active-partners"],
+    queryFn: () => fetchPartners(),
+  });
+  const maxEventCount = 5;
+  const eventCount = Math.min(requestedEventCount, savingsEvents.length);
+  const selectedSavingsEvents = savingsEvents.slice(0, eventCount);
+  const estimateRows = useMemo(() => {
+    if (!data) return [];
+    const selectedEvents = savingsEvents.slice(0, eventCount);
+    const hostTotal = selectedEvents.reduce((total, event) => total + event.guestPrice, 0);
+    return data
+      .filter((plan) => plan.currency.toUpperCase() === "CHF")
+      .map((plan) => {
+        const memberPrices = selectedEvents.map((event) => event.memberPrices[plan.slug]);
+        const hasAllPrices = memberPrices.every((price) => price !== null && price !== undefined);
+        const ticketTotal = hasAllPrices
+          ? memberPrices.reduce((total, price) => total + (price ?? 0), 0)
+          : null;
+        return {
+          plan,
+          hostTotal,
+          ticketTotal,
+          firstYearTotal:
+            ticketTotal === null ? null : plan.annualPrice + plan.setupFee + ticketTotal,
+        };
+      });
+  }, [data, eventCount, savingsEvents]);
 
   const checkoutMutation = useMutation({
     mutationFn: (input: {
@@ -87,77 +135,275 @@ function MembershipPage() {
 
   return (
     <>
-      <PageHero
-        tone="brand"
-        eyebrow={cs ? "Členství" : "Membership"}
-        title={cs ? "Zažijte víc než jen naše akce" : "Experience more than our events"}
-        lead={
-          cs
-            ? "Členství přímo podporuje rozvoj našich aktivit. Vyberte si ze tří kategorií přesně tu, která odpovídá vašim potřebám."
-            : "Membership directly supports the growth of our activities. Choose the category that best matches your needs."
-        }
-      />
+      <section className="bg-background">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 pb-10 pt-14 lg:px-8 lg:pb-12 lg:pt-14">
+          <p className="eyebrow text-muted-foreground">
+            {cs ? "Pro členy CometX" : "CometX membership"}
+          </p>
+          <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-[3.25rem]">
+            {cs ? "Členství" : "Membership"}
+          </h1>
+          <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground">
+            {cs
+              ? "Prohlédněte si ceny a výhody jednotlivých plánů vedle sebe a vyberte si ten, který vám sedí."
+              : "Compare current plan prices and benefits side by side, then choose the one that fits you."}
+          </p>
+        </div>
+      </section>
 
-      <Section>
-        {isLoading && <LoadingBlock label={cs ? "Načítáme členství" : "Loading plans"} />}
-        {error && <ErrorBlock error={error} />}
-
-        {data && (
-          <div className="grid gap-6 lg:grid-cols-3">
-            {data.map((plan, index) => (
-              <div
-                key={plan.slug}
-                className={
-                  index === 1
-                    ? "flex flex-col rounded-[1.75rem] border-2 border-accent bg-card p-7 shadow-lg sm:p-8"
-                    : "flex flex-col rounded-[1.75rem] border border-border/80 bg-card p-7 transition-shadow hover:shadow-lg sm:p-8"
-                }
-              >
-                {index === 1 && (
-                  <p className="eyebrow mb-3 text-accent-foreground">
-                    {cs ? "Nejčastější volba" : "Most chosen"}
-                  </p>
-                )}
-                <h2 className="font-display text-3xl font-extrabold">
-                  {!cs && plan.nameEn?.trim() ? plan.nameEn : plan.name}
-                </h2>
-                <p className="mt-3 text-sm text-muted-foreground">
-                  {!cs && plan.descriptionEn?.trim() ? plan.descriptionEn : plan.description}
-                </p>
-                <p className="mt-6 font-display text-3xl font-extrabold">
-                  {formatMoney(plan.annualPrice, plan.currency)}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    {" "}
-                    {cs ? "/ rok" : "/ year"}
+      <section aria-labelledby="membership-savings-title" className="bg-background pb-12 sm:pb-16">
+        <div className="mx-auto grid max-w-6xl gap-8 rounded-3xl bg-muted p-5 sm:p-8 lg:grid-cols-[1fr_1fr] lg:items-center lg:gap-10 lg:p-10">
+          <div className="flex min-w-0 flex-col gap-4">
+            <p className="eyebrow text-accent">{cs ? "Rychlé srovnání" : "Quick comparison"}</p>
+            <h2
+              id="membership-savings-title"
+              className="mt-1 font-display text-3xl font-extrabold sm:text-4xl"
+            >
+              {cs
+                ? "Chodíte na akce? Členství se může vyplatit."
+                : "Attend CometX events? Membership may pay off."}
+            </h2>
+            <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
+              {cs
+                ? "Upravte počet akcí a porovnejte aktuální veřejné ceny vstupenek s cenou členství a členskými cenami."
+                : "Adjust the number of events to compare currently published public ticket prices with membership and member ticket prices."}
+            </p>
+            <p id="membership-event-count-label" className="text-sm font-semibold">
+              {cs
+                ? "Kolik zveřejněných akcí chcete navštívit?"
+                : "How many published events do you plan to attend?"}
+            </p>
+            <div
+              className="flex flex-wrap gap-2"
+              role="radiogroup"
+              aria-labelledby="membership-event-count-label"
+            >
+              {Array.from({ length: maxEventCount + 1 }, (_, count) => (
+                <label key={count} className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="membership-event-count"
+                    value={count}
+                    checked={requestedEventCount === count}
+                    onChange={() => setRequestedEventCount(count)}
+                    className="peer sr-only"
+                  />
+                  <span
+                    className={`grid size-12 place-items-center rounded-xl border text-lg font-semibold transition peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink ${requestedEventCount === count ? "border-ink bg-ink text-ink-foreground" : "border-border bg-background hover:border-foreground"}`}
+                  >
+                    {count}
                   </span>
-                </p>
-                <div className="mt-1 space-y-1 text-xs text-muted-foreground">
-                  <p>
-                    {cs
-                      ? "Roční členství se automaticky obnovuje do zrušení."
-                      : "Renews annually until canceled."}
-                  </p>
-                  <p>
-                    {cs
-                      ? `Jednorázový vstupní poplatek: ${formatMoney(plan.setupFee, plan.currency)}.`
-                      : `One-time setup fee: ${formatMoney(plan.setupFee, plan.currency)}.`}
-                  </p>
+                </label>
+              ))}
+            </div>
+            {requestedEventCount > savingsEvents.length && !savingsLoading && !savingsError && (
+              <p className="text-sm text-muted-foreground">
+                {cs
+                  ? `Zveřejněné ceny jsou zatím dostupné pro ${savingsEvents.length} ${savingsEvents.length === 1 ? "akci" : "akce"}.`
+                  : `Published ticket prices are currently available for ${savingsEvents.length} ${savingsEvents.length === 1 ? "event" : "events"}.`}
+              </p>
+            )}
+            {savingsLoading && (
+              <p className="text-sm text-muted-foreground">
+                {cs ? "Načítáme zveřejněné ceny akcí…" : "Loading published event prices…"}
+              </p>
+            )}
+            {savingsError && (
+              <p className="text-sm text-muted-foreground">
+                {cs
+                  ? "Orientační srovnání teď není dostupné. Aktuální ceny vstupenek najdete u jednotlivých akcí."
+                  : "The estimate is unavailable right now. Current ticket prices are shown on each event page."}
+              </p>
+            )}
+            {!savingsLoading && !savingsError && savingsEvents.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                {cs
+                  ? "Srovnání se zobrazí, jakmile budou zveřejněné budoucí akce s aktivními vstupenkami."
+                  : "The estimate will appear when upcoming published events have active tickets."}
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-2xl bg-background p-5 sm:p-7">
+            {isLoading && <LoadingBlock label={cs ? "Načítáme plány" : "Loading plans"} />}
+            {error && <ErrorBlock error={error} />}
+            {savingsError && <ErrorBlock error={savingsError} />}
+            {savingsLoading && (
+              <LoadingBlock label={cs ? "Načítáme ceny akcí" : "Loading event prices"} />
+            )}
+            {data && savingsEvents.length > 0 && (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl bg-muted p-4">
+                    <p className="text-sm text-muted-foreground">
+                      {cs ? "Host · nejnižší veřejná cena" : "Guest · lowest public ticket"}
+                    </p>
+                    <p className="mt-1 font-display text-2xl font-extrabold">
+                      {formatMoney(estimateRows[0]?.hostTotal ?? 0, "CHF")}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-accent p-4 text-accent-foreground">
+                    <p className="text-sm">
+                      {cs ? "Počítáme z živých cen CometX" : "Using current CometX prices"}
+                    </p>
+                    <p className="mt-1 font-display text-2xl font-extrabold">
+                      {eventCount}{" "}
+                      {cs
+                        ? eventCount === 1
+                          ? "akce"
+                          : "akcí"
+                        : eventCount === 1
+                          ? "event"
+                          : "events"}
+                    </p>
+                  </div>
                 </div>
+                {selectedSavingsEvents.length > 0 && (
+                  <ul className="mt-4 flex flex-wrap gap-2">
+                    {selectedSavingsEvents.map((event) => (
+                      <li
+                        key={event.slug}
+                        className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground"
+                      >
+                        {!cs && event.titleEn?.trim() ? event.titleEn : event.title}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="mt-5 space-y-3">
+                  {estimateRows.map(({ plan, ticketTotal, firstYearTotal, hostTotal }) => {
+                    const savings = firstYearTotal === null ? null : hostTotal - firstYearTotal;
+                    return (
+                      <div
+                        key={plan.slug}
+                        className="grid gap-2 border-t border-border pt-3 sm:grid-cols-[1fr_auto_auto] sm:items-center"
+                      >
+                        <div>
+                          <p className="font-semibold">
+                            {!cs && plan.nameEn?.trim() ? plan.nameEn : plan.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {firstYearTotal === null
+                              ? cs
+                                ? "Nelze spočítat cenu pro všechny vybrané akce"
+                                : "Price is unavailable for one or more selected events"
+                              : `${formatMoney(plan.annualPrice + plan.setupFee, plan.currency)} ${cs ? "členství v 1. roce" : "first-year membership"} + ${formatMoney(ticketTotal ?? 0, plan.currency)} ${cs ? "vstupenky" : "tickets"}`}
+                          </p>
+                        </div>
+                        <p className="font-display text-xl font-extrabold">
+                          {firstYearTotal === null
+                            ? "—"
+                            : formatMoney(firstYearTotal, plan.currency)}
+                        </p>
+                        <p className="text-xs font-semibold text-muted-foreground sm:text-right">
+                          {savings === null
+                            ? cs
+                              ? "Nelze porovnat"
+                              : "Not comparable"
+                            : savings >= 0
+                              ? `${cs ? "Rozdíl" : "Difference"}: ${formatMoney(savings, plan.currency)}`
+                              : `${cs ? "Rozdíl" : "Difference"}: −${formatMoney(Math.abs(savings), plan.currency)}`}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
+                  {cs
+                    ? "Orientační výpočet vychází jen z nyní zveřejněných budoucích akcí a nejnižší aktivní vstupenky. Zahrnuje roční cenu i jednorázový vstupní poplatek v 1. roce; nabídka i ceny se mohou měnit."
+                    : "Estimate uses only currently published upcoming events and each event’s lowest active ticket. It includes the annual plan price and one-time setup fee in year one; event availability and prices can change."}
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
 
-                <ul className="mt-6 flex-1 space-y-3 border-t border-border pt-6">
-                  {plan.benefits.map((benefit) => (
-                    <li key={benefit.key} className="flex gap-3 text-sm">
-                      <Check className="mt-0.5 size-4 shrink-0 text-accent-foreground" />
-                      <span>{formatMembershipBenefit(benefit, cs ? "cs" : "en")}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-8">
+      <section
+        id="membership-plans"
+        aria-labelledby="membership-plans-title"
+        className="scroll-mt-20 bg-background pb-14 sm:pb-20"
+      >
+        <div className="mx-auto max-w-6xl px-5 lg:px-8">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="eyebrow text-muted-foreground">
+                {cs ? "Přehled členství" : "Membership overview"}
+              </p>
+              <h2 id="membership-plans-title" className="mt-2 font-display text-3xl font-extrabold">
+                {cs ? "Vyberte si plán" : "Choose your plan"}
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                {cs
+                  ? "Ceny a výhody načítáme z aktuálních plánů v CometX."
+                  : "Prices and benefits come from the current CometX membership plans."}
+              </p>
+            </div>
+          </div>
+          {isLoading && <LoadingBlock label={cs ? "Načítáme členství" : "Loading plans"} />}
+          {error && <ErrorBlock error={error} />}
+          {data && data.length === 0 && (
+            <div className="rounded-3xl bg-card p-8 text-center text-muted-foreground">
+              {cs
+                ? "Momentálně nejsou dostupné žádné plány členství."
+                : "No membership plans are available right now."}
+            </div>
+          )}
+          {data && data.length > 0 && (
+            <div className="grid items-stretch gap-5 lg:grid-cols-3">
+              {data.map((plan) => (
+                <article
+                  key={plan.slug}
+                  className="flex flex-col rounded-2xl border border-border bg-background p-6 sm:p-7"
+                >
+                  <div className="min-h-28">
+                    <h3 className="font-display text-2xl font-bold">
+                      {!cs && plan.nameEn?.trim() ? plan.nameEn : plan.name}
+                    </h3>
+                    {((cs ? plan.description : plan.descriptionEn) || plan.description) && (
+                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                        {!cs && plan.descriptionEn?.trim() ? plan.descriptionEn : plan.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-2 border-y border-border py-5">
+                    <p className="font-display text-3xl font-bold">
+                      {formatMoney(plan.annualPrice, plan.currency)}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {cs ? "za rok" : "per year"}
+                    </p>
+                    <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                      {cs
+                        ? `Roční automatické obnovení. Jednorázový vstupní poplatek ${formatMoney(plan.setupFee, plan.currency)}.`
+                        : `Renews annually. One-time setup fee: ${formatMoney(plan.setupFee, plan.currency)}.`}
+                    </p>
+                  </div>
+                  <div className="flex-1 py-5">
+                    <p className="eyebrow text-muted-foreground">
+                      {cs ? "Výhody plánu" : "Plan benefits"}
+                    </p>
+                    {plan.benefits.length > 0 ? (
+                      <ul className="mt-4 space-y-3">
+                        {plan.benefits.map((benefit) => (
+                          <li key={benefit.key} className="flex gap-3 text-sm leading-relaxed">
+                            <Check className="mt-0.5 size-4 shrink-0 text-accent-foreground" />
+                            <span>{formatMembershipBenefit(benefit, cs ? "cs" : "en")}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-4 text-sm text-muted-foreground">
+                        {cs
+                          ? "Výhody tohoto plánu připravujeme."
+                          : "Plan benefits have not been published yet."}
+                      </p>
+                    )}
+                  </div>
                   {user ? (
                     <Button
-                      variant={index === 1 ? "signal" : "outlineInk"}
-                      className="w-full"
+                      variant="signal"
+                      className="mt-2 w-full"
                       data-analytics-cta={`membership_plan_${plan.slug}`}
                       disabled={checkoutMutation.isPending}
                       onClick={() => {
@@ -180,8 +426,8 @@ function MembershipPage() {
                     </Button>
                   ) : (
                     <Button
-                      variant={index === 1 ? "signal" : "outlineInk"}
-                      className="w-full"
+                      variant="signal"
+                      className="mt-2 w-full"
                       data-analytics-cta={`membership_plan_${plan.slug}`}
                       onClick={() => {
                         trackEvent("membership_cta_click", {
@@ -194,54 +440,155 @@ function MembershipPage() {
                         navigate({ to: "/register", search: { redirect: "/membership" } });
                       }}
                     >
-                      {cs ? "Pro členství si vytvořte účet" : "Create account to join"}
+                      {cs ? "Vytvořit účet a pokračovat" : "Create account to continue"}
                     </Button>
                   )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-10 max-w-3xl border-t border-border pt-8">
-          <h2 className="font-display text-xl font-bold">
-            {cs ? "Každý člen vždy získá" : "Every member always receives"}
-          </h2>
-          <ul className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-            {(cs
-              ? [
-                  "Exkluzivní přístup do placené sekce webu",
-                  "Výhodné ceny vstupenek na akce CometX",
-                  "Informace o aktuálním dění z první ruky",
-                  "Možnost zviditelnit vlastní příběh a práci",
-                  "Dárky, vychytávky a komunitní zábavu",
-                  "Možnost odečíst podporu spolku z daní ve Švýcarsku",
-                ]
-              : [
-                  "Exclusive access to the members section",
-                  "Preferred prices for CometX events",
-                  "First-hand news and updates",
-                  "A chance to showcase your story and work",
-                  "Gifts, extras and community activities",
-                  "Potential Swiss tax deduction for association support",
-                ]
-            ).map((item) => (
-              <li key={item} className="flex gap-2">
-                <Check className="mt-0.5 size-4 shrink-0" />
-                {item}
-              </li>
-            ))}
-          </ul>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
+      </section>
 
-        <p className="mt-8 max-w-2xl text-sm text-muted-foreground">
-          {cs ? "Už jste členem?" : "Already a member?"}{" "}
-          <Link to="/account/membership" className="underline underline-offset-4">
-            {cs ? "Zobrazit členství" : "See your membership"}
-          </Link>
-          .
-        </p>
-      </Section>
+      <section aria-labelledby="membership-partners-title" className="bg-muted py-14 sm:py-16">
+        <div className="mx-auto max-w-6xl px-5 lg:px-8">
+          <div className="mb-8 max-w-2xl">
+            <p className="eyebrow text-muted-foreground">
+              {cs ? "CometX komunita" : "CometX community"}
+            </p>
+            <h2
+              id="membership-partners-title"
+              className="mt-2 font-display text-3xl font-extrabold sm:text-4xl"
+            >
+              {cs ? "Výhody partnerů" : "Partner benefits"}
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              {cs
+                ? "Aktivní partnery zobrazujeme z údajů CometX. Nabídky a slevy uvádíme pouze tehdy, pokud jsou zveřejněné."
+                : "Active partners are listed from CometX records. Offers and discounts appear only when they are published."}
+            </p>
+          </div>
+          {partnersLoading && (
+            <LoadingBlock label={cs ? "Načítáme partnery" : "Loading partners"} />
+          )}
+          {partnersError && <ErrorBlock error={partnersError} />}
+          {!partnersLoading && !partnersError && partners.length === 0 && (
+            <div className="rounded-3xl border border-border bg-muted p-8 text-sm text-muted-foreground">
+              {cs
+                ? "Aktivní partneři zatím nejsou zveřejněni."
+                : "No active partners have been published yet."}
+            </div>
+          )}
+          {partners.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {partners.map((partner) => (
+                <article
+                  key={partner.id}
+                  className="flex min-h-44 flex-col rounded-2xl border border-border bg-background p-5 sm:p-6"
+                >
+                  <div className="flex items-center gap-4">
+                    {partner.logo_url ? (
+                      <img
+                        src={partner.logo_url}
+                        alt=""
+                        className="size-14 rounded-xl border border-border bg-white object-contain p-2"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span
+                        className="grid size-14 place-items-center rounded-xl bg-accent text-lg font-extrabold text-accent-foreground"
+                        aria-hidden="true"
+                      >
+                        {partner.name.slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
+                    <div className="min-w-0">
+                      <h3 className="font-display text-lg font-bold">{partner.name}</h3>
+                      {partner.tier && (
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {partner.tier}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {(cs ? partner.description : partner.description_en) || partner.description ? (
+                    <p className="mt-4 flex-1 text-sm leading-relaxed text-muted-foreground">
+                      {!cs && partner.description_en?.trim()
+                        ? partner.description_en
+                        : partner.description}
+                    </p>
+                  ) : null}
+                  {partner.website_url && (
+                    <a
+                      href={partner.website_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-4 inline-flex items-center gap-2 text-sm font-semibold underline decoration-accent decoration-2 underline-offset-4"
+                    >
+                      {cs ? "Web partnera" : "Partner website"}
+                      <ExternalLink className="size-3.5" />
+                    </a>
+                  )}
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section aria-labelledby="membership-faq-title" className="bg-background py-14 sm:py-16">
+        <div className="mx-auto max-w-6xl px-5 lg:px-8">
+          <div className="mb-5 max-w-3xl">
+            <p className="eyebrow text-muted-foreground">
+              {cs ? "Potřebujete vědět" : "Good to know"}
+            </p>
+            <h2 id="membership-faq-title" className="mt-2 font-display text-3xl font-extrabold">
+              {cs ? "Časté otázky" : "Frequently asked questions"}
+            </h2>
+          </div>
+          <div className="max-w-4xl divide-y divide-border border-y border-border">
+            <details className="group py-5" open>
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
+                {cs ? "Jak dlouho členství platí?" : "How long does membership last?"}
+                <ArrowDown className="size-4 shrink-0 transition group-open:rotate-180" />
+              </summary>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                {cs
+                  ? "Plány se účtují ročně a automaticky se obnovují. Správu členství najdete ve svém účtu."
+                  : "Plans are billed annually and renew automatically. You can manage your membership from your account."}
+              </p>
+            </details>
+            <details className="group py-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
+                {cs ? "Co přesně obsahuje vybraný plán?" : "What does each plan include?"}
+                <ArrowDown className="size-4 shrink-0 transition group-open:rotate-180" />
+              </summary>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                {cs
+                  ? "Aktuální výhody každého plánu jsou vypsané přímo u jeho ceny. Ceny vstupenek se zobrazí u konkrétní akce."
+                  : "The current benefits are listed with each plan above. Ticket prices are shown on each event page."}
+              </p>
+            </details>
+            <details className="group py-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
+                {cs ? "Kde najdu své členství?" : "Where can I find my membership?"}
+                <ArrowDown className="size-4 shrink-0 transition group-open:rotate-180" />
+              </summary>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                {cs
+                  ? "Přehled a správu členství otevřete ve svém účtu."
+                  : "Open your account to view and manage your membership."}{" "}
+                <Link
+                  to="/account/membership"
+                  className="font-semibold underline underline-offset-4"
+                >
+                  {cs ? "Přejít na členství" : "Go to membership"}
+                </Link>
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
 
       <Dialog
         open={!!selectedPlan}

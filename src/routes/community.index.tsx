@@ -2,15 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listArticles } from "@/lib/articles.functions";
-import { listPartners } from "@/lib/public.functions";
-import {
-  EmptyBlock,
-  ErrorBlock,
-  LoadingBlock,
-  PageHero,
-  Section,
-  StatusPill,
-} from "@/components/site/Bits";
+import { listPartners, listPublicMembers } from "@/lib/public.functions";
+import { EmptyBlock, ErrorBlock, LoadingBlock, Section, StatusPill } from "@/components/site/Bits";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Route = createFileRoute("/community/")({
@@ -39,6 +32,7 @@ function CommunityPage() {
   const cs = language === "cs";
   const fetchArticles = useServerFn(listArticles);
   const fetchPartners = useServerFn(listPartners);
+  const fetchMembers = useServerFn(listPublicMembers);
   const { data, isLoading, error } = useQuery({
     queryKey: ["articles"],
     queryFn: () => fetchArticles(),
@@ -50,6 +44,14 @@ function CommunityPage() {
   } = useQuery({
     queryKey: ["partners"],
     queryFn: () => fetchPartners(),
+  });
+  const {
+    data: members,
+    isLoading: membersLoading,
+    error: membersError,
+  } = useQuery({
+    queryKey: ["public-members"],
+    queryFn: () => fetchMembers(),
   });
   const mediaLinks: {
     title: string;
@@ -91,21 +93,105 @@ function CommunityPage() {
 
   return (
     <>
-      <PageHero
-        tone="brand"
-        eyebrow={cs ? "Komunita" : "Community"}
-        title={
-          cs
-            ? "Názory, reportáže a život krajanů ve Švýcarsku"
-            : "Opinions, reports and Swiss expat life"
-        }
-        lead={
-          cs
-            ? "Příběhy z akcí CometX a od lidí, kteří ve Švýcarsku propojují vědu, byznys, diplomacii a komunitu."
-            : "Stories from CometX events and the people connecting science, business, diplomacy and community across Switzerland."
-        }
-      />
+      <section className="bg-background">
+        <div className="mx-auto max-w-7xl px-5 pb-10 pt-14 lg:px-8 lg:pb-12 lg:pt-16">
+          <p className="eyebrow text-muted-foreground">
+            {cs ? "Komunita CometX" : "CometX community"}
+          </p>
+          <h1 className="mt-3 font-display text-5xl font-extrabold tracking-tight sm:text-6xl">
+            {cs ? "Chci být vidět" : "Be part of the community"}
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+            {cs
+              ? "Veřejný adresář ukazuje jen profily, které tým CometX výslovně zveřejnil. Kontaktní údaje členů zůstávají soukromé."
+              : "The public directory shows only profiles explicitly published by CometX. Members’ contact details remain private."}
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <a
+              href="#community-members"
+              className="inline-flex min-h-12 items-center rounded-full bg-accent px-6 font-bold text-accent-foreground transition hover:brightness-95"
+            >
+              {cs ? "Členové komunity" : "Community members"}
+            </a>
+            <Link
+              to="/contact"
+              className="inline-flex min-h-12 items-center rounded-full border border-foreground px-6 font-semibold transition hover:bg-muted"
+            >
+              {cs ? "Kontaktovat CometX" : "Contact CometX"}
+            </Link>
+          </div>
+        </div>
+      </section>
+      <Section id="community-members" className="bg-muted">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="eyebrow text-muted-foreground">{cs ? "Adresář" : "Directory"}</p>
+            <h2 className="mt-2 font-display text-3xl font-extrabold sm:text-4xl">
+              {cs ? "Členové komunity" : "Community members"}
+            </h2>
+          </div>
+          <Link
+            to="/community/members"
+            className="inline-flex items-center gap-2 text-sm font-bold underline decoration-accent decoration-2 underline-offset-4"
+          >
+            {cs ? "Zobrazit adresář" : "Browse the directory"}
+            <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+        {membersLoading && <LoadingBlock label={cs ? "Načítáme členy" : "Loading members"} />}
+        {membersError && <ErrorBlock error={membersError} />}
+        {members && members.length === 0 && (
+          <EmptyBlock
+            title={cs ? "Zatím nejsou zveřejněné žádné profily" : "No profiles are published yet"}
+            hint={
+              cs
+                ? "CometX zveřejní pouze profil, který tým výslovně označil jako veřejný."
+                : "CometX only displays profiles explicitly marked as public by the team."
+            }
+          />
+        )}
+        {members && members.length > 0 && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {members.slice(0, 6).map((member) => (
+              <Link
+                key={member.id}
+                to="/community/members/$id"
+                params={{ id: member.id }}
+                className="rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <h3 className="font-display text-xl font-bold">{member.name}</h3>
+                {(member.jobTitle || member.company) && (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {[member.jobTitle, member.company].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+                {member.country && (
+                  <p className="mt-2 text-xs text-muted-foreground">{member.country}</p>
+                )}
+              </Link>
+            ))}
+          </div>
+        )}
+        <div className="mt-8 rounded-2xl border border-border bg-card p-6 sm:p-8">
+          <h3 className="font-display text-xl font-bold">
+            {cs ? "Jak se profil zveřejní?" : "How does a profile become public?"}
+          </h3>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+            {cs
+              ? "Členové si mohou upravit své údaje ve svém účtu. O veřejném zobrazení vybraných údajů rozhoduje tým CometX; adresář nezobrazuje e-mail ani telefon."
+              : "Members can update their details in their account. The CometX team controls whether selected details are shown publicly; the directory does not show email or phone numbers."}
+          </p>
+        </div>
+      </Section>
       <Section id="stories">
+        <div className="mb-8">
+          <p className="eyebrow text-muted-foreground">
+            {cs ? "Příběhy komunity" : "Community stories"}
+          </p>
+          <h2 className="mt-2 font-display text-3xl font-extrabold sm:text-4xl">
+            {cs ? "Názory a reportáže" : "Opinions and stories"}
+          </h2>
+        </div>
         {isLoading && <LoadingBlock label={cs ? "Načítáme příběhy" : "Loading stories"} />}
         {error && <ErrorBlock error={error} />}
         {data && data.length === 0 && (
@@ -190,7 +276,7 @@ function CommunityPage() {
                 <Link
                   key={item.title}
                   to={item.to!}
-                  hash={item.hash}
+                  {...(item.hash ? { hash: item.hash } : {})}
                   className="group overflow-hidden rounded-2xl border border-border/60 bg-background p-7"
                 >
                   <h2 className="font-display text-xl font-bold group-hover:underline">

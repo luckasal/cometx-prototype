@@ -31,9 +31,9 @@ function AboutPage() {
   return (
     <>
       <PageHero
-        tone="brand"
+        tone="light"
         eyebrow={cs ? "O nás" : "About"}
-        title={cs ? "Poslání a tým" : "Mission and team"}
+        title={cs ? "O nás" : "About CometX"}
         lead={
           cs
             ? "CometX je aktivní švýcarská nezisková organizace založená krajany s českými a slovenskými kořeny. Naše akce znovu propojují lidi s domovem a zároveň ve Švýcarsku vytvářejí novou energii, nápady a přátelství."

@@ -6,17 +6,15 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
 import { formatMembershipBenefit } from "@/lib/membership-benefit-catalog";
-import { getAccountOverview, getMyMembershipRenewalStatus, getMyWorkshopCreditStatus, startMembershipBillingPortal } from "@/lib/membership.functions";
+import {
+  getAccountOverview,
+  getMyMembershipRenewalStatus,
+  getMyWorkshopCreditStatus,
+  startMembershipBillingPortal,
+} from "@/lib/membership.functions";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
-import {
-  EmptyBlock,
-  ErrorBlock,
-  LoadingBlock,
-  Section,
-  SectionHeading,
-  StatusPill,
-} from "@/components/site/Bits";
+import { EmptyBlock, ErrorBlock, LoadingBlock, StatusPill } from "@/components/site/Bits";
 
 export const Route = createFileRoute("/account/membership")({
   validateSearch: z.object({ checkout: z.enum(["success", "cancelled"]).optional() }),
@@ -34,18 +32,28 @@ function AccountMembershipPage() {
   const createBillingPortal = useServerFn(startMembershipBillingPortal);
   const portalMutation = useMutation({
     mutationFn: () => createBillingPortal(),
-    onSuccess: ({ url }) => { window.location.href = url; },
+    onSuccess: ({ url }) => {
+      window.location.href = url;
+    },
     onError: (error: Error) => toast.error(error.message),
   });
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["account"],
     queryFn: () => fetchOverview(),
   });
-  const { data: workshopCredit, isLoading: creditLoading, error: creditError } = useQuery({
+  const {
+    data: workshopCredit,
+    isLoading: creditLoading,
+    error: creditError,
+  } = useQuery({
     queryKey: ["account", "workshop-credit"],
     queryFn: () => fetchWorkshopCredit(),
   });
-  const { data: renewalStatus, isLoading: renewalLoading, error: renewalError } = useQuery({
+  const {
+    data: renewalStatus,
+    isLoading: renewalLoading,
+    error: renewalError,
+  } = useQuery({
     queryKey: ["account", "membership-renewal", data?.profile.id, data?.membership?.membershipId],
     queryFn: () => fetchRenewalStatus(),
     enabled: !!data?.membership?.canManageBilling,
@@ -55,11 +63,20 @@ function AccountMembershipPage() {
 
   useEffect(() => {
     if (checkout === "success") {
-      toast(cs ? "Platba skončila. Ověřujeme potvrzení vašeho členství." : "Checkout finished. We are checking your membership confirmation.");
+      toast(
+        cs
+          ? "Platba skončila. Ověřujeme potvrzení vašeho členství."
+          : "Checkout finished. We are checking your membership confirmation.",
+      );
       const timer = setTimeout(() => refetch(), 2500);
       return () => clearTimeout(timer);
     }
-    if (checkout === "cancelled") toast(cs ? "Platba byla zrušena, nic vám nebylo účtováno." : "Checkout cancelled - nothing was charged.");
+    if (checkout === "cancelled")
+      toast(
+        cs
+          ? "Platba byla zrušena, nic vám nebylo účtováno."
+          : "Checkout cancelled - nothing was charged.",
+      );
     return undefined;
   }, [checkout, refetch, cs]);
 
@@ -69,104 +86,271 @@ function AccountMembershipPage() {
     try {
       if (window.sessionStorage.getItem(activationKey)) return;
       window.sessionStorage.setItem(activationKey, "1");
-    } catch { /* Analytics must not affect access to the membership page. */ }
+    } catch {
+      /* Analytics must not affect access to the membership page. */
+    }
     trackEvent("membership_activated", { membership_tier: data.membership.planSlug });
   }, [checkout, data?.membership?.planSlug, data?.membership?.status]);
 
   return (
-    <Section>
-      <SectionHeading eyebrow={cs ? "Členství" : "Membership"} title={cs ? "Vaše členství" : "Your membership"} />
-      {isLoading && <LoadingBlock label={cs ? "Načítáme členství" : "Loading membership"} />}
-      {error && <ErrorBlock error={error} />}
-
-      {data && !data.membership && (
-        <div className="max-w-xl">
-          <EmptyBlock
-            title={checkout === "success" ? (cs ? "Čekáme na aktivaci členství" : "Membership activation pending") : (cs ? "Nemáte aktivní členství" : "No active membership")}
-            hint={checkout === "success"
-              ? (cs ? "CometX zatím vaše členství nepotvrdil. Za chvíli stránku obnovte. Pokud potvrzení nepřijde, kontaktujte podporu; neplaťte znovu." : "CometX has not confirmed your membership yet. Please refresh shortly. If it stays pending, contact support; do not pay again.")
-              : (cs ? "Vyberte si členství a zaplaťte testovací kartou Stripe, abyste viděli členské výhody." : "Pick a tier and pay with a Stripe test card to see the full member experience.")}
-          />
-          {checkout !== "success" && (
-            <Button asChild variant="signal" size="lg" className="mt-6">
-              <Link to="/membership">{cs ? "Prohlédnout členství" : "See the plans"}</Link>
-            </Button>
-          )}
-        </div>
-      )}
-
-      {data?.membership && (
-        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="overflow-hidden rounded-3xl border border-ink/40">
-            <div className="bg-ink px-6 py-5 text-ink-foreground">
-              <p className="eyebrow text-accent">{cs ? "Současné členství" : "Current plan"}</p>
-              <p className="mt-1 font-display text-2xl font-extrabold">{data.membership.planName}</p>
-            </div>
-            <div className="space-y-4 p-6">
-              <StatusPill tone="success">{renewalStatus?.renewalCancelled ? (cs ? "Aktivní · obnovení zrušeno" : "Active · renewal cancelled") : cs && data.membership.status === "active" ? "Aktivní" : data.membership.status}</StatusPill>
-              {renewalStatus?.renewalCancelled && (
-                <p className="text-sm text-muted-foreground">
-                  {cs ? "Vaše členství zůstává aktivní do " : "Your membership stays active until "}{renewalStatus.cancelsAt
-                    ? new Date(renewalStatus.cancelsAt).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
-                    : cs ? "konce zaplaceného období" : "the end of your paid period"}. {cs ? "Automaticky se neobnoví." : "It will not renew automatically."}
-                </p>
-              )}
-              {renewalStatus?.nextBillingAt && (
-                <p className="text-sm text-muted-foreground">
-                  {cs ? "Další platba: " : "Next billing date: "}{new Date(renewalStatus.nextBillingAt).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })}.
-                </p>
-              )}
-              {renewalLoading && <p className="text-xs text-muted-foreground">{cs ? "Ověřujeme obnovení členství…" : "Checking renewal status…"}</p>}
-              {renewalError && <p className="text-xs text-muted-foreground">{cs ? "Údaje o obnovení nyní nejsou dostupné. Obnovte stránku nebo kontaktujte CometX." : "Renewal status is unavailable right now. Refresh this page or contact CometX."}</p>}
-              {data.membership.endsAt && !renewalStatus?.renewalCancelled && !renewalStatus?.nextBillingAt && (
-                <p className="text-sm text-muted-foreground">
-                  {cs ? "Platné do" : "Valid until"}{" "}
-                  {new Date(data.membership.endsAt).toLocaleDateString(locale, {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </p>
-              )}
-              {data.membership.canManageBilling ? (
-                <Button variant="outlineInk" className="w-full" disabled={portalMutation.isPending} onClick={() => portalMutation.mutate()}>
-                  {portalMutation.isPending ? (cs ? "Otevíráme správu plateb…" : "Opening billing…") : (cs ? "Spravovat nebo zrušit členství" : "Manage or cancel membership")}
-                </Button>
-              ) : (
-                <Button asChild variant="outlineInk" className="w-full">
-                  <Link to="/membership">{cs ? "Prohlédnout členství" : "See membership plans"}</Link>
-                </Button>
-              )}
-            </div>
-          </div>
-
+    <main className="min-h-[70vh] bg-muted">
+      <div className="mx-auto max-w-7xl px-5 py-10 sm:py-14 lg:px-8 lg:py-16">
+        <header className="mb-8 flex flex-wrap items-end justify-between gap-5">
           <div>
-            <h3 className="font-display text-lg font-bold">{cs ? "Co členství zahrnuje" : "What is included"}</h3>
-            <ul className="mt-5 divide-y divide-border border-y border-border">
-              {data.membership.benefits.map((benefit) => (
-                <li key={benefit.key} className="py-4 text-sm">
-                  {formatMembershipBenefit(benefit, language)}
-                  {benefit.key === "workshop_credit" && (
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      {creditLoading
-                        ? (cs ? "Ověřujeme kredit na workshop…" : "Checking your workshop credit…")
-                        : creditError
-                          ? (cs ? "Stav kreditu nyní není dostupný. Zkuste stránku obnovit." : "Credit status is unavailable right now. Please refresh to try again.")
-                          : workshopCredit?.state === "available"
-                            ? (cs ? `Dostupný — v košíku si sami zvolíte, kdy kredit CHF ${workshopCredit.amount} využít.` : `Available — choose when to use your CHF ${workshopCredit.amount} credit in the ticket cart.`)
-                            : workshopCredit?.state === "used"
-                              ? (cs ? "Využitý — jednorázový kredit byl uplatněn při dokončeném nákupu vstupenky." : "Used — your one-time workshop credit was applied to a completed ticket purchase.")
-                              : workshopCredit?.state === "reserved"
-                                ? (cs ? "Dočasně rezervovaný pro rozpracovanou platbu. Pokud platbu nedokončíte, po vypršení rezervace bude znovu dostupný." : "Temporarily reserved by a checkout. If payment is not completed, the credit becomes available again when that checkout expires.")
-                              : (cs ? "Tento kredit není součástí vašeho členství." : "This credit is not available with your current membership.")}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <p className="eyebrow text-muted-foreground">
+              CometX · {cs ? "Můj účet" : "My account"}
+            </p>
+            <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
+              {cs ? "Moje členství" : "My membership"}
+            </h1>
           </div>
-        </div>
-      )}
-    </Section>
+          <Link
+            to="/account"
+            className="text-sm font-semibold underline decoration-accent decoration-2 underline-offset-4"
+          >
+            {cs ? "Zpět na přehled" : "Back to overview"} →
+          </Link>
+        </header>
+        <nav
+          aria-label={cs ? "Sekce účtu" : "Account sections"}
+          className="mb-7 flex flex-wrap gap-2"
+        >
+          <Link
+            to="/account"
+            className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold"
+          >
+            {cs ? "Přehled" : "Overview"}
+          </Link>
+          <Link
+            to="/account/events"
+            className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold"
+          >
+            {cs ? "Vstupenky" : "Tickets"}
+          </Link>
+          <Link
+            to="/account/membership"
+            className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-ink-foreground"
+            aria-current="page"
+          >
+            {cs ? "Členství" : "Membership"}
+          </Link>
+          <Link
+            to="/account/profile"
+            className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold"
+          >
+            {cs ? "Moje údaje" : "My details"}
+          </Link>
+        </nav>
+
+        {checkout === "success" && (
+          <div
+            role="status"
+            className="mb-6 rounded-2xl border border-accent/40 bg-card p-5 sm:p-6"
+          >
+            <p className="font-display text-lg font-bold">
+              {data?.membership?.status === "active"
+                ? cs
+                  ? "Členství je aktivní"
+                  : "Membership is active"
+                : cs
+                  ? "Ověřujeme potvrzení členství"
+                  : "Confirming your membership"}
+            </p>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+              {data?.membership?.status === "active"
+                ? cs
+                  ? "Výhody členství jsou dostupné ve vašem účtu."
+                  : "Your membership benefits are available in your account."
+                : cs
+                  ? "Aktivace může chvíli trvat. Obnovte stránku za chvíli a platbu neopakujte."
+                  : "Activation can take a moment. Refresh shortly and please do not pay again."}
+            </p>
+          </div>
+        )}
+        {checkout === "cancelled" && (
+          <div
+            role="status"
+            className="mb-6 rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground"
+          >
+            {cs
+              ? "Platba byla zrušena, nic vám nebylo účtováno."
+              : "Checkout was cancelled; nothing was charged."}
+          </div>
+        )}
+
+        <section className="rounded-3xl bg-card p-5 sm:p-8">
+          {isLoading && <LoadingBlock label={cs ? "Načítáme členství" : "Loading membership"} />}
+          {error && <ErrorBlock error={error} />}
+
+          {data && !data.membership && (
+            <div className="max-w-xl">
+              <EmptyBlock
+                title={
+                  checkout === "success"
+                    ? cs
+                      ? "Čekáme na aktivaci členství"
+                      : "Membership activation pending"
+                    : cs
+                      ? "Nemáte aktivní členství"
+                      : "No active membership"
+                }
+                hint={
+                  checkout === "success"
+                    ? cs
+                      ? "CometX zatím vaše členství nepotvrdil. Za chvíli stránku obnovte. Pokud potvrzení nepřijde, kontaktujte podporu; neplaťte znovu."
+                      : "CometX has not confirmed your membership yet. Please refresh shortly. If it stays pending, contact support; do not pay again."
+                    : cs
+                      ? "Vyberte si členství a zaplaťte testovací kartou Stripe, abyste viděli členské výhody."
+                      : "Pick a tier and pay with a Stripe test card to see the full member experience."
+                }
+              />
+              {checkout !== "success" && (
+                <Button asChild variant="signal" size="lg" className="mt-6">
+                  <Link to="/membership">{cs ? "Prohlédnout členství" : "See the plans"}</Link>
+                </Button>
+              )}
+            </div>
+          )}
+
+          {data?.membership && (
+            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+              <div className="overflow-hidden rounded-3xl border border-ink/40">
+                <div className="bg-ink px-6 py-5 text-ink-foreground">
+                  <p className="eyebrow text-accent">{cs ? "Současné členství" : "Current plan"}</p>
+                  <p className="mt-1 font-display text-2xl font-extrabold">
+                    {data.membership.planName}
+                  </p>
+                </div>
+                <div className="space-y-4 p-6">
+                  <StatusPill tone="success">
+                    {renewalStatus?.renewalCancelled
+                      ? cs
+                        ? "Aktivní · obnovení zrušeno"
+                        : "Active · renewal cancelled"
+                      : cs && data.membership.status === "active"
+                        ? "Aktivní"
+                        : data.membership.status}
+                  </StatusPill>
+                  {renewalStatus?.renewalCancelled && (
+                    <p className="text-sm text-muted-foreground">
+                      {cs
+                        ? "Vaše členství zůstává aktivní do "
+                        : "Your membership stays active until "}
+                      {renewalStatus.cancelsAt
+                        ? new Date(renewalStatus.cancelsAt).toLocaleDateString(locale, {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })
+                        : cs
+                          ? "konce zaplaceného období"
+                          : "the end of your paid period"}
+                      . {cs ? "Automaticky se neobnoví." : "It will not renew automatically."}
+                    </p>
+                  )}
+                  {renewalStatus?.nextBillingAt && (
+                    <p className="text-sm text-muted-foreground">
+                      {cs ? "Další platba: " : "Next billing date: "}
+                      {new Date(renewalStatus.nextBillingAt).toLocaleDateString(locale, {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                      .
+                    </p>
+                  )}
+                  {renewalLoading && (
+                    <p className="text-xs text-muted-foreground">
+                      {cs ? "Ověřujeme obnovení členství…" : "Checking renewal status…"}
+                    </p>
+                  )}
+                  {renewalError && (
+                    <p className="text-xs text-muted-foreground">
+                      {cs
+                        ? "Údaje o obnovení nyní nejsou dostupné. Obnovte stránku nebo kontaktujte CometX."
+                        : "Renewal status is unavailable right now. Refresh this page or contact CometX."}
+                    </p>
+                  )}
+                  {data.membership.endsAt &&
+                    !renewalStatus?.renewalCancelled &&
+                    !renewalStatus?.nextBillingAt && (
+                      <p className="text-sm text-muted-foreground">
+                        {cs ? "Platné do" : "Valid until"}{" "}
+                        {new Date(data.membership.endsAt).toLocaleDateString(locale, {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </p>
+                    )}
+                  {data.membership.canManageBilling ? (
+                    <Button
+                      variant="outlineInk"
+                      className="w-full"
+                      disabled={portalMutation.isPending}
+                      onClick={() => portalMutation.mutate()}
+                    >
+                      {portalMutation.isPending
+                        ? cs
+                          ? "Otevíráme správu plateb…"
+                          : "Opening billing…"
+                        : cs
+                          ? "Spravovat nebo zrušit členství"
+                          : "Manage or cancel membership"}
+                    </Button>
+                  ) : (
+                    <Button asChild variant="outlineInk" className="w-full">
+                      <Link to="/membership">
+                        {cs ? "Prohlédnout členství" : "See membership plans"}
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-display text-lg font-bold">
+                  {cs ? "Co členství zahrnuje" : "What is included"}
+                </h3>
+                <ul className="mt-5 divide-y divide-border border-y border-border">
+                  {data.membership.benefits.map((benefit) => (
+                    <li key={benefit.key} className="py-4 text-sm">
+                      {formatMembershipBenefit(benefit, language)}
+                      {benefit.key === "workshop_credit" && (
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          {creditLoading
+                            ? cs
+                              ? "Ověřujeme kredit na workshop…"
+                              : "Checking your workshop credit…"
+                            : creditError
+                              ? cs
+                                ? "Stav kreditu nyní není dostupný. Zkuste stránku obnovit."
+                                : "Credit status is unavailable right now. Please refresh to try again."
+                              : workshopCredit?.state === "available"
+                                ? cs
+                                  ? `Dostupný — v košíku si sami zvolíte, kdy kredit CHF ${workshopCredit.amount} využít.`
+                                  : `Available — choose when to use your CHF ${workshopCredit.amount} credit in the ticket cart.`
+                                : workshopCredit?.state === "used"
+                                  ? cs
+                                    ? "Využitý — jednorázový kredit byl uplatněn při dokončeném nákupu vstupenky."
+                                    : "Used — your one-time workshop credit was applied to a completed ticket purchase."
+                                  : workshopCredit?.state === "reserved"
+                                    ? cs
+                                      ? "Dočasně rezervovaný pro rozpracovanou platbu. Pokud platbu nedokončíte, po vypršení rezervace bude znovu dostupný."
+                                      : "Temporarily reserved by a checkout. If payment is not completed, the credit becomes available again when that checkout expires."
+                                    : cs
+                                      ? "Tento kredit není součástí vašeho členství."
+                                      : "This credit is not available with your current membership."}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
   );
 }

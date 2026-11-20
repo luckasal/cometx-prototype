@@ -216,57 +216,64 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
           {cs ? "Všechny akce" : "All events"}
         </Link>
         <div className="grid items-start gap-x-12 gap-y-16 lg:grid-cols-[minmax(0,1fr)_23rem] xl:gap-x-20">
-          <header className="relative min-w-0 overflow-hidden pb-2 lg:col-start-1 lg:row-start-1">
-            <BrandXElement className="absolute right-0 top-0 -z-0 h-44 w-44 opacity-[0.06]" />
-            <div className="relative">
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="eyebrow text-accent">{types[event.eventType] ?? event.eventType}</p>
-                <StatusPill tone={open ? "signal" : "muted"}>{status}</StatusPill>
-              </div>
-              <h1 className="mt-6 text-[clamp(2.25rem,4.5vw,4rem)] leading-[1.08] font-bold tracking-tight [overflow-wrap:anywhere]">
-                {event.title}
-              </h1>
-              {speakers.length > 0 && (
-                <div className="mt-6 flex flex-wrap gap-x-5 gap-y-3">
-                  {speakers.map((s) => (
-                    <a
-                      key={s.id}
-                      href={`#speaker-${s.id}`}
-                      className="inline-flex items-center gap-3 text-sm hover:text-accent"
-                    >
-                      {s.photoUrl && (
-                        <img
-                          src={s.photoUrl}
-                          alt=""
-                          className="size-10 rounded-full object-cover"
-                        />
-                      )}
-                      <span>
-                        <strong className="block">{s.name}</strong>
-                        {(s.jobTitle || s.company) && (
-                          <span className="block text-xs text-muted-foreground">
-                            {[s.jobTitle, s.company].filter(Boolean).join(" · ")}
-                          </span>
-                        )}
-                      </span>
-                    </a>
-                  ))}
+          <header className="relative min-w-0 overflow-hidden lg:col-start-1 lg:row-start-1">
+            <BrandXElement className="pointer-events-none absolute right-5 top-5 z-10 h-16 w-16 opacity-[0.12]" />
+            <div className="relative grid gap-7 rounded-3xl bg-muted p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(15rem,0.8fr)] lg:items-center lg:gap-10 lg:p-10">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="eyebrow text-accent">{types[event.eventType] ?? event.eventType}</p>
+                  <StatusPill tone={open ? "signal" : "muted"}>{status}</StatusPill>
                 </div>
-              )}
-              {event.shortDescription && (
-                <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-                  {event.shortDescription}
-                </p>
-              )}
-              <Button asChild variant="signal" size="lg" className="mt-9 rounded-full px-8 lg:hidden">
-                {ticketAction(<ArrowDown className="size-4" />)}
-              </Button>
+                <h1 className="mt-6 text-[clamp(2.25rem,4.5vw,4rem)] leading-[1.08] font-bold tracking-tight [overflow-wrap:anywhere]">
+                  {event.title}
+                </h1>
+                {speakers.length > 0 && (
+                  <div className="mt-6 flex flex-wrap gap-x-5 gap-y-3">
+                    {speakers.map((s) => (
+                      <a
+                        key={s.id}
+                        href={`#speaker-${s.id}`}
+                        className="inline-flex items-center gap-3 text-sm hover:text-accent"
+                      >
+                        {s.photoUrl && (
+                          <img
+                            src={s.photoUrl}
+                            alt=""
+                            className="size-10 rounded-full object-cover"
+                          />
+                        )}
+                        <span>
+                          <strong className="block">{s.name}</strong>
+                          {(s.jobTitle || s.company) && (
+                            <span className="block text-xs text-muted-foreground">
+                              {[s.jobTitle, s.company].filter(Boolean).join(" · ")}
+                            </span>
+                          )}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+                {event.shortDescription && (
+                  <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+                    {event.shortDescription}
+                  </p>
+                )}
+                <Button
+                  asChild
+                  variant="signal"
+                  size="lg"
+                  className="mt-9 rounded-full px-8 lg:hidden"
+                >
+                  {ticketAction(<ArrowDown className="size-4" />)}
+                </Button>
+              </div>
               {heroImage && (
-                <figure className="mt-12 overflow-hidden rounded-[2rem] bg-paper lg:mt-10">
+                <figure className="m-0 overflow-hidden rounded-2xl bg-background">
                   <img
                     src={heroImage}
                     alt={event.heroImageUrl ? event.title : portrait!.name}
-                    className="aspect-[4/3] w-full object-contain"
+                    className="aspect-[4/3] w-full object-cover"
                     fetchPriority="high"
                   />
                 </figure>
@@ -277,14 +284,14 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
           <aside
             id="event-tickets"
             aria-label={cs ? "Informace a registrace" : "Event information and tickets"}
-            className="scroll-mt-28 min-w-0 overflow-hidden rounded-[2rem] bg-card shadow-xl shadow-black/10 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-2"
+            className="scroll-mt-28 min-w-0 overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-2"
           >
-            <div className="relative overflow-hidden bg-accent px-8 py-10 text-accent-foreground">
+            <div className="relative overflow-hidden bg-ink px-7 py-7 text-ink-foreground sm:px-8">
               <BrandXElement
                 variant="fullDark"
                 className="absolute -right-7 -top-5 h-40 w-40 opacity-10"
               />
-              <p className="eyebrow">CometX</p>
+              <p className="eyebrow text-accent">CometX</p>
               <h2 className="mt-1 text-2xl font-bold">{cs ? "Buďte u toho" : "Join the event"}</h2>
             </div>
             <div className="p-7 sm:p-8">

@@ -54,6 +54,7 @@ import { Route as AdminEventsIdRouteImport } from './routes/admin.events.$id'
 import { Route as AdminEventsNewRouteImport } from './routes/admin.events.new'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as CommunityArticlesSlugRouteImport } from './routes/community.articles.$slug'
+import { Route as CommunityMembersIdRouteImport } from './routes/community.members.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -280,6 +281,11 @@ const CommunityArticlesSlugRoute = CommunityArticlesSlugRouteImport.update({
   path: '/community/articles/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CommunityMembersIdRoute = CommunityMembersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => CommunityMembersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -312,7 +318,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/speakers': typeof AdminSpeakersRoute
   '/admin/workshops': typeof AdminWorkshopsRoute
-  '/community/members': typeof CommunityMembersRoute
+  '/community/members': typeof CommunityMembersRouteWithChildren
   '/events/$slug': typeof EventsSlugRoute
   '/tickets/guest': typeof TicketsGuestRoute
   '/account/': typeof AccountIndexRoute
@@ -325,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/admin/events/new': typeof AdminEventsNewRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/community/articles/$slug': typeof CommunityArticlesSlugRoute
+  '/community/members/$id': typeof CommunityMembersIdRoute
   '/admin/articles/': typeof AdminArticlesIndexRoute
   '/admin/events/': typeof AdminEventsIndexRoute
 }
@@ -357,7 +364,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/speakers': typeof AdminSpeakersRoute
   '/admin/workshops': typeof AdminWorkshopsRoute
-  '/community/members': typeof CommunityMembersRoute
+  '/community/members': typeof CommunityMembersRouteWithChildren
   '/events/$slug': typeof EventsSlugRoute
   '/tickets/guest': typeof TicketsGuestRoute
   '/account': typeof AccountIndexRoute
@@ -370,6 +377,7 @@ export interface FileRoutesByTo {
   '/admin/events/new': typeof AdminEventsNewRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/community/articles/$slug': typeof CommunityArticlesSlugRoute
+  '/community/members/$id': typeof CommunityMembersIdRoute
   '/admin/articles': typeof AdminArticlesIndexRoute
   '/admin/events': typeof AdminEventsIndexRoute
 }
@@ -405,7 +413,7 @@ export interface FileRoutesById {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/speakers': typeof AdminSpeakersRoute
   '/admin/workshops': typeof AdminWorkshopsRoute
-  '/community/members': typeof CommunityMembersRoute
+  '/community/members': typeof CommunityMembersRouteWithChildren
   '/events/$slug': typeof EventsSlugRoute
   '/tickets/guest': typeof TicketsGuestRoute
   '/account/': typeof AccountIndexRoute
@@ -418,6 +426,7 @@ export interface FileRoutesById {
   '/admin/events/new': typeof AdminEventsNewRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/community/articles/$slug': typeof CommunityArticlesSlugRoute
+  '/community/members/$id': typeof CommunityMembersIdRoute
   '/admin/articles/': typeof AdminArticlesIndexRoute
   '/admin/events/': typeof AdminEventsIndexRoute
 }
@@ -467,6 +476,7 @@ export interface FileRouteTypes {
     | '/admin/events/new'
     | '/api/public/stripe-webhook'
     | '/community/articles/$slug'
+    | '/community/members/$id'
     | '/admin/articles/'
     | '/admin/events/'
   fileRoutesByTo: FileRoutesByTo
@@ -512,6 +522,7 @@ export interface FileRouteTypes {
     | '/admin/events/new'
     | '/api/public/stripe-webhook'
     | '/community/articles/$slug'
+    | '/community/members/$id'
     | '/admin/articles'
     | '/admin/events'
   id:
@@ -559,6 +570,7 @@ export interface FileRouteTypes {
     | '/admin/events/new'
     | '/api/public/stripe-webhook'
     | '/community/articles/$slug'
+    | '/community/members/$id'
     | '/admin/articles/'
     | '/admin/events/'
   fileRoutesById: FileRoutesById
@@ -578,7 +590,7 @@ export interface RootRouteChildren {
   MembershipRoute: typeof MembershipRoute
   PartnersRoute: typeof PartnersRoute
   RegisterRoute: typeof RegisterRoute
-  CommunityMembersRoute: typeof CommunityMembersRoute
+  CommunityMembersRoute: typeof CommunityMembersRouteWithChildren
   EventsSlugRoute: typeof EventsSlugRoute
   TicketsGuestRoute: typeof TicketsGuestRoute
   CommunityIndexRoute: typeof CommunityIndexRoute
@@ -904,6 +916,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommunityArticlesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/community/members/$id': {
+      id: '/community/members/$id'
+      path: '/$id'
+      fullPath: '/community/members/$id'
+      preLoaderRoute: typeof CommunityMembersIdRouteImport
+      parentRoute: typeof CommunityMembersRoute
+    }
   }
 }
 
@@ -972,6 +991,17 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CommunityMembersRouteChildren {
+  CommunityMembersIdRoute: typeof CommunityMembersIdRoute
+}
+
+const CommunityMembersRouteChildren: CommunityMembersRouteChildren = {
+  CommunityMembersIdRoute: CommunityMembersIdRoute,
+}
+
+const CommunityMembersRouteWithChildren =
+  CommunityMembersRoute._addFileChildren(CommunityMembersRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -987,7 +1017,7 @@ const rootRouteChildren: RootRouteChildren = {
   MembershipRoute: MembershipRoute,
   PartnersRoute: PartnersRoute,
   RegisterRoute: RegisterRoute,
-  CommunityMembersRoute: CommunityMembersRoute,
+  CommunityMembersRoute: CommunityMembersRouteWithChildren,
   EventsSlugRoute: EventsSlugRoute,
   TicketsGuestRoute: TicketsGuestRoute,
   CommunityIndexRoute: CommunityIndexRoute,

@@ -46,9 +46,9 @@ function ContactPage() {
   return (
     <>
       <PageHero
-        tone="brand"
+        tone="light"
         eyebrow={cs ? "Kontakt a média" : "Contact and media"}
-        title={cs ? "Napište nám" : "Get in touch"}
+        title={cs ? "Kontakt a média" : "Contact and media"}
         lead={
           cs
             ? "Ozvěte se nám s otázkami k členství, akcím, médiím nebo partnerství."

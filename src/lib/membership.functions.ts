@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { calculateTicketPrice, type EntitlementMap, type TicketPricingInput } from "./pricing";
 
 export type PlanSummary = {
   id: string;
@@ -51,6 +52,107 @@ export const getMembershipPlans = createServerFn({ method: "GET" }).handler(
   },
 );
 
+export type MembershipSavingsEvent = {
+  slug: string;
+  title: string;
+  titleEn: string | null;
+  eventType: string;
+  startDate: string;
+  guestPrice: number;
+  currency: string;
+  memberPrices: Record<string, number | null>;
+};
+
+/** Read-only estimate built from currently published events, tickets and plan rules. */
+export const getMembershipSavingsEvents = createServerFn({ method: "GET" }).handler(
+  async (): Promise<MembershipSavingsEvent[]> => {
+    const { getPublicClient, assertDatabaseResult } = await import("./database.server");
+    const db = getPublicClient();
+    const [plansResult, eventsResult] = await Promise.all([
+      db
+        .from("membership_plans")
+        .select("slug,currency,plan_entitlements(value,entitlements(key))")
+        .eq("active", true)
+        .order("sort_order"),
+      db
+        .from("events")
+        .select(
+          "slug,title,title_en,event_type,start_date,ticket_types(base_price,currency,member_price,required_entitlement,discount_entitlement,free_entitlement,active)",
+        )
+        .eq("publish_state", "published")
+        .in("event_status", ["upcoming", "registration_open"])
+        .gte("start_date", new Date().toISOString())
+        .order("start_date")
+        .limit(20),
+    ]);
+    assertDatabaseResult({ error: plansResult.error });
+    assertDatabaseResult({ error: eventsResult.error });
+
+    const plans = (plansResult.data ?? []).map((plan) => {
+      const entitlements: EntitlementMap = {};
+      for (const row of plan.plan_entitlements ?? []) {
+        const key = row.entitlements?.key;
+        if (key) entitlements[key] = row.value === null ? null : Number(row.value);
+      }
+      return { slug: plan.slug, currency: plan.currency.toUpperCase(), entitlements };
+    });
+
+    return (eventsResult.data ?? []).flatMap((event) => {
+      const tickets = (event.ticket_types ?? []).filter((ticket) => ticket.active);
+      const toPricingInput = (ticket: (typeof tickets)[number]): TicketPricingInput => ({
+        basePrice: Number(ticket.base_price),
+        currency: ticket.currency,
+        memberPrice: ticket.member_price,
+        requiredEntitlement: ticket.required_entitlement,
+        discountEntitlement: ticket.discount_entitlement,
+        freeEntitlement: ticket.free_entitlement,
+      });
+      const guestOptions = tickets
+        .map((ticket) => ({
+          price: calculateTicketPrice(toPricingInput(ticket), {}, event.event_type),
+        }))
+        .filter(({ price }) => price.eligible && price.currency.toUpperCase() === "CHF");
+      if (guestOptions.length === 0) return [];
+      const guestPrice = Math.min(...guestOptions.map(({ price }) => price.finalPrice));
+
+      const memberPrices = Object.fromEntries(
+        plans.map((plan) => {
+          if (plan.currency !== "CHF") return [plan.slug, null];
+          const memberOptions = tickets
+            .map((ticket) => ({
+              price: calculateTicketPrice(
+                toPricingInput(ticket),
+                plan.entitlements,
+                event.event_type,
+                plan.slug,
+              ),
+            }))
+            .filter(({ price }) => price.eligible && price.currency.toUpperCase() === "CHF");
+          return [
+            plan.slug,
+            memberOptions.length
+              ? Math.min(...memberOptions.map(({ price }) => price.finalPrice))
+              : null,
+          ];
+        }),
+      );
+
+      return [
+        {
+          slug: event.slug,
+          title: event.title,
+          titleEn: event.title_en,
+          eventType: event.event_type,
+          startDate: event.start_date,
+          guestPrice,
+          currency: "CHF",
+          memberPrices,
+        },
+      ];
+    });
+  },
+);
+
 export type AccountOverview = {
   profile: {
     id: string;
@@ -87,7 +189,10 @@ export const getMyMembershipRenewalStatus = createServerFn({ method: "GET" }).ha
   const subscription = await stripeRequest<Record<string, unknown>>(
     `/subscriptions/${encodeURIComponent(membership.stripeSubscriptionId)}`,
   );
-  if (subscription["id"] !== membership.stripeSubscriptionId || subscription["livemode"] !== false) {
+  if (
+    subscription["id"] !== membership.stripeSubscriptionId ||
+    subscription["livemode"] !== false
+  ) {
     throw new Error("Membership billing status could not be verified.");
   }
   return membershipRenewalStatus(subscription);
@@ -109,7 +214,8 @@ export const getMyWorkshopCreditStatus = createServerFn({ method: "GET" }).handl
     const membership = await getCurrentMembership(user.userId);
     if (!membership) return null;
 
-    const amount = membership.plan.slug === "cometxxl" ? 100 : membership.plan.slug === "ambasador" ? 300 : null;
+    const amount =
+      membership.plan.slug === "cometxxl" ? 100 : membership.plan.slug === "ambasador" ? 300 : null;
     if (!amount) return null;
     const benefits = await getPlanEntitlements(membership.plan.id);
     if (benefits["workshop_credit"] !== amount) return null;
@@ -212,13 +318,17 @@ export const updateMyProfile = createServerFn({ method: "POST" })
 
 /** A membership is granted only by the signed Stripe webhook after payment. */
 export const startMembershipCheckout = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => z.object({
-    planSlug: z.string().min(1).max(80),
-    email: z.string().email().max(320),
-    nationality: z.enum(["slovak", "czech", "other"]).optional(),
-    motivation: z.string().trim().min(1).max(3000).optional(),
-    missingFromSubscription: z.string().trim().min(1).max(3000).optional(),
-  }).parse(data))
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        planSlug: z.string().min(1).max(80),
+        email: z.string().email().max(320),
+        nationality: z.enum(["slovak", "czech", "other"]).optional(),
+        motivation: z.string().trim().min(1).max(3000).optional(),
+        missingFromSubscription: z.string().trim().min(1).max(3000).optional(),
+      })
+      .parse(data),
+  )
   .handler(async ({ data }) => {
     const { requireUser } = await import("./auth.server");
     const { getReadClient, assertDatabaseResult } = await import("./database.server");
@@ -228,25 +338,45 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
     const { configuredAppUrl } = await import("./deployment");
     const { checkoutOrigin } = await import("./checkout");
     const user = await requireUser();
-    if (!user.email || !data.email || data.email.trim().toLowerCase() !== user.email.trim().toLowerCase()) {
-      throw new Error("Membership checkout must use the email of your signed-in account. Sign in with the correct account to continue.");
+    if (
+      !user.email ||
+      !data.email ||
+      data.email.trim().toLowerCase() !== user.email.trim().toLowerCase()
+    ) {
+      throw new Error(
+        "Membership checkout must use the email of your signed-in account. Sign in with the correct account to continue.",
+      );
     }
     if (await getCurrentMembership(user.userId)) {
-      throw new Error("You already have an active membership. Please contact CometX to change your plan.");
+      throw new Error(
+        "You already have an active membership. Please contact CometX to change your plan.",
+      );
     }
     if (!isStripeConfigured() || !process.env["STRIPE_WEBHOOK_SECRET"]) {
       throw new Error("Online payment is temporarily unavailable. Please try again later.");
     }
-    const { data: plan, error } = await getReadClient().from("membership_plans")
-      .select("id,name,annual_price,currency,active,stripe_price_id,billing_interval,setup_fee,stripe_recurring_price_id,stripe_setup_price_id")
-      .eq("slug", data.planSlug).eq("active", true).maybeSingle();
+    const { data: plan, error } = await getReadClient()
+      .from("membership_plans")
+      .select(
+        "id,name,annual_price,currency,active,stripe_price_id,billing_interval,setup_fee,stripe_recurring_price_id,stripe_setup_price_id",
+      )
+      .eq("slug", data.planSlug)
+      .eq("active", true)
+      .maybeSingle();
     assertDatabaseResult({ error });
-    if (!plan || !Number.isFinite(Number(plan.annual_price)) || Number(plan.annual_price) <= 0 || plan.currency.toUpperCase() !== "CHF") {
+    if (
+      !plan ||
+      !Number.isFinite(Number(plan.annual_price)) ||
+      Number(plan.annual_price) <= 0 ||
+      plan.currency.toUpperCase() !== "CHF"
+    ) {
       throw new Error("This membership plan is not available for online payment.");
     }
     const origin = checkoutOrigin(configuredAppUrl(process.env));
     if (plan.billing_interval !== "year" || Number(plan.setup_fee) !== 1.99) {
-      throw new Error("This membership is not configured for annual renewal. Please contact CometX.");
+      throw new Error(
+        "This membership is not configured for annual renewal. Please contact CometX.",
+      );
     }
     if (!data.nationality || !data.motivation || !data.missingFromSubscription) {
       throw new Error("Complete all required membership details before continuing.");
@@ -287,24 +417,41 @@ export const startMembershipCheckout = createServerFn({ method: "POST" })
       expected_currency: plan.currency.toLowerCase(),
     };
     const mode = "subscription";
-    const session = await stripeRequest<{ id: string; url: string; livemode: boolean; mode: string }>("/checkout/sessions", {
-      mode,
-      line_items: lines,
-      customer_email: user.email,
-      subscription_data: { metadata: {
-        kind: "cometx_membership",
-        membership_application_id: applicationId,
-        membership_plan_id: plan.id,
-        user_id: user.userId,
-      } },
-      success_url: `${origin}/account/membership?checkout=success`,
-      cancel_url: `${origin}/account/membership?checkout=cancelled`,
-      metadata,
-    }, `membership_checkout_${applicationId}`);
-    if (session.livemode !== false || session.mode !== mode || !session.id.startsWith("cs_test_") || new URL(session.url).hostname !== "checkout.stripe.com") {
+    const session = await stripeRequest<{
+      id: string;
+      url: string;
+      livemode: boolean;
+      mode: string;
+    }>(
+      "/checkout/sessions",
+      {
+        mode,
+        line_items: lines,
+        customer_email: user.email,
+        subscription_data: {
+          metadata: {
+            kind: "cometx_membership",
+            membership_application_id: applicationId,
+            membership_plan_id: plan.id,
+            user_id: user.userId,
+          },
+        },
+        success_url: `${origin}/account/membership?checkout=success`,
+        cancel_url: `${origin}/account/membership?checkout=cancelled`,
+        metadata,
+      },
+      `membership_checkout_${applicationId}`,
+    );
+    if (
+      session.livemode !== false ||
+      session.mode !== mode ||
+      !session.id.startsWith("cs_test_") ||
+      new URL(session.url).hostname !== "checkout.stripe.com"
+    ) {
       throw new Error("Payment checkout could not be prepared safely.");
     }
-    const { error: saveError } = await supabaseAdmin.from("membership_applications")
+    const { error: saveError } = await supabaseAdmin
+      .from("membership_applications")
       .update({ stripe_checkout_session_id: session.id })
       .eq("id", applicationId)
       .eq("user_id", user.userId);
@@ -329,7 +476,8 @@ export const startMembershipBillingPortal = createServerFn({ method: "POST" }).h
     .limit(1)
     .maybeSingle();
   assertDatabaseResult({ error });
-  if (!membership?.stripe_customer_id) throw new Error("Billing management is not available for this membership.");
+  if (!membership?.stripe_customer_id)
+    throw new Error("Billing management is not available for this membership.");
   const origin = checkoutOrigin(configuredAppUrl(process.env));
   const portal = await stripeRequest<{ url: string }>("/billing_portal/sessions", {
     customer: membership.stripe_customer_id,

@@ -86,7 +86,7 @@ export const listEvents = createServerFn({ method: "GET" }).handler(async () => 
   const { data, error } = await getPublicClient()
     .from("events")
     .select(
-      "title,title_en,slug,short_description,short_description_en,hero_image_url,start_date,venue,venue_en,event_status,featured,capacity",
+      "title,title_en,slug,event_type,short_description,short_description_en,hero_image_url,start_date,venue,venue_en,event_status,featured,capacity",
     )
     .eq("publish_state", "published")
     .order("start_date", { ascending: false });
@@ -127,6 +127,7 @@ export const listPartners = createServerFn({ method: "GET" }).handler(async () =
 });
 
 export type PublicMemberProfile = {
+  id: string;
   name: string;
   company: string | null;
   jobTitle: string | null;
@@ -150,7 +151,7 @@ export const listPublicMembers = createServerFn({ method: "GET" }).handler(
 
     const { data: profiles, error: profileError } = await supabaseAdmin
       .from("profiles")
-      .select("first_name,last_name,company,job_title,country")
+      .select("id,first_name,last_name,company,job_title,country")
       .eq("public_directory_visible", true)
       .in("id", memberIds)
       .order("last_name")
@@ -160,6 +161,7 @@ export const listPublicMembers = createServerFn({ method: "GET" }).handler(
     return (profiles ?? [])
       .filter((profile) => profile.first_name?.trim() && profile.last_name?.trim())
       .map((profile) => ({
+        id: profile.id,
         name: `${profile.first_name!.trim()} ${profile.last_name!.trim()}`,
         company: profile.company,
         jobTitle: profile.job_title,
@@ -167,6 +169,42 @@ export const listPublicMembers = createServerFn({ method: "GET" }).handler(
       }));
   },
 );
+
+/** Re-check active membership and explicit directory visibility before serving a public profile. */
+export const getPublicMemberProfile = createServerFn({ method: "GET" })
+  .inputValidator((data: unknown) => z.object({ memberId: z.string().uuid() }).parse(data))
+  .handler(async ({ data }): Promise<PublicMemberProfile | null> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date().toISOString();
+    const { data: membership, error: membershipError } = await supabaseAdmin
+      .from("memberships")
+      .select("user_id")
+      .eq("user_id", data.memberId)
+      .eq("status", "active")
+      .lte("starts_at", now)
+      .or(`ends_at.is.null,ends_at.gt.${now}`)
+      .limit(1)
+      .maybeSingle();
+    if (membershipError) throw new Error("We could not load this member profile.");
+    if (!membership) return null;
+
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("id,first_name,last_name,company,job_title,country")
+      .eq("id", data.memberId)
+      .eq("public_directory_visible", true)
+      .maybeSingle();
+    if (profileError) throw new Error("We could not load this member profile.");
+    if (!profile?.first_name?.trim() || !profile.last_name?.trim()) return null;
+
+    return {
+      id: profile.id,
+      name: `${profile.first_name.trim()} ${profile.last_name.trim()}`,
+      company: profile.company,
+      jobTitle: profile.job_title,
+      country: profile.country,
+    };
+  });
 
 export type PublicMediaItem = {
   id: string;

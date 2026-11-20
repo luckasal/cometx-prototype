@@ -54,7 +54,7 @@ function MediaPage() {
   return (
     <>
       <PageHero
-        tone="brand"
+        tone="light"
         eyebrow={cs ? "Ze života CometX" : "CometX in action"}
         title={cs ? "Fotky a videa" : "Photos and videos"}
         lead={
