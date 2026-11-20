@@ -26,7 +26,7 @@ export function SiteFooter() {
   return (
     <footer className="mt-24 bg-ink text-ink-foreground">
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[1.4fr_0.8fr_1.3fr_0.9fr_0.8fr] [&>div]:min-w-0">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_0.8fr_0.8fr_1.2fr] [&>div]:min-w-0">
           <div>
             <CometXLogo footer />
             <p className="mt-4 max-w-sm text-sm text-ink-foreground/65">
@@ -50,22 +50,32 @@ export function SiteFooter() {
           </div>
 
           <FooterColumn
-            title={cs ? "Komunita" : "Community"}
+            title="CometX"
+            links={[
+              { to: "/about", label: cs ? "O nás" : "About" },
+              { to: "/partners", label: cs ? "Partneři" : "Partners" },
+              { to: "/get-involved", label: cs ? "Volné pozice" : "Open positions" },
+            ]}
+          />
+          <FooterColumn
+            title="Web"
             links={[
               { to: "/events", label: cs ? "Akce" : "Events" },
-              { to: "/community", label: cs ? "Příběhy" : "Stories" },
               { to: "/membership", label: cs ? "Členství" : "Membership" },
+              { to: "/community", label: cs ? "Příběhy" : "Stories" },
+              { to: "/login", label: cs ? "Přihlásit" : "Log in" },
+              { to: "/account", label: cs ? "Můj CometX" : "My CometX" },
             ]}
           />
           <div>
-            <h4 className="eyebrow text-ink-foreground/45">{cs ? "Newsletter" : "Newsletter"}</h4>
+            <h4 className="text-sm font-bold text-ink-foreground">{cs ? "Newsletter" : "Newsletter"}</h4>
             <p className="mt-4 text-sm text-ink-foreground/65">
               {cs
                 ? "Novinky o akcích a komunitě, přímo do schránky."
                 : "Event and community news, straight to your inbox."}
             </p>
             <form
-              className="mt-4 flex gap-2"
+              className="mt-4 flex flex-col gap-2"
               onSubmit={(event) => {
                 event.preventDefault();
                 signup.mutate();
@@ -77,32 +87,16 @@ export function SiteFooter() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@example.com"
-                className="min-w-0 flex-1 rounded-full border border-ink-foreground/30 bg-transparent px-3 py-2 text-sm text-ink-foreground placeholder:text-ink-foreground/35"
+                className="min-w-0 rounded-full border border-ink-foreground/30 bg-transparent px-4 py-2.5 text-sm text-ink-foreground placeholder:text-ink-foreground/35"
               />
               <button
                 disabled={signup.isPending}
-                className="rounded-full bg-accent px-3 py-2 text-xs font-bold text-accent-foreground"
+                className="rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-60"
               >
                 {signup.isPending ? "…" : cs ? "Odebírat" : "Subscribe"}
               </button>
             </form>
           </div>
-          <FooterColumn
-            title={cs ? "Organizace" : "Organisation"}
-            links={[
-              { to: "/about", label: cs ? "O nás" : "About" },
-              { to: "/partners", label: cs ? "Partneři" : "Partners" },
-              { to: "/get-involved", label: cs ? "Volné pozice" : "Open positions" },
-            ]}
-          />
-          <FooterColumn
-            title={cs ? "Účet" : "Account"}
-            links={[
-              { to: "/login", label: cs ? "Přihlásit" : "Log in" },
-              { to: "/register", label: cs ? "Vytvořit účet" : "Create account" },
-              { to: "/account", label: cs ? "Můj CometX" : "My CometX" },
-            ]}
-          />
         </div>
 
         <div className="mt-14 flex flex-col gap-2 border-t border-ink-foreground/15 pt-6 text-xs text-ink-foreground/50 sm:flex-row sm:justify-between">
@@ -167,7 +161,7 @@ export function SiteFooter() {
 function FooterColumn({ title, links }: { title: string; links: { to: string; label: string }[] }) {
   return (
     <div>
-      <h4 className="eyebrow text-ink-foreground/45">{title}</h4>
+      <h4 className="text-sm font-bold text-ink-foreground">{title}</h4>
       <ul className="mt-4 space-y-2.5">
         {links.map((link) => (
           <li key={link.to}>
