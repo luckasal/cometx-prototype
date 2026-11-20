@@ -190,63 +190,48 @@ function Home() {
             </div>
           </Section>
 
-          {/* FLAGSHIP + FACTS: dark/lime split band */}
-          <section className="relative overflow-hidden bg-accent text-accent-foreground">
-            <div className="absolute inset-y-0 left-0 hidden w-1/2 bg-ink lg:block lg:[clip-path:polygon(0_0,100%_0,82%_100%,0_100%)]" />
-            <div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-24">
-              {data.featured ? (
-                <Link
-                  to="/events/$slug"
-                  params={{ slug: data.featured.slug }}
-                  data-analytics-cta="featured_event_home"
-                  className="group block overflow-hidden rounded-3xl bg-ink text-ink-foreground"
-                >
-                  <div className="aspect-[16/10] overflow-hidden bg-ink-foreground/10">
-                    {data.featured.hero_image_url && (
-                      <img
-                        src={data.featured.hero_image_url}
-                        alt={localized(cs, data.featured.title, data.featured.title_en) ?? ""}
-                        className="brand-photo size-full transition-transform duration-500 group-hover:scale-[1.03]"
-                      />
-                    )}
-                  </div>
-                  <div className="p-6">
-                    <StatusPill tone="signal">{cs ? "Hlavní akce" : "Flagship event"}</StatusPill>
-                    <h3 className="mt-3 font-display text-xl font-bold">
-                      {localized(cs, data.featured.title, data.featured.title_en)}
-                    </h3>
-                    <p className="mt-1 text-sm text-ink-foreground/65">
-                      {formatLongDate(data.featured.start_date, cs)}
-                      {localized(cs, data.featured.venue, data.featured.venue_en)
-                        ? ` · ${localized(cs, data.featured.venue, data.featured.venue_en)}`
-                        : ""}
-                    </p>
-                  </div>
-                </Link>
-              ) : (
-                <div className="hidden lg:block" />
-              )}
-              <div>
-                <h2 className="display-lg">{cs ? "Profesní růst mezi svými" : "Professional growth among your own"}</h2>
-                <dl className="mt-8 grid grid-cols-3 gap-6">
+          {/* PROOF BAND: prototype's media panel over a dark/lime split */}
+          <section aria-labelledby="home-proof-title" className="relative overflow-hidden bg-accent text-accent-foreground">
+            <div aria-hidden="true" className="absolute inset-y-0 left-0 hidden w-[46%] lg:flex">
+              <div className="flex-1 bg-ink" />
+              <svg viewBox="46.6 0 53.4 156" preserveAspectRatio="xMidYMid meet" className="-ml-px block h-full w-auto flex-none">
+                <path d="M46.6 0 L97.5 70.5 Q100 74 100 78 Q100 82 97.5 85.5 L46.6 156 Z" fill="#212020" />
+              </svg>
+            </div>
+            <div className="relative mx-auto grid max-w-[1200px] grid-cols-1 gap-12 px-6 py-14 min-[776px]:grid-cols-2 min-[776px]:items-center lg:py-24">
+              <Link
+                to="/community"
+                data-analytics-cta="community_media_home"
+                aria-label={cs ? "Prohlédnout fotky a videa z akcí CometX" : "Browse CometX event photos and videos"}
+                className="group flex aspect-[16/10] flex-col items-center justify-center gap-3 rounded-3xl bg-[#3A3939] p-6 text-center text-[#BDBBB8] transition-colors hover:bg-[#333232] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+              >
+                <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true" className="shrink-0">
+                  <circle cx="28" cy="28" r="27" fill="none" stroke="currentColor" strokeWidth="2" className="text-accent" />
+                  <path d="M23 18 L39 28 L23 38 Z" fill="currentColor" className="text-accent" />
+                </svg>
+                <span>{cs ? "Videa a fotografie z akcí CometX" : "CometX event videos and photos"}</span>
+              </Link>
+              <div className="flex min-w-0 flex-col gap-7">
+                <h2 id="home-proof-title" className="font-display text-[clamp(2rem,3.2vw,2.75rem)] font-bold leading-tight">
+                  {cs ? "Profesní růst mezi svými" : "Professional growth among your own"}
+                </h2>
+                <dl className="grid grid-cols-3 gap-4 sm:gap-5">
                   {[
-                    [cs ? "Od 2021" : "Since 2021", cs ? "švýcarská neziskovka" : "a Swiss nonprofit"],
-                    ["200+", cs ? "hostů sympozia" : "symposium guests"],
-                    ["4", cs ? "formáty akcí" : "event formats"],
+                    ["3\u00a0000+", cs ? "lidí v komunitě" : "people in the community"],
+                    ["250+", cs ? "každý rok na Symposiu" : "at each Symposium"],
+                    ["5–6", cs ? "akcí ročně" : "events each year"],
                   ].map(([value, label]) => (
-                    <div key={label}>
-                      <dt className="font-display text-2xl font-extrabold sm:text-3xl">{value}</dt>
-                      <dd className="mt-1 text-sm">{label}</dd>
+                    <div key={label} className="min-w-0">
+                      <dt className="font-display text-[clamp(1.75rem,3vw,2.75rem)] font-extrabold leading-none">{value}</dt>
+                      <dd className="mt-2 text-sm leading-snug">{label}</dd>
                     </div>
                   ))}
                 </dl>
-                <div className="mt-8">
-                  <Button asChild size="lg" className="bg-ink font-semibold text-ink-foreground hover:bg-ink/90 hover:brightness-100">
-                    <Link to="/events" data-analytics-cta="events_home_growth">
-                      {cs ? "Program akcí" : "Event programme"} <ArrowRight className="size-4" />
-                    </Link>
-                  </Button>
-                </div>
+                <Button asChild size="lg" className="w-fit rounded-full border border-ink bg-background px-6 font-semibold text-ink hover:bg-background/90 hover:brightness-100">
+                  <Link to="/community" data-analytics-cta="community_media_home_button">
+                    {cs ? "Fotky a videa ze všech akcí" : "Photos and videos from all events"}
+                  </Link>
+                </Button>
               </div>
             </div>
           </section>
