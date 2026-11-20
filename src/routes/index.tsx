@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight, MapPin } from "lucide-react";
 import { getHomeData, listPartners } from "@/lib/public.functions";
 import { Button } from "@/components/ui/button";
 import { EmptyBlock, ErrorBlock, LoadingBlock, Section, StatusPill } from "@/components/site/Bits";
@@ -56,27 +56,57 @@ function Home() {
 
   return (
     <>
-      {/* HERO: dark CometX community image panel, with light content sections below */}
-      <section className="relative min-h-[38rem] overflow-hidden bg-ink text-ink-foreground lg:min-h-[min(60rem,82svh)]">
-        <img
-          src="/assets/cometx/article-november.jpg"
-          alt=""
-          aria-hidden
-          className="brand-photo pointer-events-none absolute inset-0 size-full object-[center_65%] opacity-35 lg:left-auto lg:w-[60%] lg:opacity-100 lg:[clip-path:polygon(35%_0,100%_0,100%_100%,0_100%)]"
-        />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink via-ink/85 to-ink/40 lg:hidden" />
-        <div className="relative mx-auto flex min-h-[38rem] max-w-7xl items-center px-5 py-20 pb-28 lg:min-h-[min(60rem,82svh)] lg:px-8 lg:py-28 lg:pb-32">
-          <div className="max-w-xl">
-            <h1 className="display-xl">
-              {cs ? "Profesionální síť kontaktů s kouskem domova" : "Your professional network with a piece of home"}
+      {/* HERO: match the CometX prototype; content sections keep the light site theme */}
+      <section
+        aria-labelledby="home-hero-title"
+        className="relative flex min-h-svh flex-col overflow-hidden bg-ink text-ink-foreground lg:items-center lg:justify-center"
+      >
+        <div className="relative h-[46svh] min-h-[280px] w-full lg:absolute lg:inset-y-0 lg:right-0 lg:h-full lg:w-[60%]">
+          <img
+            src="/assets/cometx/hero-community.jpg"
+            alt={cs ? "Tým CometX Crew na schodech Univerzity v Curychu (UZH)" : "CometX Crew on the steps of the University of Zurich (UZH)"}
+            fetchPriority="high"
+            className="brand-photo size-full object-[60%_55%]"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 lg:hidden"
+            style={{ background: "linear-gradient(rgba(33,32,32,0.55),rgba(33,32,32,0) 22%)" }}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 hidden lg:block"
+            style={{ background: "linear-gradient(rgba(33,32,32,0.55),rgba(33,32,32,0) 22%)" }}
+          />
+        </div>
+        <div
+          aria-hidden="true"
+          className="absolute bottom-0 left-[calc(40%-1px)] top-0 z-[1] hidden lg:flex"
+        >
+          <svg
+            viewBox="46.6 0 53.4 156"
+            preserveAspectRatio="xMidYMid meet"
+            aria-hidden="true"
+            className="block h-full w-auto flex-none"
+          >
+            <path d="M46.6 0 L97.5 70.5 Q100 74 100 78 Q100 82 97.5 85.5 L46.6 156 Z" fill="#212020" />
+          </svg>
+        </div>
+        <div className="relative z-[2] w-full px-5 pb-12 pt-8 lg:mx-auto lg:max-w-7xl lg:px-8 lg:pb-24 lg:pt-[120px]">
+          <div className="flex max-w-none flex-col gap-6 lg:max-w-[520px]">
+            <span className="self-start rounded-full bg-accent px-3 py-1.5 text-[13px] font-bold tracking-[0.04em] text-accent-foreground">
+              Come and Meet Expats
+            </span>
+            <h1 id="home-hero-title" className="font-display text-[clamp(2.5rem,4.6vw,4.125rem)] font-bold leading-[1.03] tracking-[0.005em] text-ink-foreground">
+              {cs ? "Vaše profesionální síť kontaktů s kouskem domova" : "Your professional network with a touch of home"}
             </h1>
-            <p className="mt-6 max-w-2xl text-lg text-ink-foreground/85">
+            <p className="text-[clamp(1.0625rem,1.4vw,1.1875rem)] leading-[1.55] text-[#ECECEC]">
               {cs
                 ? "Akce, networking a adresář Čechů a Slováků ve Švýcarsku. Pro studenty, profesionály, podnikatele i ty, kdo se vracejí domů."
-                : "Events, networking and a directory for Czechs and Slovaks in Switzerland. For students, professionals, entrepreneurs and those finding their way home."}
+                : "Events, networking and a directory for Czechs and Slovaks in Switzerland. For students, professionals, entrepreneurs and those returning home."}
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild variant="signal" size="xl">
+            <div className="flex flex-wrap items-center gap-3.5">
+              <Button asChild variant="signal" size="xl" className="min-h-[52px] px-[26px] text-[17px]">
                 <Link
                   to="/membership"
                   data-analytics-cta="join_membership_home_hero"
@@ -85,7 +115,7 @@ function Home() {
                   {cs ? "Staň se členem" : "Become a member"}
                 </Link>
               </Button>
-              <Button asChild variant="outlineLight" size="xl">
+              <Button asChild variant="outlineLight" size="xl" className="min-h-[52px] border-[1.5px] border-white px-6 text-[17px]">
                 <Link to="/events" data-analytics-cta="view_events_home_hero">
                   {cs ? "Nadcházející akce" : "Upcoming events"}
                 </Link>
@@ -96,7 +126,7 @@ function Home() {
                 to="/events/$slug"
                 params={{ slug: nextEvent.slug }}
                 data-analytics-cta="next_event_home_hero"
-                className="mt-6 inline-flex max-w-full items-center gap-3 rounded-full bg-ink-foreground/10 px-4 py-2 text-sm transition-colors hover:bg-ink-foreground/15"
+                className="inline-flex max-w-full self-start items-center gap-2.5 rounded-[14px] border border-[#3A3939] bg-[#2E2D2D] px-4 py-2.5 text-[15px] text-ink-foreground transition-colors hover:bg-[#383737]"
               >
                 <span className="shrink-0 font-bold text-accent">{cs ? "Nejbližší akce" : "Next event"}</span>
                 <span className="truncate text-ink-foreground/85">
@@ -111,12 +141,13 @@ function Home() {
         </div>
         <a
           href="#upcoming-events"
-          className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center rounded-full bg-ink/70 px-5 py-2 text-sm font-semibold text-ink-foreground backdrop-blur transition-colors hover:bg-ink"
+          aria-label={cs ? "Posunout na nadcházející akce" : "Scroll to upcoming events"}
+          className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-1 rounded-full bg-ink/75 px-3.5 py-2 text-[13px] font-semibold text-ink-foreground transition-colors hover:bg-ink"
         >
           {cs ? "Posuň dolů" : "Scroll down"}
-          <span className="mt-1 grid size-7 place-items-center rounded-b-full bg-accent text-accent-foreground">
-            <ArrowDown className="size-4" aria-hidden="true" />
-          </span>
+          <svg width="34" height="22" viewBox="0 0 156 100" aria-hidden="true">
+            <path d="M0 0 H156 V46.6 L85.5 97.5 Q82 100 78 100 Q74 100 70.5 97.5 L0 46.6 Z" fill="#E1F03C" />
+          </svg>
         </a>
       </section>
 
