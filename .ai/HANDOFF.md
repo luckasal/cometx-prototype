@@ -1188,3 +1188,11 @@ The prior local CMS edits were preserved as commit `b293f60` on `codex/wip-pre-p
 - Hosted `/admin/members` loads and identifies `lucia.salanicova@cometx.ch` as Superadmin. Hosted `/admin/payments` loads bank transfers, ticket invoice requests, and the Stripe payment list without permission errors. Existing payment rows remained unchanged.
 - Stripe invoice workflow was not exercised against a real CometX request: both bank transfers and ticket invoice requests are empty in Production. Creating a bank record would falsely assert finance verification, and there is no paid Checkout invoice request to reuse. No Stripe invoice, charge, ticket, or membership was created in testing.
 - Focused admin tests pass (5/5); prior focused Stripe tests passed (18/18). Production builds are Ready. Next exact task: use a genuine finance-verified bank transfer or paid Checkout invoice request in Stripe test mode to run create, paid-outside confirmation, send, webhook sync, and retry checks; then close PAY-02/PAY-03.
+
+## 2026-11-20: WEB-FRONTEND-HOME-PROD-20261120 light theme fix
+
+- Implementation commit `af26708` on `codex/homepage-production-20261120`; changed `.ai/TASKS.md`, `src/styles.css`, and `src/routes/index.tsx`. The unrelated generated `src/routeTree.gen.ts` change was preserved and excluded.
+- Set the global UI surfaces to white/light neutrals with Deep Space text. Updated the homepage hero to a light panel while keeping the CometX lime/black branding, existing Supabase-backed events, and verified live membership prices. Did not copy placeholder prices or people from the prototype brief.
+- Checks: `pnpm build` passed (existing TanStack `inputValidator()` deprecation warnings); changed-file ESLint passed with the repository's existing CRLF formatting; `git -c core.whitespace=cr-at-eol diff --check` passed. No tests run.
+- Vercel Production deployment `DvXWf2C14AoombvmWrHYJDL7K7Sp` is Ready and assigned to `cometx-prototype.vercel.app`. The canonical Production homepage was opened and visually verified with white content/hero surfaces. Automatic Preview was ignored.
+- Next exact task: none for this release; wait for user feedback on the live visual direction.
