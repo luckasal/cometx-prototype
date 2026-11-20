@@ -81,7 +81,12 @@ function eventCalendarMonth(value: string) {
 
 function eventCategory(event: EventListItem, cs: boolean) {
   const venue = (!cs && event.venue_en?.trim() ? event.venue_en : event.venue)?.toLowerCase() ?? "";
-  if (/online|virtual|virtu[aá]l/.test(venue)) return "online";
+  if (
+    event.event_type === "online" ||
+    event.event_type === "webinar" ||
+    /online|virtual|virtu[aá]l/.test(venue)
+  )
+    return "online";
   if (event.event_type === "symposium") return "symposium";
   return "regular_event";
 }
@@ -89,7 +94,7 @@ function eventCategory(event: EventListItem, cs: boolean) {
 function categoryLabel(key: string, cs: boolean) {
   const labels: Record<string, { cs: string; en: string }> = {
     symposium: { cs: "SCAS · Výroční sympozium", en: "SCAS · Annual Symposium" },
-    regular_event: { cs: "Menší akce", en: "Community events" },
+    regular_event: { cs: "Menší akce", en: "Smaller events" },
     online: { cs: "Online", en: "Online" },
   };
   return labels[key]?.[cs ? "cs" : "en"] ?? key.replaceAll("_", " ");
@@ -98,16 +103,16 @@ function categoryLabel(key: string, cs: boolean) {
 function categoryDescription(key: string, cs: boolean) {
   const descriptions: Record<string, { cs: string; en: string }> = {
     symposium: {
-      cs: "Zveřejněné akce typu sympozium v kalendáři CometX.",
-      en: "Published symposium events in the CometX calendar.",
+      cs: "Hlavní akce roku, která propojuje českou a slovenskou komunitu ve Švýcarsku.",
+      en: "CometX’s annual gathering for the Czech and Slovak community in Switzerland.",
     },
     regular_event: {
-      cs: "Přednášky, setkání a workshopy zveřejněné komunitou CometX.",
-      en: "Talks, meetups and workshops published by the CometX community.",
+      cs: "Přednášky, debaty a networking během roku.",
+      en: "Talks, discussions and networking throughout the year.",
     },
     online: {
-      cs: "Akce se zveřejněným místem konání online.",
-      en: "Events with an online venue published.",
+      cs: "Virtuální sympozium a online setkání.",
+      en: "Virtual symposiums and online meetups.",
     },
   };
   return descriptions[key]?.[cs ? "cs" : "en"] ?? "";
@@ -139,7 +144,6 @@ function EventsPage() {
     () => new Map(ticketPrices.map((item) => [item.slug, item])),
     [ticketPrices],
   );
-  const [category, setCategory] = useState("all");
   const [place, setPlace] = useState("all");
   const [archiveYear, setArchiveYear] = useState("all");
   const [calendarMonth, setCalendarMonth] = useState<Date | null>(null);
@@ -167,26 +171,7 @@ function EventsPage() {
   const pastEvents = allEvents
     .filter((event) => !upcomingEvents.some((upcoming) => upcoming.slug === event.slug))
     .sort((a, b) => Date.parse(b.start_date) - Date.parse(a.start_date));
-  const categories = useMemo(
-    () =>
-      ["symposium", "regular_event", "online"].map((key) => ({
-        key,
-        label: categoryLabel(key, cs),
-        count: allEvents.filter((event) => eventCategory(event, cs) === key).length,
-      })),
-    [allEvents, cs],
-  );
-  const places = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          allEvents
-            .map((event) => (!cs && event.venue_en?.trim() ? event.venue_en : event.venue)?.trim())
-            .filter((value): value is string => Boolean(value)),
-        ),
-      ).sort((a, b) => a.localeCompare(b)),
-    [allEvents, cs],
-  );
+  const categories = ["symposium", "regular_event", "online"];
   const archiveYears = useMemo(
     () =>
       [...new Set(pastEvents.map((event) => eventDayKey(event.start_date).slice(0, 4)))]
@@ -194,12 +179,22 @@ function EventsPage() {
         .reverse(),
     [pastEvents],
   );
-  const visibleUpcoming = upcomingEvents.filter(
-    (event) =>
-      (category === "all" || eventCategory(event, cs) === category) &&
-      (place === "all" ||
-        ((!cs && event.venue_en?.trim() ? event.venue_en : event.venue)?.trim() ?? "") === place),
-  );
+  const venueFor = (event: EventListItem) =>
+    (!cs && event.venue_en?.trim() ? event.venue_en : event.venue)?.trim() ?? "";
+  const commonPlaceFilters = [
+    { key: "all", label: cs ? "Vše" : "All" },
+    { key: "zurich", label: "Zürich" },
+    { key: "scas", label: "SCAS" },
+    { key: "online", label: cs ? "Online" : "Online" },
+  ];
+  const matchesPlace = (event: EventListItem) => {
+    if (place === "all") return true;
+    if (place === "scas") return event.event_type === "symposium";
+    if (place === "online") return eventCategory(event, cs) === "online";
+    if (place === "zurich") return /zürich|zurich|curych/i.test(venueFor(event));
+    return false;
+  };
+  const visibleUpcoming = upcomingEvents.filter(matchesPlace);
   const visiblePast = pastEvents.filter(
     (event) => archiveYear === "all" || eventDayKey(event.start_date).startsWith(archiveYear),
   );
@@ -224,101 +219,64 @@ function EventsPage() {
   return (
     <>
       <section className="bg-background">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 pb-8 pt-14 lg:px-8 lg:pb-10">
-          <p className="eyebrow text-muted-foreground">
-            {cs ? "Kalendář CometX" : "CometX calendar"}
-          </p>
-          <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-[3.25rem]">
+        <div className="mx-auto flex max-w-[1200px] flex-col gap-4 px-5 pb-10 pt-14 lg:px-6">
+          <p className="eyebrow text-muted-foreground">CometX</p>
+          <h1 className="font-display text-[clamp(2.75rem,4.5vw,3.25rem)] font-bold tracking-tight">
             {cs ? "Akce" : "Events"}
           </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground">
+          <p className="max-w-[40em] text-lg leading-relaxed text-muted-foreground">
             {cs
-              ? "Zveřejněná sympozia, přednášky, setkání a workshopy CometX. Prohlédněte si nadcházející termíny nebo archiv."
-              : "Published CometX symposiums, talks, meetups and workshops. Browse upcoming dates or the archive."}
+              ? "SCAS každé září a menší akce během roku. Členské ceny najdete u každé akce."
+              : "SCAS each September and smaller events throughout the year. Member pricing is shown for each event."}
           </p>
         </div>
       </section>
 
-      <section aria-labelledby="event-types-title" className="bg-background pb-10 sm:pb-12">
-        <div className="mx-auto max-w-6xl px-5 lg:px-8">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="eyebrow text-muted-foreground">{cs ? "Co pořádáme" : "What we do"}</p>
-              <h2 id="event-types-title" className="mt-2 font-display text-2xl font-bold">
-                {cs ? "Typy akcí" : "Event types"}
-              </h2>
-            </div>
-            {category !== "all" && (
-              <button
-                type="button"
-                onClick={() => setCategory("all")}
-                className="text-sm font-semibold underline underline-offset-4"
-              >
-                {cs ? "Zobrazit všechny" : "Show all events"}
-              </button>
-            )}
+      <section aria-labelledby="event-types-title" className="bg-background pb-12 sm:pb-16">
+        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
+          <div className="mb-5">
+            <h2 id="event-types-title" className="font-display text-2xl font-bold">
+              {cs ? "Typy akcí" : "Event types"}
+            </h2>
           </div>
-          {isLoading && <LoadingBlock label={cs ? "Načítáme akce" : "Loading events"} />}
-          {error && <ErrorBlock error={error} />}
-          {!isLoading && !error && categories.length === 0 && (
-            <p className="rounded-2xl bg-card p-6 text-sm text-muted-foreground">
-              {cs
-                ? "Typy akcí se zobrazí po zveřejnění první akce."
-                : "Event types will appear when the first event is published."}
-            </p>
-          )}
-          {categories.length > 0 && (
-            <div className="grid gap-4 md:grid-cols-3">
-              {categories.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  aria-pressed={category === item.key}
-                  onClick={() => {
-                    setCategory(category === item.key ? "all" : item.key);
-                    document
-                      .getElementById("events-calendar")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                  className={`flex min-h-44 flex-col gap-2 rounded-2xl border p-6 text-left transition hover:-translate-y-0.5 hover:shadow-md ${item.key === "symposium" ? "border-ink bg-ink text-ink-foreground" : "border-border bg-muted text-foreground"} ${category === item.key ? "ring-2 ring-accent ring-offset-2" : ""}`}
+          <div className="grid gap-5 md:grid-cols-3">
+            {categories.map((item) => (
+              <article
+                key={item}
+                className={`flex min-h-[150px] flex-col gap-2 rounded-[14px] border p-6 ${item === "symposium" ? "border-ink bg-ink text-ink-foreground" : "border-transparent bg-[#ECECEC] text-foreground"}`}
+              >
+                <span
+                  className={`text-[13px] font-semibold uppercase tracking-[0.08em] ${item === "symposium" ? "text-accent" : "text-muted-foreground"}`}
                 >
-                  <span
-                    className={`text-xs font-semibold uppercase tracking-wider ${item.key === "symposium" ? "text-accent" : "text-muted-foreground"}`}
-                  >
-                    {item.key === "symposium"
+                  {item === "symposium"
+                    ? cs
+                      ? "Každé září"
+                      : "Each September"
+                    : item === "online"
                       ? cs
-                        ? "Sympozium"
-                        : "Symposium"
-                      : item.key === "online"
-                        ? cs
-                          ? "Odkudkoli"
-                          : "Join online"
-                        : cs
-                          ? "Celoročně"
-                          : "Throughout the year"}
-                  </span>
-                  <span className="font-display text-xl font-bold">{item.label}</span>
-                  <span
-                    className={`flex-1 text-sm leading-relaxed ${item.key === "symposium" ? "text-ink-foreground/75" : "text-muted-foreground"}`}
-                  >
-                    {categoryDescription(item.key, cs)}
-                  </span>
-                  <span
-                    className={`mt-2 text-xs font-semibold uppercase tracking-wide ${item.key === "symposium" ? "text-ink-foreground/70" : "text-muted-foreground"}`}
-                  >
-                    {item.count}{" "}
-                    {cs
-                      ? item.count === 1
-                        ? "zveřejněná akce"
-                        : "zveřejněné akce"
-                      : item.count === 1
-                        ? "published event"
-                        : "published events"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+                        ? "Odkudkoli"
+                        : "From anywhere"
+                      : cs
+                        ? "4–5× ročně"
+                        : "Throughout the year"}
+                </span>
+                <h3 className="font-display text-[22px] font-bold">
+                  {item === "symposium"
+                    ? "SCAS – Slovak and Czech Annual Symposium"
+                    : item === "online"
+                      ? "Online"
+                      : cs
+                        ? "Menší akce"
+                        : "Smaller events"}
+                </h3>
+                <span
+                  className={`flex-1 text-[15px] leading-relaxed ${item === "symposium" ? "text-ink-foreground/75" : "text-muted-foreground"}`}
+                >
+                  {categoryDescription(item, cs)}
+                </span>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -327,14 +285,10 @@ function EventsPage() {
         aria-labelledby="upcoming-events-title"
         className="scroll-mt-16 bg-background pb-14 sm:pb-16"
       >
-        <div className="mx-auto max-w-6xl px-5 lg:px-8">
-          <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
+        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-5">
             <div>
-              <p className="eyebrow text-muted-foreground">{cs ? "Přidejte se" : "Join us"}</p>
-              <h2
-                id="upcoming-events-title"
-                className="mt-2 font-display text-3xl font-extrabold sm:text-4xl"
-              >
+              <h2 id="upcoming-events-title" className="font-display text-2xl font-bold">
                 {cs ? "Nadcházející akce" : "Upcoming events"}
               </h2>
             </div>
@@ -343,18 +297,15 @@ function EventsPage() {
               role="group"
               aria-label={cs ? "Filtrovat podle místa" : "Filter by location"}
             >
-              <span className="mr-1 text-xs font-semibold text-muted-foreground">
-                {cs ? "Místo" : "Location"}
-              </span>
-              {["all", ...places].map((item) => (
+              {commonPlaceFilters.map((item) => (
                 <button
-                  key={item}
+                  key={item.key}
                   type="button"
-                  aria-pressed={place === item}
-                  onClick={() => setPlace(item)}
-                  className={`min-h-10 rounded-full border px-4 text-sm font-medium transition ${place === item ? "border-ink bg-ink text-ink-foreground" : "border-border bg-background hover:bg-muted"}`}
+                  aria-pressed={place === item.key}
+                  onClick={() => setPlace(item.key)}
+                  className={`min-h-11 rounded-full border-[1.5px] border-[#C9C7C4] px-4 text-[15px] font-medium transition ${place === item.key ? "border-ink bg-ink text-accent" : "bg-background hover:bg-muted"}`}
                 >
-                  {item === "all" ? (cs ? "Vše" : "All") : item}
+                  {item.label}
                 </button>
               ))}
             </div>
@@ -412,16 +363,13 @@ function EventsPage() {
         aria-labelledby="past-events-title"
         className="bg-background py-14 sm:py-16"
       >
-        <div className="mx-auto max-w-6xl px-5 lg:px-8">
+        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
           <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="eyebrow text-muted-foreground">
                 {cs ? "Z historie CometX" : "From CometX history"}
               </p>
-              <h2
-                id="past-events-title"
-                className="mt-2 font-display text-3xl font-extrabold sm:text-4xl"
-              >
+              <h2 id="past-events-title" className="font-display text-2xl font-bold">
                 {cs ? "Uplynulé akce" : "Past events"}
               </h2>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
@@ -479,16 +427,13 @@ function EventsPage() {
       </section>
 
       <section aria-labelledby="event-media-title" className="bg-muted py-14 sm:py-16">
-        <div className="mx-auto max-w-6xl px-5 lg:px-8">
+        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="eyebrow text-muted-foreground">
                 {cs ? "Momenty CometX" : "CometX moments"}
               </p>
-              <h2
-                id="event-media-title"
-                className="mt-2 font-display text-3xl font-extrabold sm:text-4xl"
-              >
+              <h2 id="event-media-title" className="font-display text-2xl font-bold">
                 {cs ? "Fotky a videa z akcí" : "Event photos and videos"}
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
@@ -538,10 +483,6 @@ function EventRow({
 }) {
   const date = new Date(event.start_date);
   const title = !cs && event.title_en?.trim() ? event.title_en : event.title;
-  const description =
-    !cs && event.short_description_en?.trim()
-      ? event.short_description_en
-      : event.short_description;
   const venue = !cs && event.venue_en?.trim() ? event.venue_en : event.venue;
   const day = new Intl.DateTimeFormat(cs ? "cs-CZ" : "en-GB", {
     timeZone: "Europe/Zurich",
@@ -560,41 +501,41 @@ function EventRow({
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
-  const status =
-    event.status === "cancelled"
-      ? cs
-        ? "Zrušeno"
-        : "Cancelled"
-      : event.status === "registration_open"
-        ? cs
-          ? "Registrace otevřena"
-          : "Registration open"
-        : event.status === "registration_closed"
-          ? cs
-            ? "Registrace uzavřena"
-            : "Registration closed"
-          : event.status === "sold_out"
-            ? cs
-              ? "Vyprodáno"
-              : "Sold out"
-            : null;
   const memberPrices = Object.values(prices?.memberPrices ?? {}).filter(
     (price): price is number => price !== null,
   );
   const lowestMemberPrice = memberPrices.length ? Math.min(...memberPrices) : null;
+  const actionLabel =
+    event.status === "sold_out"
+      ? cs
+        ? "Vyprodáno"
+        : "Sold out"
+      : event.status === "registration_open"
+        ? cs
+          ? "Lístek"
+          : "Tickets"
+        : cs
+          ? "Detail akce"
+          : "Event details";
+
   return (
-    <article className="grid gap-4 rounded-2xl border border-border bg-background p-4 sm:grid-cols-[5.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-6 sm:p-5">
+    <Link
+      to="/events/$slug"
+      params={{ slug: event.slug }}
+      aria-label={`${title} · ${date.toLocaleDateString(cs ? "cs-CZ" : "en-GB", { timeZone: "Europe/Zurich", day: "numeric", month: "long", year: "numeric" })}`}
+      className="group flex flex-wrap items-center gap-6 rounded-[14px] border border-[#E2E0DE] bg-background p-5 text-inherit transition hover:border-ink"
+    >
       <time
         dateTime={event.start_date}
-        className="grid size-[5.5rem] content-center rounded-xl bg-muted text-center text-foreground"
+        className="grid size-[5.5rem] shrink-0 content-center rounded-xl bg-[#ECECEC] text-center text-foreground"
       >
         <span className="font-display text-3xl font-bold leading-none">{day}</span>
         <span className="mt-1 text-xs text-muted-foreground">
           {month} {year}
         </span>
       </time>
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-muted-foreground">
+      <div className="min-w-0 flex-1 basis-[320px]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-muted-foreground">
           {venue && (
             <span className="inline-flex items-center gap-1.5">
               <MapPin className="size-3.5" />
@@ -606,26 +547,13 @@ function EventRow({
             <Clock3 className="size-3.5" />
             {time}
           </span>
-          {status && (
-            <span
-              className={`rounded-full px-2.5 py-1 ${event.status === "registration_open" ? "bg-accent text-accent-foreground" : "bg-muted"}`}
-            >
-              {status}
-            </span>
-          )}
         </div>
-        <h3 className="mt-2 font-display text-xl font-bold leading-snug sm:text-2xl">
-          <Link
-            to="/events/$slug"
-            params={{ slug: event.slug }}
-            className="decoration-accent decoration-2 underline-offset-4 hover:underline"
-          >
-            {title}
-          </Link>
+        <h3 className="mt-1 font-display text-[22px] font-semibold leading-snug group-hover:underline">
+          {title}
         </h3>
         {prices && (
           <div className="mt-3 flex flex-wrap gap-2 text-sm">
-            <span className="rounded-full bg-muted px-3 py-1.5">
+            <span className="rounded-full bg-[#ECECEC] px-3 py-1.5">
               {cs ? "Host" : "Guest"} {formatMoney(prices.guestPrice, prices.currency)}
             </span>
             {lowestMemberPrice !== null && (
@@ -639,21 +567,12 @@ function EventRow({
             )}
           </div>
         )}
-        {description && (
-          <p className="mt-1 line-clamp-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-            {description}
-          </p>
-        )}
       </div>
-      <Link
-        to="/events/$slug"
-        params={{ slug: event.slug }}
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent px-5 font-semibold text-accent-foreground transition hover:brightness-95"
-      >
-        {cs ? "Detail a vstupenky" : "Details and tickets"}
+      <span className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent px-5 font-semibold text-accent-foreground transition group-hover:brightness-95">
+        {actionLabel}
         <ArrowRight className="size-4" />
-      </Link>
-    </article>
+      </span>
+    </Link>
   );
 }
 
@@ -761,25 +680,20 @@ function CommunityCalendar({
     <section
       id="community-calendar"
       aria-labelledby="community-calendar-title"
-      className="bg-accent py-12 sm:py-16"
+      className="bg-background py-12 sm:py-16"
     >
-      <div className="mx-auto grid max-w-7xl gap-8 px-5 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+      <div className="mx-auto grid max-w-[1200px] gap-8 px-5 lg:grid-cols-[360px_minmax(0,1fr)] lg:px-6">
         <div>
-          <p className="eyebrow text-accent-foreground/70">
-            {cs ? "Všechny termíny" : "All dates"}
-          </p>
-          <h2
-            id="community-calendar-title"
-            className="mt-2 font-display text-3xl font-extrabold sm:text-4xl"
-          >
+          <p className="eyebrow text-muted-foreground">{cs ? "Všechny termíny" : "All dates"}</p>
+          <h2 id="community-calendar-title" className="mt-2 font-display text-[32px] font-bold">
             {cs ? "Kalendář komunity" : "Community calendar"}
           </h2>
-          <p className="mt-2 max-w-xl text-sm text-accent-foreground/75">
+          <p className="mt-2 max-w-xl text-base text-muted-foreground">
             {cs
               ? "Zveřejněné akce CometX na jednom místě."
               : "Published CometX events in one place."}
           </p>
-          <div className="mt-7 rounded-3xl bg-card p-4 shadow-sm sm:p-6">
+          <div className="mt-7 rounded-[18px] border border-[#E2E0DE] bg-card p-5 sm:p-6">
             <div className="mb-5 flex items-center justify-between gap-4">
               <button
                 type="button"
@@ -835,7 +749,7 @@ function CommunityCalendar({
             </div>
           </div>
         </div>
-        <div className="rounded-3xl bg-ink p-5 text-ink-foreground sm:p-7">
+        <div className="rounded-[18px] border border-[#E2E0DE] bg-card p-5 text-foreground sm:p-6">
           <div className="flex items-center gap-3">
             <CalendarDays className="size-5 text-accent" />
             <h3 className="font-display text-xl font-bold">
@@ -849,7 +763,7 @@ function CommunityCalendar({
             </h3>
           </div>
           {selectedDayEvents.length === 0 ? (
-            <p className="mt-5 rounded-2xl border border-ink-foreground/15 p-5 text-sm text-ink-foreground/70">
+            <p className="mt-5 rounded-2xl border border-border p-5 text-sm text-muted-foreground">
               {monthEvents.length === 0
                 ? cs
                   ? "V tomto měsíci zatím není zveřejněná žádná akce."
@@ -859,31 +773,33 @@ function CommunityCalendar({
                   : "No event is scheduled for this day."}
             </p>
           ) : (
-            <ul className="mt-4 divide-y divide-ink-foreground/15">
+            <ul className="mt-4 flex flex-col gap-2">
               {selectedDayEvents.slice(0, 6).map((event) => (
-                <li key={event.slug} className="py-4">
-                  <p className="text-xs font-semibold text-accent">
-                    {new Intl.DateTimeFormat(cs ? "cs-CZ" : "en-GB", {
-                      timeZone: "Europe/Zurich",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }).format(new Date(event.start_date))}
-                    {event.venue &&
-                      ` · ${!cs && event.venue_en?.trim() ? event.venue_en : event.venue}`}
-                  </p>
-                  <Link
-                    to="/events/$slug"
-                    params={{ slug: event.slug }}
-                    className="mt-1 inline-flex items-center gap-2 font-semibold hover:underline"
-                  >
-                    {!cs && event.title_en?.trim() ? event.title_en : event.title}
-                    <ArrowRight className="size-4" />
-                  </Link>
+                <li key={event.slug}>
+                  <div className="flex flex-wrap items-center gap-4 rounded-[14px] border border-border px-4 py-3">
+                    <p className="text-xs font-semibold text-foreground">
+                      {new Intl.DateTimeFormat(cs ? "cs-CZ" : "en-GB", {
+                        timeZone: "Europe/Zurich",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }).format(new Date(event.start_date))}
+                      {event.venue &&
+                        ` · ${!cs && event.venue_en?.trim() ? event.venue_en : event.venue}`}
+                    </p>
+                    <Link
+                      to="/events/$slug"
+                      params={{ slug: event.slug }}
+                      className="inline-flex items-center gap-2 font-semibold hover:underline"
+                    >
+                      {!cs && event.title_en?.trim() ? event.title_en : event.title}
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
-          <p className="mt-3 text-xs text-ink-foreground/60">
+          <p className="mt-3 text-xs text-muted-foreground">
             {monthEvents.length}{" "}
             {cs
               ? monthEvents.length === 1

@@ -1,13 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import {
-  ArrowDown,
-  ArrowRight,
-  CalendarDays,
-  Clock3,
-  MapPin,
-  Users,
-  Ticket,
-} from "lucide-react";
+import { ArrowRight, CalendarDays, Clock3, MapPin, Users, Ticket } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { EventDetail } from "@/lib/events.functions";
@@ -18,7 +10,12 @@ import { BrandXElement } from "./BrandXElement";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "./Bits";
 import { ticketPricingType, trackEvent } from "@/lib/analytics";
-import { isCustomerTicketVisible, orderTicketsByAvailability, ticketAvailability, ticketAvailabilityMessage } from "@/lib/ticket-availability";
+import {
+  isCustomerTicketVisible,
+  orderTicketsByAvailability,
+  ticketAvailability,
+  ticketAvailabilityMessage,
+} from "@/lib/ticket-availability";
 
 type Props = {
   data: EventDetail;
@@ -29,11 +26,12 @@ type Props = {
 export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
   const { language } = useLanguage();
   const cs = language === "cs";
-  const [quantities,setQuantities]=useState<Record<string,number>>({});
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const memberPricesSent = useRef(new Set<string>());
-  const localized = (cz: string | null, en: string | null) => !cs && en?.trim() ? en : cz;
+  const localized = (cz: string | null, en: string | null) => (!cs && en?.trim() ? en : cz);
   const { partners } = data;
-  const speakers = data.speakers.map((speaker) => ({ ...speaker,
+  const speakers = data.speakers.map((speaker) => ({
+    ...speaker,
     jobTitle: localized(speaker.jobTitle, speaker.jobTitleEn),
     bio: localized(speaker.bio, speaker.bioEn),
   }));
@@ -47,7 +45,8 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
   };
   // Keep the original ticket name for availability, early-bird rules and analytics.
   const tickets = data.tickets;
-  const workshops = data.workshops.map((workshop) => ({ ...workshop,
+  const workshops = data.workshops.map((workshop) => ({
+    ...workshop,
     title: localized(workshop.title, workshop.titleEn) ?? workshop.title,
     description: localized(workshop.description, workshop.descriptionEn),
     location: localized(workshop.location, workshop.locationEn),
@@ -55,7 +54,8 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
   useEffect(() => {
     if (!data.isSignedIn) return;
     for (const ticket of tickets) {
-      if (ticket.price.benefitType === "public" || memberPricesSent.current.has(ticket.id)) continue;
+      if (ticket.price.benefitType === "public" || memberPricesSent.current.has(ticket.id))
+        continue;
       memberPricesSent.current.add(ticket.id);
       trackEvent("member_price_view", {
         event_id: event.id,
@@ -117,29 +117,30 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
             : cs
               ? "Prodej vstupenek uzavřen"
               : "Ticket sales closed";
-  const ticketCta = open && tickets.length
+  const ticketCta =
+    open && tickets.length
       ? cs
         ? "Koupit vstupenky"
         : "Buy tickets"
       : cs
-          ? "Informace o vstupenkách"
-          : "Ticket information";
-  const ticketAction = (icon?: ReactNode) =>
-      <a
-        href="#event-ticket-options"
-        onClick={(e) => {
-          const target = document.getElementById("event-ticket-options");
-          if (!target) return;
-          e.preventDefault();
-          target.focus({ preventScroll: true });
-          target.scrollIntoView({ block: "center", behavior: "instant" });
-        }}
-      >
-        {ticketCta}
-        {icon}
-      </a>;
-  const portrait = speakers.find((s) => s.photoUrl);
-  const heroImage = event.heroImageUrl || portrait?.photoUrl;
+        ? "Informace o vstupenkách"
+        : "Ticket information";
+  const ticketAction = (icon?: ReactNode) => (
+    <a
+      href="#event-ticket-options"
+      onClick={(e) => {
+        const target = document.getElementById("event-ticket-options");
+        if (!target) return;
+        e.preventDefault();
+        target.focus({ preventScroll: true });
+        target.scrollIntoView({ block: "center", behavior: "instant" });
+      }}
+    >
+      {ticketCta}
+      {icon}
+    </a>
+  );
+  const heroImage = event.heroImageUrl;
   const content = splitEventContent(event.description);
   const scheduled = workshops.filter((w) => w.startTime);
   const types: Record<string, string> = cs
@@ -180,19 +181,27 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
           firstEligible.price.currency,
         )
       : null;
-  const availabilityFor = (ticket: (typeof tickets)[number]) => ticketAvailability({
-    isPreview: data.isPreview,
-    registrationOpen: open,
-    soldOut: ticket.soldOut,
-    saleStart: ticket.saleStart,
-    saleEnd: ticket.saleEnd,
-    eligible: ticket.price.eligible,
-  });
+  const availabilityFor = (ticket: (typeof tickets)[number]) =>
+    ticketAvailability({
+      isPreview: data.isPreview,
+      registrationOpen: open,
+      soldOut: ticket.soldOut,
+      saleStart: ticket.saleStart,
+      saleEnd: ticket.saleEnd,
+      eligible: ticket.price.eligible,
+    });
   const displayTickets = orderTicketsByAvailability(tickets, availabilityFor);
-  const customerTickets = displayTickets.filter((ticket) => data.isPreview || isCustomerTicketVisible(ticket.name, availabilityFor(ticket), ticket.saleEnd));
-  const activeEarlyBird = tickets.find((ticket) =>
-    /early[\s-]?bird|předprodej|včasn/i.test(ticket.name) &&
-    ticket.saleEnd && availabilityFor(ticket) === "available");
+  const customerTickets = displayTickets.filter(
+    (ticket) =>
+      data.isPreview ||
+      isCustomerTicketVisible(ticket.name, availabilityFor(ticket), ticket.saleEnd),
+  );
+  const activeEarlyBird = tickets.find(
+    (ticket) =>
+      /early[\s-]?bird|předprodej|včasn/i.test(ticket.name) &&
+      ticket.saleEnd &&
+      availabilityFor(ticket) === "available",
+  );
 
   return (
     <article className="pb-28 lg:pb-12 [&_button]:rounded-full [&_a.inline-flex]:rounded-full">
@@ -207,7 +216,7 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
             : "Purchases are disabled in preview. Saved changes refresh automatically."}
         </div>
       )}
-      <div className="mx-auto max-w-7xl px-5 lg:px-8">
+      <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
         <Link
           to="/events"
           className="my-7 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-accent"
@@ -215,68 +224,54 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
           <ArrowRight className="size-4 rotate-180" />
           {cs ? "Všechny akce" : "All events"}
         </Link>
-        <div className="grid items-start gap-x-12 gap-y-16 lg:grid-cols-[minmax(0,1fr)_23rem] xl:gap-x-20">
-          <header className="relative min-w-0 overflow-hidden lg:col-start-1 lg:row-start-1">
-            <BrandXElement className="pointer-events-none absolute right-5 top-5 z-10 h-16 w-16 opacity-[0.12]" />
-            <div className="relative grid gap-7 rounded-3xl bg-muted p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(15rem,0.8fr)] lg:items-center lg:gap-10 lg:p-10">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-3">
-                  <p className="eyebrow text-accent">{types[event.eventType] ?? event.eventType}</p>
-                  <StatusPill tone={open ? "signal" : "muted"}>{status}</StatusPill>
-                </div>
-                <h1 className="mt-6 text-[clamp(2.25rem,4.5vw,4rem)] leading-[1.08] font-bold tracking-tight [overflow-wrap:anywhere]">
-                  {event.title}
-                </h1>
-                {speakers.length > 0 && (
-                  <div className="mt-6 flex flex-wrap gap-x-5 gap-y-3">
-                    {speakers.map((s) => (
-                      <a
-                        key={s.id}
-                        href={`#speaker-${s.id}`}
-                        className="inline-flex items-center gap-3 text-sm hover:text-accent"
-                      >
-                        {s.photoUrl && (
-                          <img
-                            src={s.photoUrl}
-                            alt=""
-                            className="size-10 rounded-full object-cover"
-                          />
-                        )}
-                        <span>
-                          <strong className="block">{s.name}</strong>
-                          {(s.jobTitle || s.company) && (
-                            <span className="block text-xs text-muted-foreground">
-                              {[s.jobTitle, s.company].filter(Boolean).join(" · ")}
-                            </span>
-                          )}
-                        </span>
-                      </a>
-                    ))}
-                  </div>
-                )}
-                {event.shortDescription && (
-                  <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-                    {event.shortDescription}
-                  </p>
-                )}
-                <Button
-                  asChild
-                  variant="signal"
-                  size="lg"
-                  className="mt-9 rounded-full px-8 lg:hidden"
-                >
-                  {ticketAction(<ArrowDown className="size-4" />)}
-                </Button>
+        <div className="grid items-start gap-x-12 gap-y-14 lg:grid-cols-[minmax(0,1fr)_minmax(340px,390px)] xl:gap-x-16">
+          <header className="min-w-0 lg:col-start-1 lg:row-start-1">
+            <figure className="m-0 overflow-hidden rounded-2xl bg-[#DCDAD7]">
+              {heroImage ? (
+                <img
+                  src={heroImage}
+                  alt={event.title}
+                  className="h-[260px] w-full object-cover sm:h-[340px]"
+                  fetchPriority="high"
+                />
+              ) : (
+                <div aria-hidden="true" className="h-[260px] sm:h-[340px]" />
+              )}
+            </figure>
+            <div className="mt-7 flex flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="eyebrow text-foreground">
+                  {types[event.eventType] ?? event.eventType}
+                </p>
+                <StatusPill tone={open ? "signal" : "muted"}>{status}</StatusPill>
               </div>
-              {heroImage && (
-                <figure className="m-0 overflow-hidden rounded-2xl bg-background">
-                  <img
-                    src={heroImage}
-                    alt={event.heroImageUrl ? event.title : portrait!.name}
-                    className="aspect-[4/3] w-full object-cover"
-                    fetchPriority="high"
-                  />
-                </figure>
+              <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-foreground">
+                <span className="inline-flex items-center gap-2">
+                  <CalendarDays className="size-4 text-accent" />
+                  <time dateTime={event.startDate}>{date(event.startDate)}</time>
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <Clock3 className="size-4 text-accent" />
+                  {time(event.startDate)}
+                  {event.endDate && <> – {time(event.endDate)}</>}
+                  <span className="font-normal text-muted-foreground">
+                    {cs ? "čas ve Švýcarsku" : "Swiss time"}
+                  </span>
+                </span>
+                {event.venue && (
+                  <span className="inline-flex items-center gap-2">
+                    <MapPin className="size-4 text-accent" />
+                    {event.venue}
+                  </span>
+                )}
+              </div>
+              <h1 className="font-display text-[clamp(2.5rem,4.2vw,3.25rem)] leading-[1.08] font-bold tracking-tight [overflow-wrap:anywhere]">
+                {event.title}
+              </h1>
+              {event.shortDescription && (
+                <p className="max-w-[48rem] text-lg leading-relaxed text-[#3A3939]">
+                  {event.shortDescription}
+                </p>
               )}
             </div>
           </header>
@@ -284,42 +279,15 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
           <aside
             id="event-tickets"
             aria-label={cs ? "Informace a registrace" : "Event information and tickets"}
-            className="scroll-mt-28 min-w-0 overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-2"
+            className="scroll-mt-28 min-w-0 rounded-[18px] border border-[#E2E0DE] bg-card shadow-[0_12px_32px_rgba(33,32,32,0.1)] lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-2"
           >
-            <div className="relative overflow-hidden bg-ink px-7 py-7 text-ink-foreground sm:px-8">
-              <BrandXElement
-                variant="fullDark"
-                className="absolute -right-7 -top-5 h-40 w-40 opacity-10"
-              />
-              <p className="eyebrow text-accent">CometX</p>
-              <h2 className="mt-1 text-2xl font-bold">{cs ? "Buďte u toho" : "Join the event"}</h2>
-            </div>
-            <div className="p-7 sm:p-8">
-              <dl className="space-y-6 text-sm">
-                <Info icon={<CalendarDays className="size-4" />} label={cs ? "Datum" : "Date"}>
-                  <time dateTime={event.startDate}>{date(event.startDate)}</time>
-                  {event.endDate && date(event.endDate) !== date(event.startDate) && (
-                    <> – {date(event.endDate)}</>
-                  )}
-                </Info>
-                <Info icon={<Clock3 className="size-4" />} label={cs ? "Čas" : "Time"}>
-                  {time(event.startDate)}
-                  {event.endDate && <> – {time(event.endDate)}</>}
-                  <span className="mt-1 block text-xs text-muted-foreground">
-                    {cs ? "Čas ve Švýcarsku · Europe/Zurich" : "Swiss local time · Europe/Zurich"}
-                  </span>
-                </Info>
-                {event.venue && (
-                  <Info
-                    icon={<MapPin className="size-4" />}
-                    label={cs ? "Místo / online" : "Venue / online"}
-                  >
-                    {event.venue}
-                    {event.address && (
-                      <span className="mt-1 block text-muted-foreground">{event.address}</span>
-                    )}
-                  </Info>
-                )}
+            <div className="p-6 sm:p-7">
+              <p className="eyebrow text-muted-foreground">CometX</p>
+              <h2 className="mt-2 font-display text-2xl font-bold">
+                {cs ? "Vstupenky" : "Tickets"}
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">{status}</p>
+              <dl className="mt-6 space-y-4 border-y border-border py-5 text-sm">
                 {capacity && (
                   <Info
                     icon={<Users className="size-4" />}
@@ -351,131 +319,272 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                 id="event-ticket-options"
                 tabIndex={-1}
                 aria-label={cs ? "Výběr vstupenky" : "Ticket options"}
-                className="mt-9 scroll-mt-28 rounded-3xl bg-background/40 p-5 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-4 focus:ring-offset-card"
+                className="mt-6 scroll-mt-28 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-4 focus:ring-offset-card"
               >
                 <div className="flex flex-wrap items-end justify-between gap-2">
-                  <h3 className="text-xl font-bold">{cs ? "Vyberte si vstupenku" : "Choose your ticket"}</h3>
-                  <span className="text-xs text-muted-foreground">{cs ? "Cena za osobu" : "Price per person"}</span>
+                  <h3 className="text-xl font-bold">
+                    {cs ? "Vyberte si vstupenku" : "Choose your ticket"}
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    {cs ? "Cena za osobu" : "Price per person"}
+                  </span>
                 </div>
                 {customerTickets.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
-                    {cs ? "Vstupenky momentálně nejsou k dispozici." : "Tickets are not currently available."}
+                    {cs
+                      ? "Vstupenky momentálně nejsou k dispozici."
+                      : "Tickets are not currently available."}
                   </p>
                 ) : (
                   <div className="mt-5 space-y-4">
                     {customerTickets.map((ticket) => {
                       const availability = availabilityFor(ticket);
                       const isEarlyBird = /early[\s-]?bird|předprodej|včasn/i.test(ticket.name);
-                      const endedEarlyBird = isEarlyBird && ticket.saleEnd && Date.parse(ticket.saleEnd) <= Date.now() && availability !== "event_closed";
-                      const availabilityMessage = ticketAvailabilityMessage(endedEarlyBird ? "sale_ended" : availability, ticket.saleStart, cs);
-                      const earlyBirdBeforeRegular = activeEarlyBird && activeEarlyBird.id !== ticket.id &&
-                        ticket.saleStart && Date.parse(ticket.saleStart) >= Date.parse(activeEarlyBird.saleEnd!);
-                      const priceEndsBeforeEvent = ticket.saleEnd &&
-                        Date.parse(ticket.saleEnd) <= Date.parse(event.registrationEnd ?? event.startDate) &&
+                      const endedEarlyBird =
+                        isEarlyBird &&
+                        ticket.saleEnd &&
+                        Date.parse(ticket.saleEnd) <= Date.now() &&
+                        availability !== "event_closed";
+                      const availabilityMessage = ticketAvailabilityMessage(
+                        endedEarlyBird ? "sale_ended" : availability,
+                        ticket.saleStart,
+                        cs,
+                      );
+                      const earlyBirdBeforeRegular =
+                        activeEarlyBird &&
+                        activeEarlyBird.id !== ticket.id &&
+                        ticket.saleStart &&
+                        Date.parse(ticket.saleStart) >= Date.parse(activeEarlyBird.saleEnd!);
+                      const priceEndsBeforeEvent =
+                        ticket.saleEnd &&
+                        Date.parse(ticket.saleEnd) <=
+                          Date.parse(event.registrationEnd ?? event.startDate) &&
                         Date.parse(ticket.saleEnd) <= Date.parse(event.startDate);
-                      const maxQuantity=Math.max(0,Math.min(ticket.spotsLeft ?? 10,data.spotsLeft ?? 10,10));
-                      const quantity=quantities[ticket.id] ?? (availability === "available" ? 1 : 0);
-                      const otherQuantity=tickets.reduce((sum,other)=>sum+(other.id===ticket.id?0:quantities[other.id]??0),0);
-                      const basketMax=Math.min(maxQuantity,Math.max(0,10-otherQuantity));
+                      const maxQuantity = Math.max(
+                        0,
+                        Math.min(ticket.spotsLeft ?? 10, data.spotsLeft ?? 10, 10),
+                      );
+                      const quantity =
+                        quantities[ticket.id] ?? (availability === "available" ? 1 : 0);
+                      const otherQuantity = tickets.reduce(
+                        (sum, other) =>
+                          sum + (other.id === ticket.id ? 0 : (quantities[other.id] ?? 0)),
+                        0,
+                      );
+                      const basketMax = Math.min(maxQuantity, Math.max(0, 10 - otherQuantity));
                       return (
-                      <div key={ticket.id} className="overflow-hidden rounded-[1.5rem] border border-border/80 bg-card shadow-sm">
-                        <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              {isEarlyBird && <span className="rounded-full bg-accent px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-accent-foreground">{cs ? "Předprodej" : "Early bird"}</span>}
-                              {availability === "available" && <span className="rounded-full border border-accent/50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-accent">{cs ? "K dispozici" : "Available"}</span>}
+                        <div
+                          key={ticket.id}
+                          className={`overflow-hidden rounded-xl border-[1.5px] ${availability === "available" && quantity > 0 ? "border-ink bg-[#F7FAD0]" : "border-[#C9C7C4] bg-card"}`}
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                {isEarlyBird && (
+                                  <span className="rounded-full bg-accent px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-accent-foreground">
+                                    {cs ? "Předprodej" : "Early bird"}
+                                  </span>
+                                )}
+                                {availability === "available" && (
+                                  <span className="rounded-full border border-accent/50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-accent">
+                                    {cs ? "K dispozici" : "Available"}
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="mt-3 text-lg font-bold leading-snug">
+                                {localized(ticket.name, ticket.nameEn)}
+                              </h4>
+                              {localized(ticket.description, ticket.descriptionEn) && (
+                                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                                  {localized(ticket.description, ticket.descriptionEn)}
+                                </p>
+                              )}
                             </div>
-                            <h4 className="mt-3 text-lg font-bold leading-snug">{localized(ticket.name, ticket.nameEn)}</h4>
-                            {localized(ticket.description, ticket.descriptionEn) && <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{localized(ticket.description, ticket.descriptionEn)}</p>}
-                          </div>
-                          {ticket.spotsLeft !== null && availability === "available" && <p className="text-xs text-muted-foreground">{cs ? `Zbývá ${ticket.spotsLeft} míst` : `${ticket.spotsLeft} places left`}</p>}
-                        </div>
-                        <div className="mx-5 mt-5 border-t border-border/70 pt-5">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{ticket.price.benefitType !== "public" ? (cs ? "Vaše členská cena" : "Your member price") : (cs ? "Cena vstupenky" : "Ticket price")}</p>
-                          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                            <p className="text-3xl font-bold tracking-tight text-foreground">{formatMoney(ticket.price.finalPrice, ticket.price.currency)}</p>
-                            {ticket.price.benefitType !== "public" && ticket.price.finalPrice < ticket.price.basePrice && <span className="text-sm text-muted-foreground line-through">{formatMoney(ticket.price.basePrice, ticket.price.currency)}</span>}
-                          </div>
-                          {ticket.price.benefitType !== "public" && <>
-                            <p className="mt-2 text-sm font-medium text-accent">{formatMembershipBenefit(ticket.price, cs)}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{cs ? "Členská výhoda platí na jednu vstupenku na akci; další jsou za běžnou cenu." : "Member benefits apply to one ticket per event; additional tickets are full price."}</p>
-                          </>}
-                          {data.workshopCreditAvailable && data.workshopCreditAmount && ticket.price.benefitType === "public" && ticket.price.basePrice > 0 &&
-                            <p className="mt-2 text-sm text-accent">{cs ? `Členský kredit CHF ${data.workshopCreditAmount} si můžete zvolit v košíku.` : `Choose whether to use your CHF ${data.workshopCreditAmount} member credit in the cart.`}</p>}
-                        </div>
-                        {availabilityMessage && !(earlyBirdBeforeRegular && availability === "sale_not_started") &&
-                          <p className="mx-5 mt-4 rounded-xl bg-background px-3 py-2 text-sm font-medium text-muted-foreground" role="status">{availabilityMessage}</p>}
-                        {availability === "membership_required" && (
-                          <div className="mx-5 mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                            <Link to="/membership" className="font-semibold text-accent underline underline-offset-4">
-                              {cs ? "Porovnat členství" : "Compare memberships"}
-                            </Link>
-                            {!data.isSignedIn && (
-                              <button type="button" className="text-muted-foreground underline underline-offset-4" onClick={onLogin}>
-                                {cs ? "Už jste člen? Přihlaste se" : "Already a member? Log in"}
-                              </button>
+                            {ticket.spotsLeft !== null && availability === "available" && (
+                              <p className="text-xs text-muted-foreground">
+                                {cs
+                                  ? `Zbývá ${ticket.spotsLeft} míst`
+                                  : `${ticket.spotsLeft} places left`}
+                              </p>
                             )}
                           </div>
-                        )}
-                        {priceEndsBeforeEvent && Date.parse(ticket.saleEnd!) > Date.now() && (
-                          <p className="mx-5 mt-3 text-xs text-muted-foreground">
-                            {isEarlyBird ? (cs ? "Předprodej končí" : "Early bird ends") : (cs ? "Tato cena platí do" : "This price is available until")} {date(ticket.saleEnd!)} · {time(ticket.saleEnd!)} {cs ? "(čas ve Švýcarsku)" : "(Swiss time)"}
-                          </p>
-                        )}
-                        {earlyBirdBeforeRegular && (
-                          <p className="mx-5 mt-3 text-xs text-accent">
-                            {cs ? "Běžný prodej začne po skončení předprodeje" : "Regular tickets open when early bird ends"} {date(activeEarlyBird.saleEnd!)} · {time(activeEarlyBird.saleEnd!)} {cs ? "(čas ve Švýcarsku)" : "(Swiss time)"}
-                          </p>
-                        )}
-                        {!data.isSignedIn && ticket.hasMemberPricing && availability !== "membership_required" && (
-                          <button type="button" className="mx-5 mt-3 text-sm font-medium text-accent underline underline-offset-2" onClick={() => {
-                            trackEvent("login_for_member_price", {
-                              event_id: event.id,
-                              event_slug: event.slug,
-                              event_type: event.eventType,
-                              ticket_type: ticket.name,
-                              ticket_type_id: ticket.id,
-                              value: ticket.memberPrice ?? ticket.price.basePrice,
-                              currency: ticket.price.currency,
-                              pricing_type: "member",
-                            });
-                            onLogin();
-                          }}>
-                            {cs ? "Přihlásit se pro členskou cenu" : "Log in for member pricing"}
-                          </button>
-                        )}
-                        <label className="mx-5 mt-5 flex items-center justify-between gap-3 border-t border-border/70 pt-4 text-sm">
-                          <span className="font-medium">{cs ? "Počet vstupenek" : "Quantity"}</span>
-                          <select aria-label={cs ? `Počet vstupenek: ${ticket.name}` : `Ticket quantity: ${localized(ticket.name, ticket.nameEn)}`} className="min-h-11 min-w-20 rounded-xl border border-border bg-background px-3 text-center font-semibold" value={quantity}
-                            disabled={availability !== "available"}
-                            onChange={e => {
-                              const next = Math.min(Number(e.target.value), Math.max(0, 10 - otherQuantity));
-                              if (quantity === 0 && next > 0) trackEvent("ticket_select", {
-                                event_id: event.id,
-                                event_slug: event.slug,
-                                event_type: event.eventType,
-                                ticket_type: ticket.name,
-                                ticket_type_id: ticket.id,
-                                quantity: next,
-                                value: ticket.price.finalPrice * next,
-                                currency: ticket.price.currency,
-                                membership_tier: data.membershipName ?? undefined,
-                                  pricing_type: ticketPricingType(ticket.price),
-                              });
-                              setQuantities(previous => ({ ...previous, [ticket.id]: next }));
-                            }}>
-                            {Array.from({length:basketMax + 1},(_,i)=>i).map(n=><option key={n} value={n}>{n}</option>)}
-                          </select>
-                        </label>
-                        <div className="px-5 pb-5 pt-4">
-                          <Button variant="signal" data-analytics-cta="event_add_ticket" className="min-h-12 w-full text-base" disabled={quantity < 1 || availability !== "available" || maxQuantity < 1}
-                            onClick={() => onAddToCart(ticket.id, quantity)}>
-                            {cs ? "Přidat do košíku" : "Add to cart"}
-                            <ArrowRight className="size-4" />
-                          </Button>
+                          <div className="mx-5 mt-5 border-t border-border/70 pt-5">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                              {ticket.price.benefitType !== "public"
+                                ? cs
+                                  ? "Vaše členská cena"
+                                  : "Your member price"
+                                : cs
+                                  ? "Cena vstupenky"
+                                  : "Ticket price"}
+                            </p>
+                            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                              <p className="text-3xl font-bold tracking-tight text-foreground">
+                                {formatMoney(ticket.price.finalPrice, ticket.price.currency)}
+                              </p>
+                              {ticket.price.benefitType !== "public" &&
+                                ticket.price.finalPrice < ticket.price.basePrice && (
+                                  <span className="text-sm text-muted-foreground line-through">
+                                    {formatMoney(ticket.price.basePrice, ticket.price.currency)}
+                                  </span>
+                                )}
+                            </div>
+                            {ticket.price.benefitType !== "public" && (
+                              <>
+                                <p className="mt-2 text-sm font-medium text-accent">
+                                  {formatMembershipBenefit(ticket.price, cs)}
+                                </p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {cs
+                                    ? "Členská výhoda platí na jednu vstupenku na akci; další jsou za běžnou cenu."
+                                    : "Member benefits apply to one ticket per event; additional tickets are full price."}
+                                </p>
+                              </>
+                            )}
+                            {data.workshopCreditAvailable &&
+                              data.workshopCreditAmount &&
+                              ticket.price.benefitType === "public" &&
+                              ticket.price.basePrice > 0 && (
+                                <p className="mt-2 text-sm text-accent">
+                                  {cs
+                                    ? `Členský kredit CHF ${data.workshopCreditAmount} si můžete zvolit v košíku.`
+                                    : `Choose whether to use your CHF ${data.workshopCreditAmount} member credit in the cart.`}
+                                </p>
+                              )}
+                          </div>
+                          {availabilityMessage &&
+                            !(earlyBirdBeforeRegular && availability === "sale_not_started") && (
+                              <p
+                                className="mx-5 mt-4 rounded-xl bg-background px-3 py-2 text-sm font-medium text-muted-foreground"
+                                role="status"
+                              >
+                                {availabilityMessage}
+                              </p>
+                            )}
+                          {availability === "membership_required" && (
+                            <div className="mx-5 mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                              <Link
+                                to="/membership"
+                                className="font-semibold text-accent underline underline-offset-4"
+                              >
+                                {cs ? "Porovnat členství" : "Compare memberships"}
+                              </Link>
+                              {!data.isSignedIn && (
+                                <button
+                                  type="button"
+                                  className="text-muted-foreground underline underline-offset-4"
+                                  onClick={onLogin}
+                                >
+                                  {cs ? "Už jste člen? Přihlaste se" : "Already a member? Log in"}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          {priceEndsBeforeEvent && Date.parse(ticket.saleEnd!) > Date.now() && (
+                            <p className="mx-5 mt-3 text-xs text-muted-foreground">
+                              {isEarlyBird
+                                ? cs
+                                  ? "Předprodej končí"
+                                  : "Early bird ends"
+                                : cs
+                                  ? "Tato cena platí do"
+                                  : "This price is available until"}{" "}
+                              {date(ticket.saleEnd!)} · {time(ticket.saleEnd!)}{" "}
+                              {cs ? "(čas ve Švýcarsku)" : "(Swiss time)"}
+                            </p>
+                          )}
+                          {earlyBirdBeforeRegular && (
+                            <p className="mx-5 mt-3 text-xs text-accent">
+                              {cs
+                                ? "Běžný prodej začne po skončení předprodeje"
+                                : "Regular tickets open when early bird ends"}{" "}
+                              {date(activeEarlyBird.saleEnd!)} · {time(activeEarlyBird.saleEnd!)}{" "}
+                              {cs ? "(čas ve Švýcarsku)" : "(Swiss time)"}
+                            </p>
+                          )}
+                          {!data.isSignedIn &&
+                            ticket.hasMemberPricing &&
+                            availability !== "membership_required" && (
+                              <button
+                                type="button"
+                                className="mx-5 mt-3 text-sm font-medium text-accent underline underline-offset-2"
+                                onClick={() => {
+                                  trackEvent("login_for_member_price", {
+                                    event_id: event.id,
+                                    event_slug: event.slug,
+                                    event_type: event.eventType,
+                                    ticket_type: ticket.name,
+                                    ticket_type_id: ticket.id,
+                                    value: ticket.memberPrice ?? ticket.price.basePrice,
+                                    currency: ticket.price.currency,
+                                    pricing_type: "member",
+                                  });
+                                  onLogin();
+                                }}
+                              >
+                                {cs
+                                  ? "Přihlásit se pro členskou cenu"
+                                  : "Log in for member pricing"}
+                              </button>
+                            )}
+                          <label className="mx-5 mt-5 flex items-center justify-between gap-3 border-t border-border/70 pt-4 text-sm">
+                            <span className="font-medium">
+                              {cs ? "Počet vstupenek" : "Quantity"}
+                            </span>
+                            <select
+                              aria-label={
+                                cs
+                                  ? `Počet vstupenek: ${ticket.name}`
+                                  : `Ticket quantity: ${localized(ticket.name, ticket.nameEn)}`
+                              }
+                              className="min-h-11 min-w-20 rounded-xl border border-border bg-background px-3 text-center font-semibold"
+                              value={quantity}
+                              disabled={availability !== "available"}
+                              onChange={(e) => {
+                                const next = Math.min(
+                                  Number(e.target.value),
+                                  Math.max(0, 10 - otherQuantity),
+                                );
+                                if (quantity === 0 && next > 0)
+                                  trackEvent("ticket_select", {
+                                    event_id: event.id,
+                                    event_slug: event.slug,
+                                    event_type: event.eventType,
+                                    ticket_type: ticket.name,
+                                    ticket_type_id: ticket.id,
+                                    quantity: next,
+                                    value: ticket.price.finalPrice * next,
+                                    currency: ticket.price.currency,
+                                    membership_tier: data.membershipName ?? undefined,
+                                    pricing_type: ticketPricingType(ticket.price),
+                                  });
+                                setQuantities((previous) => ({ ...previous, [ticket.id]: next }));
+                              }}
+                            >
+                              {Array.from({ length: basketMax + 1 }, (_, i) => i).map((n) => (
+                                <option key={n} value={n}>
+                                  {n}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <div className="px-5 pb-5 pt-4">
+                            <Button
+                              variant="signal"
+                              data-analytics-cta="event_add_ticket"
+                              className="min-h-12 w-full text-base"
+                              disabled={
+                                quantity < 1 || availability !== "available" || maxQuantity < 1
+                              }
+                              onClick={() => onAddToCart(ticket.id, quantity)}
+                            >
+                              {cs ? "Přidat do košíku" : "Add to cart"}
+                              <ArrowRight className="size-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    )})}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -493,13 +602,13 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
             ))}
             {scheduled.length > 0 && (
               <ContentSection title={cs ? "Program" : "Programme"}>
-                <ol className="space-y-3 rounded-3xl bg-card p-6 sm:p-8">
+                <ol className="grid grid-cols-[80px_minmax(0,1fr)] gap-x-4 gap-y-2 text-base">
                   {scheduled.map((w) => (
-                    <li key={w.id} className="grid grid-cols-[4rem_1fr] gap-5 py-4">
+                    <li key={w.id} className="contents">
                       <time dateTime={w.startTime!} className="font-bold text-accent">
                         {time(w.startTime!)}
                       </time>
-                      <div>
+                      <div className="pb-4">
                         <p className="font-semibold">{w.title}</p>
                         {w.speakerName && (
                           <p className="mt-1 text-sm text-muted-foreground">{w.speakerName}</p>
@@ -514,7 +623,10 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
               <ContentSection title={cs ? "Workshopy" : "Workshops"}>
                 <div className="space-y-4">
                   {workshops.map((w) => (
-                    <article key={w.id} className="rounded-3xl bg-card p-7 sm:p-9">
+                    <article
+                      key={w.id}
+                      className="rounded-[14px] border border-[#E2E0DE] p-5 sm:p-6"
+                    >
                       <h3 className="text-xl font-bold">{w.title}</h3>
                       {w.description && (
                         <div className="mt-3">
@@ -541,32 +653,32 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                     <article
                       id={`speaker-${s.id}`}
                       key={s.id}
-                      className="scroll-mt-28 grid gap-7 rounded-3xl bg-card/60 p-6 sm:grid-cols-[9rem_minmax(0,1fr)] sm:p-8"
+                      className="scroll-mt-28 flex flex-wrap items-start gap-4"
                     >
                       {s.photoUrl ? (
                         <img
                           src={s.photoUrl}
                           alt={s.name}
                           loading="lazy"
-                          className="aspect-square w-36 rounded-3xl object-cover"
+                          className="size-14 rounded-full object-cover"
                         />
                       ) : (
                         <div
                           aria-hidden="true"
-                          className="hidden aspect-square w-36 overflow-hidden rounded-3xl bg-paper sm:block"
+                          className="hidden size-14 overflow-hidden rounded-full bg-[#ECECEC] sm:block"
                         >
                           <BrandXElement className="h-full w-full opacity-20" />
                         </div>
                       )}
                       <div>
-                        <h3 className="text-2xl font-bold">{s.name}</h3>
+                        <h3 className="text-base font-semibold">{s.name}</h3>
                         {(s.jobTitle || s.company) && (
-                          <p className="mt-2 text-sm text-accent">
+                          <p className="mt-1 text-sm text-muted-foreground">
                             {[s.jobTitle, s.company].filter(Boolean).join(" · ")}
                           </p>
                         )}
                         {s.bio && (
-                          <div className="mt-4">
+                          <div className="mt-3 max-w-3xl">
                             <EventText text={s.bio} />
                           </div>
                         )}
@@ -600,7 +712,7 @@ export function EventDetailTemplate({ data, onAddToCart, onLogin }: Props) {
                       src={url}
                       alt={`${event.title} · ${i + 1}`}
                       loading="lazy"
-                      className="aspect-[4/3] w-full rounded-3xl object-cover"
+                      className="aspect-[4/3] w-full rounded-[14px] object-cover"
                     />
                   ))}
                 </div>
