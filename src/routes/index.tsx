@@ -57,15 +57,15 @@ function Home() {
 
   return (
     <>
-      {/* HERO: dark copy panel with a diagonal photo, as in the web prototype */}
-      <section className="relative overflow-hidden bg-ink text-ink-foreground">
+      {/* HERO: light copy panel with the CometX event photo */}
+      <section className="relative overflow-hidden bg-background text-foreground">
         <img
           src={heroImage}
           alt=""
           aria-hidden
-          className="brand-photo pointer-events-none absolute inset-0 size-full opacity-25 lg:left-auto lg:w-[58%] lg:opacity-100 lg:[clip-path:polygon(22%_0,100%_0,100%_100%,0_100%)]"
+          className="brand-photo pointer-events-none absolute inset-0 size-full opacity-10 lg:left-auto lg:w-[58%] lg:opacity-100 lg:[clip-path:polygon(22%_0,100%_0,100%_100%,0_100%)]"
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink via-ink/85 to-ink/40 lg:hidden" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/45 lg:hidden" />
         <div className="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
           <div className="max-w-xl">
             <span className="inline-flex rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
@@ -74,7 +74,7 @@ function Home() {
             <h1 className="display-xl mt-6">
               {cs ? "Vaše profesní síť s dotekem domova" : "Your professional network with a touch of homeland"}
             </h1>
-            <p className="mt-6 text-lg text-ink-foreground/75">
+            <p className="mt-6 text-lg text-muted-foreground">
               {cs
                 ? "CometX je švýcarská nezisková organizace pořádající vzdělávací a společenské akce pro české a slovenské krajany. Propojujeme akademickou sféru s průmyslem a stavíme mosty mezi znalostmi, talenty a nápady."
                 : "CometX is a Swiss nonprofit creating educational and social events for Czech and Slovak expats. We connect academia with industry and build bridges of knowledge, talent and ideas."}
@@ -89,7 +89,7 @@ function Home() {
                   {cs ? "Staňte se členem" : "Become a member"}
                 </Link>
               </Button>
-              <Button asChild variant="outlineLight" size="xl">
+              <Button asChild variant="outline" size="xl">
                 <Link to="/events" data-analytics-cta="view_events_home_hero">
                   {cs ? "Nadcházející akce" : "Upcoming events"}
                 </Link>
@@ -100,10 +100,12 @@ function Home() {
                 to="/events/$slug"
                 params={{ slug: nextEvent.slug }}
                 data-analytics-cta="next_event_home_hero"
-                className="mt-6 inline-flex max-w-full items-center gap-3 rounded-full bg-ink-foreground/10 px-4 py-2 text-sm transition-colors hover:bg-ink-foreground/15"
+                className="mt-6 inline-flex max-w-full items-center gap-3 rounded-full bg-secondary px-4 py-2 text-sm transition-colors hover:bg-secondary/75"
               >
-                <span className="shrink-0 font-bold text-accent">{cs ? "Nejbližší akce" : "Next event"}</span>
-                <span className="truncate text-ink-foreground/85">
+                <span className="shrink-0 rounded-full bg-accent px-2 py-1 text-xs font-bold text-accent-foreground">
+                  {cs ? "Nejbližší akce" : "Next event"}
+                </span>
+                <span className="truncate text-foreground">
                   {formatShortDate(nextEvent.start_date, cs)}
                   {localized(cs, nextEvent.venue, nextEvent.venue_en) ? ` · ${localized(cs, nextEvent.venue, nextEvent.venue_en)}` : ""}
                   {` · ${localized(cs, nextEvent.title, nextEvent.title_en)}`}
