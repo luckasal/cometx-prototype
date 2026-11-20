@@ -2,6 +2,14 @@
 
 Update this at the end of each implementation cycle. Keep entries short and factual.
 
+## 2026-11-20: Homepage hero aligned with local prototype and released
+
+- Task `WEB-FRONTEND-HOME-PROD-20261120`; implementation commit `3a12984` on `codex/homepage-production-20261120`. Updated `src/routes/index.tsx` and added `public/assets/cometx/hero-community.jpg` extracted from the user-provided `CometX web prototyp.html`.
+- Hero now matches the supplied prototype: CometX group photo, dark curved mask, Czech hero copy, lime/outline CTAs, live next-event link and scroll cue. Existing content sections and live data remain in place.
+- `pnpm build` passed. Changed-file ESLint passed with `prettier/prettier` disabled because the checked-in CRLF file is rejected by the repo's LF formatting rule; `git -c core.whitespace=cr-at-eol diff --check` passed. Existing build output includes `createServerFn().inputValidator()` deprecation warnings.
+- Promoted through Vercel Production identity verification. Ready Production deployment: `3hFGMV7xo9fCCFwcmThkGWdsCFYk` using commit `3a12984`. Refreshed `https://cometx-prototype.vercel.app/` and verified the hero photo, copy, CTAs and next event render. Automatic Preview was not opened. No schema or customer data changed.
+- Next: continue with the next prioritized task in `.ai/TASKS.md`.
+
 ## 2026-10-28: PAY-02 and PAY-03 implementation
 
 Implementation commit `971bf92` adds a separate finance-confirmed bank-transfer section, audit-safe void action, partner invoice request and Stripe/external invoice reference editor to `/admin/payments`. Ticket checkout can optionally capture invoice billing details; invoice requests are stored separately and never affect payment status or webhook fulfillment. Stripe's `payments` table is unchanged. Migrations `0034_manual_bank_payments_and_invoice_requests.sql` and `0035_payment_references_and_audit.sql` are applied in Production; both new tables remain private and empty. Production build, focused tests and changed-file lint pass. Full typecheck still reports seven existing errors in unrelated files; none reference these changes. App deployment and hosted acceptance remain pending. See `docs/PAYMENTS_BANK_TRANSFER_INVOICE_SCOPE_2026-10-28.md` for boundaries and TODOs.
