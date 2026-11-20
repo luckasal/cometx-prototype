@@ -15,9 +15,11 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as GetInvolvedRouteImport } from './routes/get-involved'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MediaRouteImport } from './routes/media'
 import { Route as MembershipRouteImport } from './routes/membership'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as RegisterRouteImport } from './routes/register'
@@ -82,6 +84,11 @@ const CheckoutRoute = CheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
   path: '/demo',
@@ -95,6 +102,11 @@ const GetInvolvedRoute = GetInvolvedRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MediaRoute = MediaRouteImport.update({
+  id: '/media',
+  path: '/media',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MembershipRoute = MembershipRouteImport.update({
@@ -270,9 +282,11 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
   '/get-involved': typeof GetInvolvedRoute
   '/login': typeof LoginRoute
+  '/media': typeof MediaRoute
   '/membership': typeof MembershipRoute
   '/partners': typeof PartnersRoute
   '/register': typeof RegisterRoute
@@ -312,9 +326,11 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
   '/get-involved': typeof GetInvolvedRoute
   '/login': typeof LoginRoute
+  '/media': typeof MediaRoute
   '/membership': typeof MembershipRoute
   '/partners': typeof PartnersRoute
   '/register': typeof RegisterRoute
@@ -357,9 +373,11 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
   '/get-involved': typeof GetInvolvedRoute
   '/login': typeof LoginRoute
+  '/media': typeof MediaRoute
   '/membership': typeof MembershipRoute
   '/partners': typeof PartnersRoute
   '/register': typeof RegisterRoute
@@ -403,9 +421,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/cart'
     | '/checkout'
+    | '/contact'
     | '/demo'
     | '/get-involved'
     | '/login'
+    | '/media'
     | '/membership'
     | '/partners'
     | '/register'
@@ -445,9 +465,11 @@ export interface FileRouteTypes {
     | '/about'
     | '/cart'
     | '/checkout'
+    | '/contact'
     | '/demo'
     | '/get-involved'
     | '/login'
+    | '/media'
     | '/membership'
     | '/partners'
     | '/register'
@@ -489,9 +511,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/cart'
     | '/checkout'
+    | '/contact'
     | '/demo'
     | '/get-involved'
     | '/login'
+    | '/media'
     | '/membership'
     | '/partners'
     | '/register'
@@ -534,9 +558,11 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
+  ContactRoute: typeof ContactRoute
   DemoRoute: typeof DemoRoute
   GetInvolvedRoute: typeof GetInvolvedRoute
   LoginRoute: typeof LoginRoute
+  MediaRoute: typeof MediaRoute
   MembershipRoute: typeof MembershipRoute
   PartnersRoute: typeof PartnersRoute
   RegisterRoute: typeof RegisterRoute
@@ -592,6 +618,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo': {
       id: '/demo'
       path: '/demo'
@@ -611,6 +644,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/media': {
+      id: '/media'
+      path: '/media'
+      fullPath: '/media'
+      preLoaderRoute: typeof MediaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/membership': {
@@ -919,9 +959,11 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
+  ContactRoute: ContactRoute,
   DemoRoute: DemoRoute,
   GetInvolvedRoute: GetInvolvedRoute,
   LoginRoute: LoginRoute,
+  MediaRoute: MediaRoute,
   MembershipRoute: MembershipRoute,
   PartnersRoute: PartnersRoute,
   RegisterRoute: RegisterRoute,

@@ -12,7 +12,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trackEvent } from "@/lib/analytics";
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -38,7 +44,9 @@ export const Route = createFileRoute("/membership")({
 });
 
 function MembershipPage() {
-  useEffect(() => { trackEvent("membership_view"); }, []);
+  useEffect(() => {
+    trackEvent("membership_view");
+  }, []);
   const { language } = useLanguage();
   const cs = language === "cs";
   const { user } = useAuth();
@@ -50,7 +58,11 @@ function MembershipPage() {
     currency: string;
     setupFee: number;
   } | null>(null);
-  const [application, setApplication] = useState({ nationality: "", motivation: "", missingFromSubscription: "" });
+  const [application, setApplication] = useState({
+    nationality: "",
+    motivation: "",
+    missingFromSubscription: "",
+  });
   const fetchPlans = useServerFn(getMembershipPlans);
   const startCheckout = useServerFn(startMembershipCheckout);
 
@@ -60,8 +72,13 @@ function MembershipPage() {
   });
 
   const checkoutMutation = useMutation({
-    mutationFn: (input: { planSlug: string; email?: string; nationality?: "slovak" | "czech" | "other"; motivation?: string; missingFromSubscription?: string }) =>
-      startCheckout({ data: input }),
+    mutationFn: (input: {
+      planSlug: string;
+      email?: string;
+      nationality?: "slovak" | "czech" | "other";
+      motivation?: string;
+      missingFromSubscription?: string;
+    }) => startCheckout({ data: input }),
     onSuccess: (result) => {
       if (result.url) window.location.href = result.url;
     },
@@ -71,9 +88,14 @@ function MembershipPage() {
   return (
     <>
       <PageHero
+        tone="brand"
         eyebrow={cs ? "Členství" : "Membership"}
         title={cs ? "Zažijte víc než jen naše akce" : "Experience more than our events"}
-        lead={cs ? "Členství přímo podporuje rozvoj našich aktivit. Vyberte si ze tří kategorií přesně tu, která odpovídá vašim potřebám." : "Membership directly supports the growth of our activities. Choose the category that best matches your needs."}
+        lead={
+          cs
+            ? "Členství přímo podporuje rozvoj našich aktivit. Vyberte si ze tří kategorií přesně tu, která odpovídá vašim potřebám."
+            : "Membership directly supports the growth of our activities. Choose the category that best matches your needs."
+        }
       />
 
       <Section>
@@ -87,20 +109,39 @@ function MembershipPage() {
                 key={plan.slug}
                 className={
                   index === 1
-                    ? "flex flex-col rounded-3xl border-2 border-accent/50 bg-card p-8"
-                    : "flex flex-col rounded-3xl border border-border/60 bg-card p-8"
+                    ? "flex flex-col rounded-[1.75rem] border-2 border-accent bg-card p-7 shadow-lg sm:p-8"
+                    : "flex flex-col rounded-[1.75rem] border border-border/80 bg-card p-7 transition-shadow hover:shadow-lg sm:p-8"
                 }
               >
-                {index === 1 && <p className="eyebrow mb-3 text-accent-foreground">{cs ? "Nejčastější volba" : "Most chosen"}</p>}
-                <h2 className="font-display text-3xl font-extrabold">{!cs && plan.nameEn?.trim() ? plan.nameEn : plan.name}</h2>
-                <p className="mt-3 text-sm text-muted-foreground">{!cs && plan.descriptionEn?.trim() ? plan.descriptionEn : plan.description}</p>
+                {index === 1 && (
+                  <p className="eyebrow mb-3 text-accent-foreground">
+                    {cs ? "Nejčastější volba" : "Most chosen"}
+                  </p>
+                )}
+                <h2 className="font-display text-3xl font-extrabold">
+                  {!cs && plan.nameEn?.trim() ? plan.nameEn : plan.name}
+                </h2>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {!cs && plan.descriptionEn?.trim() ? plan.descriptionEn : plan.description}
+                </p>
                 <p className="mt-6 font-display text-3xl font-extrabold">
                   {formatMoney(plan.annualPrice, plan.currency)}
-                  <span className="text-sm font-normal text-muted-foreground"> {cs ? "/ rok" : "/ year"}</span>
+                  <span className="text-sm font-normal text-muted-foreground">
+                    {" "}
+                    {cs ? "/ rok" : "/ year"}
+                  </span>
                 </p>
                 <div className="mt-1 space-y-1 text-xs text-muted-foreground">
-                  <p>{cs ? "Roční členství se automaticky obnovuje do zrušení." : "Renews annually until canceled."}</p>
-                  <p>{cs ? `Jednorázový vstupní poplatek: ${formatMoney(plan.setupFee, plan.currency)}.` : `One-time setup fee: ${formatMoney(plan.setupFee, plan.currency)}.`}</p>
+                  <p>
+                    {cs
+                      ? "Roční členství se automaticky obnovuje do zrušení."
+                      : "Renews annually until canceled."}
+                  </p>
+                  <p>
+                    {cs
+                      ? `Jednorázový vstupní poplatek: ${formatMoney(plan.setupFee, plan.currency)}.`
+                      : `One-time setup fee: ${formatMoney(plan.setupFee, plan.currency)}.`}
+                  </p>
                 </div>
 
                 <ul className="mt-6 flex-1 space-y-3 border-t border-border pt-6">
@@ -120,18 +161,38 @@ function MembershipPage() {
                       data-analytics-cta={`membership_plan_${plan.slug}`}
                       disabled={checkoutMutation.isPending}
                       onClick={() => {
-                        trackEvent("membership_cta_click", { plan: plan.slug, membership_tier: plan.slug, value: plan.annualPrice + plan.setupFee, currency: plan.currency });
+                        trackEvent("membership_cta_click", {
+                          plan: plan.slug,
+                          membership_tier: plan.slug,
+                          value: plan.annualPrice + plan.setupFee,
+                          currency: plan.currency,
+                        });
                         setSelectedPlan(plan);
                       }}
                     >
-                      {checkoutMutation.isPending ? (cs ? "Připravujeme platbu…" : "Preparing payment...") : (cs ? `Zvolit ${plan.name}` : `Join ${plan.nameEn?.trim() || plan.name}`)}
+                      {checkoutMutation.isPending
+                        ? cs
+                          ? "Připravujeme platbu…"
+                          : "Preparing payment..."
+                        : cs
+                          ? `Zvolit ${plan.name}`
+                          : `Join ${plan.nameEn?.trim() || plan.name}`}
                     </Button>
                   ) : (
                     <Button
                       variant={index === 1 ? "signal" : "outlineInk"}
                       className="w-full"
                       data-analytics-cta={`membership_plan_${plan.slug}`}
-                      onClick={() => { trackEvent("membership_cta_click", { plan: plan.slug, membership_tier: plan.slug, value: plan.annualPrice + plan.setupFee, currency: plan.currency, destination: "register" }); navigate({ to: "/register", search: { redirect: "/membership" } }); }}
+                      onClick={() => {
+                        trackEvent("membership_cta_click", {
+                          plan: plan.slug,
+                          membership_tier: plan.slug,
+                          value: plan.annualPrice + plan.setupFee,
+                          currency: plan.currency,
+                          destination: "register",
+                        });
+                        navigate({ to: "/register", search: { redirect: "/membership" } });
+                      }}
                     >
                       {cs ? "Pro členství si vytvořte účet" : "Create account to join"}
                     </Button>
@@ -143,23 +204,33 @@ function MembershipPage() {
         )}
 
         <div className="mt-10 max-w-3xl border-t border-border pt-8">
-          <h2 className="font-display text-xl font-bold">{cs ? "Každý člen vždy získá" : "Every member always receives"}</h2>
+          <h2 className="font-display text-xl font-bold">
+            {cs ? "Každý člen vždy získá" : "Every member always receives"}
+          </h2>
           <ul className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-            {(cs ? [
-              "Exkluzivní přístup do placené sekce webu",
-              "Výhodné ceny vstupenek na akce CometX",
-              "Informace o aktuálním dění z první ruky",
-              "Možnost zviditelnit vlastní příběh a práci",
-              "Dárky, vychytávky a komunitní zábavu",
-              "Možnost odečíst podporu spolku z daní ve Švýcarsku",
-            ] : [
-              "Exclusive access to the members section",
-              "Preferred prices for CometX events",
-              "First-hand news and updates",
-              "A chance to showcase your story and work",
-              "Gifts, extras and community activities",
-              "Potential Swiss tax deduction for association support",
-            ]).map((item) => <li key={item} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0" />{item}</li>)}
+            {(cs
+              ? [
+                  "Exkluzivní přístup do placené sekce webu",
+                  "Výhodné ceny vstupenek na akce CometX",
+                  "Informace o aktuálním dění z první ruky",
+                  "Možnost zviditelnit vlastní příběh a práci",
+                  "Dárky, vychytávky a komunitní zábavu",
+                  "Možnost odečíst podporu spolku z daní ve Švýcarsku",
+                ]
+              : [
+                  "Exclusive access to the members section",
+                  "Preferred prices for CometX events",
+                  "First-hand news and updates",
+                  "A chance to showcase your story and work",
+                  "Gifts, extras and community activities",
+                  "Potential Swiss tax deduction for association support",
+                ]
+            ).map((item) => (
+              <li key={item} className="flex gap-2">
+                <Check className="mt-0.5 size-4 shrink-0" />
+                {item}
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -172,12 +243,21 @@ function MembershipPage() {
         </p>
       </Section>
 
-      <Dialog open={!!selectedPlan} onOpenChange={(open) => { if (!open) setSelectedPlan(null); }}>
+      <Dialog
+        open={!!selectedPlan}
+        onOpenChange={(open) => {
+          if (!open) setSelectedPlan(null);
+        }}
+      >
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>{cs ? "Doplňte údaje k členství" : "Complete your membership details"}</DialogTitle>
+            <DialogTitle>
+              {cs ? "Doplňte údaje k členství" : "Complete your membership details"}
+            </DialogTitle>
             <DialogDescription>
-              {cs ? "Tyto informace jsou součástí registračního formuláře členství CometX." : "These details are part of the CometX membership registration form."}
+              {cs
+                ? "Tyto informace jsou součástí registračního formuláře členství CometX."
+                : "These details are part of the CometX membership registration form."}
             </DialogDescription>
           </DialogHeader>
           {selectedPlan && (
@@ -185,7 +265,13 @@ function MembershipPage() {
               className="space-y-5"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (!user?.email || !application.nationality || !application.motivation.trim() || !application.missingFromSubscription.trim()) return;
+                if (
+                  !user?.email ||
+                  !application.nationality ||
+                  !application.motivation.trim() ||
+                  !application.missingFromSubscription.trim()
+                )
+                  return;
                 checkoutMutation.mutate({
                   planSlug: selectedPlan.slug,
                   email: user.email,
@@ -197,41 +283,133 @@ function MembershipPage() {
             >
               <div className="space-y-2">
                 <Label htmlFor="membership-email">Email *</Label>
-                <Input id="membership-email" type="email" autoComplete="email" required readOnly value={user?.email ?? ""} />
-                <p className="text-xs text-muted-foreground">{cs ? "Členství bude přiřazeno k tomuto přihlášenému účtu. Pro jiný e-mail se nejprve přihlaste k odpovídajícímu účtu." : "Membership is assigned to this signed-in account. To use another email, sign in to that account first."}</p>
+                <Input
+                  id="membership-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  readOnly
+                  value={user?.email ?? ""}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {cs
+                    ? "Členství bude přiřazeno k tomuto přihlášenému účtu. Pro jiný e-mail se nejprve přihlaste k odpovídajícímu účtu."
+                    : "Membership is assigned to this signed-in account. To use another email, sign in to that account first."}
+                </p>
               </div>
 
               <fieldset className="space-y-2">
-                <legend className="text-sm font-medium">{cs ? "Národnost" : "Nationality"} *</legend>
+                <legend className="text-sm font-medium">
+                  {cs ? "Národnost" : "Nationality"} *
+                </legend>
                 {(["slovak", "czech", "other"] as const).map((value) => (
                   <label key={value} className="flex cursor-pointer items-center gap-3 text-sm">
-                    <input type="radio" name="membership-nationality" value={value} required checked={application.nationality === value} onChange={() => setApplication((current) => ({ ...current, nationality: value }))} />
-                    {value === "slovak" ? (cs ? "Slovenská" : "Slovak") : value === "czech" ? (cs ? "Česká" : "Czech") : (cs ? "Jiná" : "Other")}
+                    <input
+                      type="radio"
+                      name="membership-nationality"
+                      value={value}
+                      required
+                      checked={application.nationality === value}
+                      onChange={() =>
+                        setApplication((current) => ({ ...current, nationality: value }))
+                      }
+                    />
+                    {value === "slovak"
+                      ? cs
+                        ? "Slovenská"
+                        : "Slovak"
+                      : value === "czech"
+                        ? cs
+                          ? "Česká"
+                          : "Czech"
+                        : cs
+                          ? "Jiná"
+                          : "Other"}
                   </label>
                 ))}
               </fieldset>
 
               <div className="space-y-2">
-                <Label htmlFor="membership-motivation">{cs ? "Jaká je vaše motivace připojit se ke CometX prostřednictvím členství?" : "What motivates you to join CometX through this membership?"} *</Label>
-                <textarea id="membership-motivation" required maxLength={3000} rows={4} className="w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm" value={application.motivation} onChange={(event) => setApplication((current) => ({ ...current, motivation: event.target.value }))} />
-                <p className="text-xs text-muted-foreground">{cs ? "Co vás přivedlo k členství a jak vás motivuje účast na akcích CometX?" : "Tell us what prompted you to join and what motivates you to attend CometX events."}</p>
+                <Label htmlFor="membership-motivation">
+                  {cs
+                    ? "Jaká je vaše motivace připojit se ke CometX prostřednictvím členství?"
+                    : "What motivates you to join CometX through this membership?"}{" "}
+                  *
+                </Label>
+                <textarea
+                  id="membership-motivation"
+                  required
+                  maxLength={3000}
+                  rows={4}
+                  className="w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm"
+                  value={application.motivation}
+                  onChange={(event) =>
+                    setApplication((current) => ({ ...current, motivation: event.target.value }))
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  {cs
+                    ? "Co vás přivedlo k členství a jak vás motivuje účast na akcích CometX?"
+                    : "Tell us what prompted you to join and what motivates you to attend CometX events."}
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="membership-feedback">{cs ? "Co vám v našem členství chybí?" : "What is missing from our membership?"} *</Label>
-                <textarea id="membership-feedback" required maxLength={3000} rows={4} className="w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm" value={application.missingFromSubscription} onChange={(event) => setApplication((current) => ({ ...current, missingFromSubscription: event.target.value }))} />
-                <p className="text-xs text-muted-foreground">{cs ? "Co bychom mohli do budoucna přidat do našich služeb a členství, například nové typy akcí?" : "What could we add to our services and membership, such as new types of events?"}</p>
+                <Label htmlFor="membership-feedback">
+                  {cs ? "Co vám v našem členství chybí?" : "What is missing from our membership?"} *
+                </Label>
+                <textarea
+                  id="membership-feedback"
+                  required
+                  maxLength={3000}
+                  rows={4}
+                  className="w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm"
+                  value={application.missingFromSubscription}
+                  onChange={(event) =>
+                    setApplication((current) => ({
+                      ...current,
+                      missingFromSubscription: event.target.value,
+                    }))
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  {cs
+                    ? "Co bychom mohli do budoucna přidat do našich služeb a členství, například nové typy akcí?"
+                    : "What could we add to our services and membership, such as new types of events?"}
+                </p>
               </div>
 
               <div className="rounded-xl border border-border p-4 text-sm">
-                <p className="font-semibold">{selectedPlan.name}: {formatMoney(selectedPlan.annualPrice, selectedPlan.currency)} / {cs ? "rok" : "year"}</p>
-                {selectedPlan.setupFee > 0 && <p>{cs ? "Vstupní poplatek" : "One-time setup fee"}: {formatMoney(selectedPlan.setupFee, selectedPlan.currency)}</p>}
+                <p className="font-semibold">
+                  {selectedPlan.name}:{" "}
+                  {formatMoney(selectedPlan.annualPrice, selectedPlan.currency)} /{" "}
+                  {cs ? "rok" : "year"}
+                </p>
+                {selectedPlan.setupFee > 0 && (
+                  <p>
+                    {cs ? "Vstupní poplatek" : "One-time setup fee"}:{" "}
+                    {formatMoney(selectedPlan.setupFee, selectedPlan.currency)}
+                  </p>
+                )}
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {cs ? "Členství se každoročně obnovuje do zrušení. Další daně a poplatky se mohou připočítat v pokladně." : "Membership renews annually until canceled. Additional taxes and fees may be added at checkout."}
+                  {cs
+                    ? "Členství se každoročně obnovuje do zrušení. Další daně a poplatky se mohou připočítat v pokladně."
+                    : "Membership renews annually until canceled. Additional taxes and fees may be added at checkout."}
                 </p>
               </div>
-              <Button type="submit" variant="signal" className="w-full" disabled={checkoutMutation.isPending}>
-                {checkoutMutation.isPending ? (cs ? "Připravujeme platbu…" : "Preparing payment…") : (cs ? "Pokračovat k platbě" : "Continue to payment")}
+              <Button
+                type="submit"
+                variant="signal"
+                className="w-full"
+                disabled={checkoutMutation.isPending}
+              >
+                {checkoutMutation.isPending
+                  ? cs
+                    ? "Připravujeme platbu…"
+                    : "Preparing payment…"
+                  : cs
+                    ? "Pokračovat k platbě"
+                    : "Continue to payment"}
               </Button>
             </form>
           )}

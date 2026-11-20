@@ -24,7 +24,8 @@ export const Route = createFileRoute("/partners")({
       { property: "og:title", content: "CometX partners" },
       {
         property: "og:description",
-        content: "Companies and institutions supporting the Czech and Slovak community in Switzerland.",
+        content:
+          "Companies and institutions supporting the Czech and Slovak community in Switzerland.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -45,21 +46,37 @@ function PartnersPage() {
   return (
     <>
       <PageHero
+        tone="brand"
         eyebrow={cs ? "Partneři" : "Partners"}
         title={cs ? "Partneři CometX" : "CometX partners"}
-        lead={cs ? "Naši partneři pomáhají Čechům a Slovákům se silnou vazbou na Švýcarsko setkávat se, růst a společně vytvářet nové příležitosti." : "Our partners help Czech and Slovak expats with strong ties to Switzerland meet, grow and create new opportunities together."}
+        lead={
+          cs
+            ? "Naši partneři pomáhají Čechům a Slovákům se silnou vazbou na Švýcarsko setkávat se, růst a společně vytvářet nové příležitosti."
+            : "Our partners help Czech and Slovak expats with strong ties to Switzerland meet, grow and create new opportunities together."
+        }
       />
       <Section>
         {isLoading && <LoadingBlock label={cs ? "Načítáme partnery" : "Loading partners"} />}
         {error && <ErrorBlock error={error} />}
-        {data && data.length === 0 && <EmptyBlock title={cs ? "Zatím nejsou uvedeni žádní partneři" : "No partners listed yet"} />}
+        {data && data.length === 0 && (
+          <EmptyBlock
+            title={cs ? "Zatím nejsou uvedeni žádní partneři" : "No partners listed yet"}
+          />
+        )}
         {data && data.length > 0 && (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {data.map((partner) => (
-              <div key={partner.id} className="flex flex-col rounded-3xl bg-card p-8">
+              <div
+                key={partner.id}
+                className="flex flex-col rounded-[1.5rem] border border-border/80 bg-card p-6 transition-shadow hover:shadow-lg sm:p-8"
+              >
                 {partner.logo_url && (
                   <div className="mb-6 flex h-32 items-center justify-center rounded-lg bg-white p-4">
-                    <img src={partner.logo_url} alt={`${partner.name} logo`} className="max-h-full max-w-full object-contain" />
+                    <img
+                      src={partner.logo_url}
+                      alt={`${partner.name} logo`}
+                      className="max-h-full max-w-full object-contain"
+                    />
                   </div>
                 )}
                 <div className="flex items-start justify-between gap-4">
@@ -67,7 +84,11 @@ function PartnersPage() {
                   <StatusPill tone="muted">{partner.tier}</StatusPill>
                 </div>
                 {(partner.description || partner.description_en) && (
-                  <p className="mt-3 flex-1 text-sm text-muted-foreground">{!cs && partner.description_en?.trim() ? partner.description_en : partner.description}</p>
+                  <p className="mt-3 flex-1 text-sm text-muted-foreground">
+                    {!cs && partner.description_en?.trim()
+                      ? partner.description_en
+                      : partner.description}
+                  </p>
                 )}
                 {partner.website_url && (
                   <a
@@ -87,8 +108,15 @@ function PartnersPage() {
         <div className="mt-12 border-t border-border pt-8 text-sm text-muted-foreground">
           <p>{cs ? "Máte zájem o spolupráci s CometX?" : "Interested in working with CometX?"}</p>
           <p className="mt-2">
-            {cs ? "Česko" : "Czech Republic"}: <a href="mailto:jan.mastny@cometx.ch" className="underline underline-offset-4">Jan Mastný</a>
-            {" · "}{cs ? "Slovensko" : "Slovakia"}: <a href="mailto:gleb.kopylov@cometx.ch" className="underline underline-offset-4">Gleb Kopylov</a>
+            {cs ? "Česko" : "Czech Republic"}:{" "}
+            <a href="mailto:jan.mastny@cometx.ch" className="underline underline-offset-4">
+              Jan Mastný
+            </a>
+            {" · "}
+            {cs ? "Slovensko" : "Slovakia"}:{" "}
+            <a href="mailto:gleb.kopylov@cometx.ch" className="underline underline-offset-4">
+              Gleb Kopylov
+            </a>
           </p>
         </div>
       </Section>

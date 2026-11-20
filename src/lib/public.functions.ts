@@ -3,10 +3,17 @@ import { z } from "zod";
 import { isPublicEventListingCandidate } from "./public-event-visibility";
 
 export const subscribeNewsletter = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => z.object({ email: z.string().email().max(320), firstName: z.string().max(120).optional() }).parse(data))
+  .inputValidator((data: unknown) =>
+    z
+      .object({ email: z.string().email().max(320), firstName: z.string().max(120).optional() })
+      .parse(data),
+  )
   .handler(async ({ data }) => {
     const { getPublicClient } = await import("./database.server");
-    const { error } = await getPublicClient().rpc("subscribe_newsletter", { p_email: data.email, p_first_name: data.firstName ?? null });
+    const { error } = await getPublicClient().rpc("subscribe_newsletter", {
+      p_email: data.email,
+      p_first_name: data.firstName ?? null,
+    });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -19,7 +26,9 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
   const [events, featured, articles, partners, plans] = await Promise.all([
     supabaseAdmin
       .from("events")
-      .select("title,title_en,slug,short_description,short_description_en,hero_image_url,start_date,venue,venue_en,event_status,featured")
+      .select(
+        "title,title_en,slug,short_description,short_description_en,hero_image_url,start_date,venue,venue_en,event_status,featured",
+      )
       .eq("publish_state", "published")
       .in("event_status", ["upcoming", "registration_open", "registration_closed", "sold_out"])
       .gte("start_date", nowIso)
@@ -27,10 +36,19 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
       .limit(3),
     supabaseAdmin
       .from("events")
-      .select("title,title_en,slug,short_description,short_description_en,description,description_en,hero_image_url,start_date,venue,venue_en,event_status")
+      .select(
+        "title,title_en,slug,short_description,short_description_en,description,description_en,hero_image_url,start_date,venue,venue_en,event_status",
+      )
       .eq("featured", true)
       .eq("publish_state", "published")
-      .in("event_status", ["upcoming", "registration_open", "registration_closed", "sold_out", "completed", "cancelled"])
+      .in("event_status", [
+        "upcoming",
+        "registration_open",
+        "registration_closed",
+        "sold_out",
+        "completed",
+        "cancelled",
+      ])
       .order("start_date", { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -50,8 +68,13 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
 
   [events, featured, articles, partners, plans].forEach(assertDatabaseResult);
   return {
-    upcoming: (events.data ?? []).filter(isPublicEventListingCandidate).map((event) => ({ ...event, status: event.event_status })),
-    featured: featured.data && isPublicEventListingCandidate(featured.data) ? { ...featured.data, status: featured.data.event_status } : null,
+    upcoming: (events.data ?? [])
+      .filter(isPublicEventListingCandidate)
+      .map((event) => ({ ...event, status: event.event_status })),
+    featured:
+      featured.data && isPublicEventListingCandidate(featured.data)
+        ? { ...featured.data, status: featured.data.event_status }
+        : null,
     articles: articles.data ?? [],
     partners: partners.data ?? [],
     plans: plans.data ?? [],
@@ -70,14 +93,24 @@ export const listEvents = createServerFn({ method: "GET" }).handler(async () => 
 
   assertDatabaseResult({ error });
   const now = Date.now();
-  const all = (data ?? []).filter(isPublicEventListingCandidate).map((event) => ({ ...event, status: event.event_status }));
+  const all = (data ?? [])
+    .filter(isPublicEventListingCandidate)
+    .map((event) => ({ ...event, status: event.event_status }));
   const featured = all.filter((event) => event.featured);
   const standardEvents = all.filter((event) => !event.featured);
   return {
     upcoming: standardEvents
-      .filter((e) => new Date(e.start_date).getTime() >= now && !["completed", "cancelled"].includes(e.event_status))
+      .filter(
+        (e) =>
+          new Date(e.start_date).getTime() >= now &&
+          !["completed", "cancelled"].includes(e.event_status),
+      )
       .sort((a, b) => +new Date(a.start_date) - +new Date(b.start_date)),
-    past: standardEvents.filter((e) => new Date(e.start_date).getTime() < now || ["completed", "cancelled"].includes(e.event_status)),
+    past: standardEvents.filter(
+      (e) =>
+        new Date(e.start_date).getTime() < now ||
+        ["completed", "cancelled"].includes(e.event_status),
+    ),
     featured,
   };
 });
@@ -92,3 +125,93 @@ export const listPartners = createServerFn({ method: "GET" }).handler(async () =
   assertDatabaseResult({ error });
   return data ?? [];
 });
+
+export type PublicMediaItem = {
+  id: string;
+  title: string;
+  titleEn: string | null;
+  kind: "photo" | "video";
+  url: string;
+  imageUrl: string | null;
+  publishedAt: string | null;
+  eventSlug: string | null;
+};
+
+/** Public archive reads only media attached to published events and published media entries. */
+export const listPublicMedia = createServerFn({ method: "GET" }).handler(
+  async (): Promise<PublicMediaItem[]> => {
+    const { getPublicClient, assertDatabaseResult } = await import("./database.server");
+    const db = getPublicClient();
+    const [events, entries] = await Promise.all([
+      db
+        .from("events")
+        .select(
+          "id,title,title_en,slug,hero_image_url,gallery_urls,start_date,event_status,publish_state",
+        )
+        .eq("publish_state", "published")
+        .in("event_status", [
+          "upcoming",
+          "registration_open",
+          "registration_closed",
+          "sold_out",
+          "completed",
+        ])
+        .order("start_date", { ascending: false }),
+      db
+        .from("content_entries")
+        .select("id,content_type,title,title_en,hero_image_url,media_urls,published_at,status")
+        .eq("status", "published")
+        .in("content_type", ["video", "gallery"])
+        .order("published_at", { ascending: false }),
+    ]);
+    assertDatabaseResult({ error: events.error });
+    assertDatabaseResult({ error: entries.error });
+
+    const media: PublicMediaItem[] = [];
+    for (const event of events.data ?? []) {
+      if (!isPublicEventListingCandidate(event)) continue;
+      const urls = Array.isArray(event.gallery_urls)
+        ? event.gallery_urls.filter(
+            (url): url is string => typeof url === "string" && /^https?:\/\//i.test(url),
+          )
+        : [];
+      urls.forEach((url, index) =>
+        media.push({
+          id: `event-${event.id}-${index}`,
+          title: event.title,
+          titleEn: event.title_en,
+          kind: "photo",
+          url,
+          imageUrl: url,
+          publishedAt: event.start_date,
+          eventSlug: event.slug,
+        }),
+      );
+    }
+
+    for (const entry of entries.data ?? []) {
+      const urls = Array.isArray(entry.media_urls)
+        ? entry.media_urls.filter(
+            (url): url is string => typeof url === "string" && /^https?:\/\//i.test(url),
+          )
+        : [];
+      const candidates =
+        urls.length > 0 ? urls : entry.hero_image_url ? [entry.hero_image_url] : [];
+      candidates.forEach((url, index) => {
+        const video = entry.content_type === "video";
+        media.push({
+          id: `content-${entry.id}-${index}`,
+          title: entry.title,
+          titleEn: entry.title_en,
+          kind: video ? "video" : "photo",
+          url,
+          imageUrl: video ? entry.hero_image_url : url,
+          publishedAt: entry.published_at,
+          eventSlug: null,
+        });
+      });
+    }
+
+    return media.sort((a, b) => Date.parse(b.publishedAt ?? "") - Date.parse(a.publishedAt ?? ""));
+  },
+);

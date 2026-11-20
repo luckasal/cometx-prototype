@@ -63,12 +63,16 @@ export function SiteFooter() {
               { to: "/events", label: cs ? "Akce" : "Events" },
               { to: "/membership", label: cs ? "Členství" : "Membership" },
               { to: "/community", label: cs ? "Příběhy" : "Stories" },
+              { to: "/media", label: cs ? "Fotky a videa" : "Photos and videos" },
+              { to: "/contact", label: cs ? "Kontakt" : "Contact" },
               { to: "/login", label: cs ? "Přihlásit" : "Log in" },
               { to: "/account", label: cs ? "Můj CometX" : "My CometX" },
             ]}
           />
-          <div>
-            <h4 className="text-sm font-bold text-ink-foreground">{cs ? "Newsletter" : "Newsletter"}</h4>
+          <div id="newsletter">
+            <h4 className="text-sm font-bold text-ink-foreground">
+              {cs ? "Newsletter" : "Newsletter"}
+            </h4>
             <p className="mt-4 text-sm text-ink-foreground/65">
               {cs
                 ? "Novinky o akcích a komunitě, přímo do schránky."

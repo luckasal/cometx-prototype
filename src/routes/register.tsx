@@ -74,55 +74,110 @@ function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto grid max-w-md px-5 py-20 lg:py-28">
-      <p className="eyebrow text-muted-foreground">{cs ? "Přidejte se" : "Join"}</p>
-      <h1 className="display-lg mt-3">{cs ? "Vytvořit účet" : "Create an account"}</h1>
-      <p className="mt-4 text-sm text-muted-foreground">
-        {cs ? "Účet je zdarma. Členství je volitelné a můžete si ho přidat později." : "An account is free. Membership is optional and can be added afterwards."}
-      </p>
-      {confirmationSent ? <p role="status" className="mt-8 rounded-lg border border-border p-5">{cs ? "Potvrďte účet v e-mailu. Poté budete přesměrováni zpět ke vstupenkám." : "Confirm your account in the email. You will then return to your tickets."}</p> : <form onSubmit={onSubmit} className="mt-10 space-y-5">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="firstName">{cs ? "Jméno" : "First name"}</Label>
-            <Input id="firstName" required value={form.firstName} onChange={set("firstName")} />
+    <div className="mx-auto w-full max-w-6xl px-5 py-12 sm:py-16">
+      <div className="grid overflow-hidden rounded-[2rem] border border-border/80 bg-background shadow-sm md:grid-cols-[0.85fr_1.15fr]">
+        <aside className="flex flex-col justify-between bg-ink p-8 text-ink-foreground sm:p-10 lg:p-14">
+          <div>
+            <p className="eyebrow text-accent">CometX</p>
+            <h2 className="mt-5 font-display text-3xl font-extrabold leading-tight sm:text-4xl">
+              {cs ? "Začněte tady" : "Start here"}
+            </h2>
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-foreground/70">
+              {cs
+                ? "Vytvořte si bezplatný účet pro vstupenky a správu členství."
+                : "Create a free account for event tickets and membership management."}
+            </p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName">{cs ? "Příjmení" : "Last name"}</Label>
-            <Input id="lastName" required value={form.lastName} onChange={set("lastName")} />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            required
-            value={form.email}
-            onChange={set("email")}
-            autoComplete="email"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">{cs ? "Heslo" : "Password"}</Label>
-          <Input
-            id="password"
-            type="password"
-            required
-            value={form.password}
-            onChange={set("password")}
-            autoComplete="new-password"
-          />
-        </div>
-        <Button type="submit" variant="signal" size="lg" className="w-full" disabled={loading}>
-          {loading ? (cs ? "Vytvářím účet..." : "Creating account...") : (cs ? "Vytvořit účet" : "Create account")}
-        </Button>
-      </form>}
-      <p className="mt-6 text-sm text-muted-foreground">
-        {cs ? "Už máte účet?" : "Already have an account?"}{" "}
-        <Link to="/login" search={redirect ? { redirect } : {}} className="underline underline-offset-4">
-          {cs ? "Přihlásit" : "Log in"}
-        </Link>
-      </p>
+          <Link
+            to="/events"
+            className="mt-10 inline-flex items-center gap-2 text-sm font-bold text-accent underline underline-offset-4"
+          >
+            {cs ? "Prohlédnout akce" : "Explore events"}
+            <span aria-hidden="true">→</span>
+          </Link>
+        </aside>
+        <section className="p-6 sm:p-10 lg:p-14">
+          <p className="eyebrow text-muted-foreground">{cs ? "Přidejte se" : "Join"}</p>
+          <h1 className="display-lg mt-3">{cs ? "Vytvořit účet" : "Create an account"}</h1>
+          <p className="mt-4 text-sm text-muted-foreground">
+            {cs
+              ? "Účet je zdarma. Členství je volitelné a můžete si ho přidat později."
+              : "An account is free. Membership is optional and can be added afterwards."}
+          </p>
+          {confirmationSent ? (
+            <p role="status" className="mt-8 rounded-lg border border-border p-5">
+              {cs
+                ? "Potvrďte účet v e-mailu. Poté budete přesměrováni zpět ke vstupenkám."
+                : "Confirm your account in the email. You will then return to your tickets."}
+            </p>
+          ) : (
+            <form onSubmit={onSubmit} className="mt-10 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">{cs ? "Jméno" : "First name"}</Label>
+                  <Input
+                    id="firstName"
+                    required
+                    value={form.firstName}
+                    onChange={set("firstName")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">{cs ? "Příjmení" : "Last name"}</Label>
+                  <Input id="lastName" required value={form.lastName} onChange={set("lastName")} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={set("email")}
+                  autoComplete="email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">{cs ? "Heslo" : "Password"}</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={form.password}
+                  onChange={set("password")}
+                  autoComplete="new-password"
+                />
+              </div>
+              <Button
+                type="submit"
+                variant="signal"
+                size="lg"
+                className="w-full"
+                disabled={loading}
+              >
+                {loading
+                  ? cs
+                    ? "Vytvářím účet..."
+                    : "Creating account..."
+                  : cs
+                    ? "Vytvořit účet"
+                    : "Create account"}
+              </Button>
+            </form>
+          )}
+          <p className="mt-6 text-sm text-muted-foreground">
+            {cs ? "Už máte účet?" : "Already have an account?"}{" "}
+            <Link
+              to="/login"
+              search={redirect ? { redirect } : {}}
+              className="underline underline-offset-4"
+            >
+              {cs ? "Přihlásit" : "Log in"}
+            </Link>
+          </p>
+        </section>
+      </div>
     </div>
   );
 }

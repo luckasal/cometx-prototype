@@ -43,23 +43,47 @@ function AccountLayout() {
 
   return (
     <>
-      <div className="border-b border-border bg-paper">
-        <div className="mx-auto max-w-7xl px-5 pt-14 lg:px-8">
-          <p className="eyebrow text-muted-foreground">{cs ? "Členská sekce" : "Members area"}</p>
-          <h1 className="display-lg mt-3">{cs ? "Můj CometX" : "My CometX"}</h1>
-          <nav className="mt-8 flex flex-wrap gap-6">
-            <button className="pb-3 text-sm font-medium text-muted-foreground hover:text-foreground" disabled={signingOut} onClick={async () => {
-              setSigningOut(true);
-              try { await signOut(); await navigate({ to: "/login" }); }
-              catch { toast.error(cs ? "Odhlášení se nezdařilo. Zkuste to znovu." : "Could not log out. Please try again."); }
-              finally { setSigningOut(false); }
-            }}>{signingOut ? (cs ? "Odhlašujeme…" : "Logging out...") : (cs ? "Odhlásit se" : "Log out")}</button>
+      <div className="relative overflow-hidden border-b border-ink-foreground/15 bg-ink text-ink-foreground">
+        <div aria-hidden="true" className="absolute inset-y-0 right-0 w-2 bg-accent" />
+        <div className="relative mx-auto max-w-7xl px-5 pt-12 lg:px-8">
+          <p className="eyebrow text-accent">{cs ? "Členská sekce" : "Members area"}</p>
+          <h1 className="mt-3 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
+            {cs ? "Můj CometX" : "My CometX"}
+          </h1>
+          <nav className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
+            <button
+              className="border-b-2 border-transparent pb-3 text-sm font-medium text-ink-foreground/65 hover:text-ink-foreground"
+              disabled={signingOut}
+              onClick={async () => {
+                setSigningOut(true);
+                try {
+                  await signOut();
+                  await navigate({ to: "/login" });
+                } catch {
+                  toast.error(
+                    cs
+                      ? "Odhlášení se nezdařilo. Zkuste to znovu."
+                      : "Could not log out. Please try again.",
+                  );
+                } finally {
+                  setSigningOut(false);
+                }
+              }}
+            >
+              {signingOut
+                ? cs
+                  ? "Odhlašujeme…"
+                  : "Logging out..."
+                : cs
+                  ? "Odhlásit se"
+                  : "Log out"}
+            </button>
             {tabs.map((tab) => (
               <Link
                 key={tab.to}
                 to={tab.to}
                 activeOptions={{ exact: tab.exact ?? false }}
-                className="border-b-2 border-transparent pb-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground [&.active]:border-accent [&.active]:text-foreground"
+                className="border-b-2 border-transparent pb-3 text-sm font-medium text-ink-foreground/65 transition-colors hover:text-ink-foreground [&.active]:border-accent [&.active]:text-accent"
               >
                 {tab.label}
               </Link>
