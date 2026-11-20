@@ -2,12 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowDown, ArrowRight, MapPin } from "lucide-react";
 import { getHomeData, listPartners } from "@/lib/public.functions";
 import { Button } from "@/components/ui/button";
 import { EmptyBlock, ErrorBlock, LoadingBlock, Section, StatusPill } from "@/components/site/Bits";
 import { formatMoney } from "@/lib/pricing";
-import heroImage from "@/assets/hero-symposium.jpg";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
@@ -57,27 +56,24 @@ function Home() {
 
   return (
     <>
-      {/* HERO: light copy panel with the CometX event photo */}
-      <section className="relative overflow-hidden bg-background text-foreground">
+      {/* HERO: dark CometX community image panel, with light content sections below */}
+      <section className="relative min-h-[38rem] overflow-hidden bg-ink text-ink-foreground lg:min-h-[min(60rem,82svh)]">
         <img
-          src={heroImage}
+          src="/assets/cometx/article-november.jpg"
           alt=""
           aria-hidden
-          className="brand-photo pointer-events-none absolute inset-0 size-full opacity-10 lg:left-auto lg:w-[58%] lg:opacity-100 lg:[clip-path:polygon(22%_0,100%_0,100%_100%,0_100%)]"
+          className="brand-photo pointer-events-none absolute inset-0 size-full object-[center_65%] opacity-35 lg:left-auto lg:w-[60%] lg:opacity-100 lg:[clip-path:polygon(35%_0,100%_0,100%_100%,0_100%)]"
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/45 lg:hidden" />
-        <div className="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink via-ink/85 to-ink/40 lg:hidden" />
+        <div className="relative mx-auto flex min-h-[38rem] max-w-7xl items-center px-5 py-20 pb-28 lg:min-h-[min(60rem,82svh)] lg:px-8 lg:py-28 lg:pb-32">
           <div className="max-w-xl">
-            <span className="inline-flex rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
-              Come and Meet Expats
-            </span>
-            <h1 className="display-xl mt-6">
-              {cs ? "Vaše profesní síť s dotekem domova" : "Your professional network with a touch of homeland"}
+            <h1 className="display-xl">
+              {cs ? "Profesionální síť kontaktů s kouskem domova" : "Your professional network with a piece of home"}
             </h1>
-            <p className="mt-6 text-lg text-muted-foreground">
+            <p className="mt-6 max-w-2xl text-lg text-ink-foreground/85">
               {cs
-                ? "CometX je švýcarská nezisková organizace pořádající vzdělávací a společenské akce pro české a slovenské krajany. Propojujeme akademickou sféru s průmyslem a stavíme mosty mezi znalostmi, talenty a nápady."
-                : "CometX is a Swiss nonprofit creating educational and social events for Czech and Slovak expats. We connect academia with industry and build bridges of knowledge, talent and ideas."}
+                ? "Akce, networking a adresář Čechů a Slováků ve Švýcarsku. Pro studenty, profesionály, podnikatele i ty, kdo se vracejí domů."
+                : "Events, networking and a directory for Czechs and Slovaks in Switzerland. For students, professionals, entrepreneurs and those finding their way home."}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild variant="signal" size="xl">
@@ -86,10 +82,10 @@ function Home() {
                   data-analytics-cta="join_membership_home_hero"
                   onClick={() => trackEvent("membership_cta_click", { placement: "home_hero" })}
                 >
-                  {cs ? "Staňte se členem" : "Become a member"}
+                  {cs ? "Staň se členem" : "Become a member"}
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="xl">
+              <Button asChild variant="outlineLight" size="xl">
                 <Link to="/events" data-analytics-cta="view_events_home_hero">
                   {cs ? "Nadcházející akce" : "Upcoming events"}
                 </Link>
@@ -100,12 +96,10 @@ function Home() {
                 to="/events/$slug"
                 params={{ slug: nextEvent.slug }}
                 data-analytics-cta="next_event_home_hero"
-                className="mt-6 inline-flex max-w-full items-center gap-3 rounded-full bg-secondary px-4 py-2 text-sm transition-colors hover:bg-secondary/75"
+                className="mt-6 inline-flex max-w-full items-center gap-3 rounded-full bg-ink-foreground/10 px-4 py-2 text-sm transition-colors hover:bg-ink-foreground/15"
               >
-                <span className="shrink-0 rounded-full bg-accent px-2 py-1 text-xs font-bold text-accent-foreground">
-                  {cs ? "Nejbližší akce" : "Next event"}
-                </span>
-                <span className="truncate text-foreground">
+                <span className="shrink-0 font-bold text-accent">{cs ? "Nejbližší akce" : "Next event"}</span>
+                <span className="truncate text-ink-foreground/85">
                   {formatShortDate(nextEvent.start_date, cs)}
                   {localized(cs, nextEvent.venue, nextEvent.venue_en) ? ` · ${localized(cs, nextEvent.venue, nextEvent.venue_en)}` : ""}
                   {` · ${localized(cs, nextEvent.title, nextEvent.title_en)}`}
@@ -115,6 +109,15 @@ function Home() {
             )}
           </div>
         </div>
+        <a
+          href="#upcoming-events"
+          className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center rounded-full bg-ink/70 px-5 py-2 text-sm font-semibold text-ink-foreground backdrop-blur transition-colors hover:bg-ink"
+        >
+          {cs ? "Posuň dolů" : "Scroll down"}
+          <span className="mt-1 grid size-7 place-items-center rounded-b-full bg-accent text-accent-foreground">
+            <ArrowDown className="size-4" aria-hidden="true" />
+          </span>
+        </a>
       </section>
 
       {isLoading && (
@@ -132,7 +135,7 @@ function Home() {
         <>
           {/* UPCOMING */}
           <Section>
-            <h2 className="display-lg">{cs ? "Nadcházející akce" : "Upcoming events"}</h2>
+            <h2 id="upcoming-events" className="display-lg">{cs ? "Nadcházející akce" : "Upcoming events"}</h2>
             {data.upcoming.length === 0 ? (
               <div className="mt-8">
                 <EmptyBlock
