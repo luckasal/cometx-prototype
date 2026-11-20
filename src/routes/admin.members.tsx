@@ -8,6 +8,7 @@ import {
   adminGrantMemberAdmin,
   adminListMembers,
   adminRevokeMemberAdmin,
+  adminSetMemberPublicVisibility,
 } from "@/lib/admin.functions";
 import { AdminPage, AdminTable } from "@/components/admin/AdminBits";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ function AdminMembersPage() {
   const revokeAdmin = useServerFn(adminRevokeMemberAdmin);
   const { user } = useAuth();
   const deleteMember = useServerFn(adminDeleteMemberAccount);
+  const setPublicVisibility = useServerFn(adminSetMemberPublicVisibility);
   const changeStaffRole = useServerFn(adminChangeStaffRole);
   const cache = useQueryClient();
   const { data, isLoading, error, refetch } = useQuery({
@@ -50,6 +52,9 @@ function AdminMembersPage() {
     isAdmin: boolean;
     isProtectedSuperadmin: boolean;
     staffRoles: StaffRole[];
+    publicDirectoryVisible: boolean;
+    publicDirectoryVisibilityChangedAt: string | null;
+    canManagePublicDirectoryVisibility: boolean;
   };
   const members = (data ?? []) as MemberSummary[];
   const selected = members.find((member) => member.id === selectedId) ?? null;
@@ -90,6 +95,15 @@ function AdminMembersPage() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+  const publicVisibilityChange = useMutation({
+    mutationFn: (change: { id: string; visible: boolean }) =>
+      setPublicVisibility({ data: change }),
+    onSuccess: (_result, change) => {
+      toast.success(change.visible ? "Member listed publicly" : "Member hidden from public directory");
+      cache.invalidateQueries({ queryKey: ["admin", "members"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   return (
     <AdminPage title="Members" description="Accounts, membership status, and administrator access.">
@@ -104,7 +118,7 @@ function AdminMembersPage() {
       )}
       {data && members.length === 0 && <EmptyBlock title="No accounts yet" />}
       {data && members.length > 0 && (
-        <AdminTable head={["Name", "Email", "Company", "Membership", "Role", "Joined", "Actions"]}>
+        <AdminTable head={["Name", "Email", "Company", "Membership", "Role", "Public directory", "Joined", "Actions"]}>
           {members.map((member) => (
             <tr key={member.id} className="[&>td]:px-4 [&>td]:py-3">
               <td className="font-medium">
@@ -137,6 +151,11 @@ function AdminMembersPage() {
                       : "Member"}
                   </span>
                 )}
+              </td>
+              <td>
+                <StatusPill tone={member.publicDirectoryVisible ? "signal" : "muted"}>
+                  {member.publicDirectoryVisible ? "Visible" : "Private"}
+                </StatusPill>
               </td>
               <td className="text-muted-foreground">
                 {new Date(member.created_at).toLocaleDateString("en-GB")}
@@ -296,6 +315,63 @@ function AdminMembersPage() {
                   );
                 })}
               </div>
+            </section>
+            <section className="rounded-xl border border-border/60 p-4" aria-labelledby="member-public-profile-title">
+              <h3 id="member-public-profile-title" className="font-medium">
+                Public directory visibility
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {selected.publicDirectoryVisible
+                  ? "This profile is visible in the public CometX member directory."
+                  : "This profile is private and does not appear in the public member directory."}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Publishing shows the member’s name, company, job title, and country. Email, phone, membership plan, and account details stay private.
+              </p>
+              {selected.publicDirectoryVisibilityChangedAt && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Last changed {new Date(selected.publicDirectoryVisibilityChangedAt).toLocaleString("en-GB")}
+                </p>
+              )}
+              {selected.canManagePublicDirectoryVisibility && (
+                <Button
+                  type="button"
+                  variant={selected.publicDirectoryVisible ? "outlineInk" : "ink"}
+                  className="mt-4"
+                  disabled={
+                    publicVisibilityChange.isPending ||
+                    (!selected.publicDirectoryVisible &&
+                      (!selected.first_name?.trim() || !selected.last_name?.trim()))
+                  }
+                  onClick={() => {
+                    const visible = !selected.publicDirectoryVisible;
+                    const memberName =
+                      [selected.first_name, selected.last_name].filter(Boolean).join(" ") ||
+                      "this member";
+                    const message = visible
+                      ? `Show ${memberName} in the public CometX member directory? Their name, company, job title, and country will be visible to anyone. Email, phone, and membership details will stay private.`
+                      : `Hide ${memberName} from the public CometX member directory?`;
+                    if (window.confirm(message))
+                      publicVisibilityChange.mutate({ id: selected.id, visible });
+                  }}
+                >
+                  {publicVisibilityChange.isPending
+                    ? "Saving…"
+                    : selected.publicDirectoryVisible
+                      ? "Hide from public directory"
+                      : "Show in public directory"}
+                </Button>
+              )}
+              {!selected.canManagePublicDirectoryVisibility && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  You have read-only access. A staff member with Members write permission must change visibility.
+                </p>
+              )}
+              {(!selected.first_name?.trim() || !selected.last_name?.trim()) && (
+                <p className="mt-3 text-xs text-destructive">
+                  Add both a first and last name before publishing this profile.
+                </p>
+              )}
             </section>
             <div className="flex flex-wrap gap-3">
               <Button

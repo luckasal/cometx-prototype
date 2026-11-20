@@ -10,16 +10,20 @@ import { normalizeContactEmail } from "./contact-import";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
-async function admin(permission: StaffPermission = "roles.manage") {
+async function adminForActor(permission: StaffPermission = "roles.manage") {
   const { requireStaffPermission } = await import("./auth.server");
   const actor = await requireStaffPermission(permission);
   if (actor.staffRoles.includes("admin")) {
-    return (await import("./database.server")).getReadClient();
+    return { actor, db: (await import("./database.server")).getReadClient() };
   }
   // Staff access is mediated by scoped server handlers; existing direct Data
   // API policies stay Admin-only. Never broaden is_admin() to include staff.
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin;
+  return { actor, db: supabaseAdmin };
+}
+
+async function admin(permission: StaffPermission = "roles.manage") {
+  return (await adminForActor(permission)).db;
 }
 
 async function loadEventMetrics(eventIds: string[]) {
@@ -809,11 +813,11 @@ export const adminListRegistrations = createServerFn({ method: "GET" }).handler(
 
 export const adminListMembers = createServerFn({ method: "GET" }).handler(async () => {
   const startedAt = performance.now();
-  const db = await admin("members.read");
+  const { actor, db } = await adminForActor("members.read");
   const authorizedAt = performance.now();
   const { data: profiles, error: profilesError } = await db
     .from("profiles")
-    .select("id,first_name,last_name,email,company,country,created_at")
+    .select("id,first_name,last_name,email,company,country,created_at,public_directory_visible,public_directory_visibility_changed_at")
     .order("created_at", { ascending: false })
     .limit(200);
   if (profilesError) throw new Error(profilesError.message);
@@ -854,6 +858,8 @@ export const adminListMembers = createServerFn({ method: "GET" }).handler(async 
     company: string | null;
     country: string | null;
     created_at: string;
+    public_directory_visible: boolean;
+    public_directory_visibility_changed_at: string | null;
   };
   type MemberMembership = {
     user_id: string;
@@ -880,10 +886,47 @@ export const adminListMembers = createServerFn({ method: "GET" }).handler(async 
       membershipStatus: byUser.get(p.id)?.status ?? null,
       isAdmin: admins.has(p.id),
       isProtectedSuperadmin: protectedIds.has(p.id),
+      canManagePublicDirectoryVisibility: hasStaffPermission(actor.staffRoles, "members.write"),
+      publicDirectoryVisible: p.public_directory_visible,
+      publicDirectoryVisibilityChangedAt: p.public_directory_visibility_changed_at,
       staffRoles: roleRows.filter((role) => role.user_id === p.id).map((role) => role.role).filter((role) => ["admin", "event_manager", "data_analyst", "marketing"].includes(role)),
     };
   });
 });
+
+const memberPublicVisibilitySchema = z.object({
+  id: z.string().uuid(),
+  visible: z.boolean(),
+});
+
+export const adminSetMemberPublicVisibility = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => memberPublicVisibilitySchema.parse(input))
+  .handler(async ({ data }: { data: z.infer<typeof memberPublicVisibilitySchema> }) => {
+    const { requireStaffPermission } = await import("./auth.server");
+    const actor = await requireStaffPermission("members.write");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("id,first_name,last_name")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (profileError) throw new Error("Could not load the member profile. No change was made.");
+    if (!profile) throw new Error("This member account could not be found.");
+    if (data.visible && (!profile.first_name?.trim() || !profile.last_name?.trim())) {
+      throw new Error("Add the member’s first and last name before showing the profile publicly.");
+    }
+
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        public_directory_visible: data.visible,
+        public_directory_visibility_changed_at: new Date().toISOString(),
+        public_directory_visibility_changed_by: actor.userId,
+      })
+      .eq("id", data.id);
+    if (error) throw new Error("Could not update public profile visibility. Please try again.");
+    return { ok: true, visible: data.visible };
+  });
 
 const memberRoleSchema = z.object({ id: z.string().uuid() });
 

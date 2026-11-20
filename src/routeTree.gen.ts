@@ -42,6 +42,7 @@ import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminSpeakersRouteImport } from './routes/admin.speakers'
 import { Route as AdminWorkshopsRouteImport } from './routes/admin.workshops'
 import { Route as CommunityIndexRouteImport } from './routes/community.index'
+import { Route as CommunityMembersRouteImport } from './routes/community.members'
 import { Route as EventsIndexRouteImport } from './routes/events.index'
 import { Route as EventsSlugRouteImport } from './routes/events.$slug'
 import { Route as TicketsGuestRouteImport } from './routes/tickets.guest'
@@ -219,6 +220,11 @@ const CommunityIndexRoute = CommunityIndexRouteImport.update({
   path: '/community/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CommunityMembersRoute = CommunityMembersRouteImport.update({
+  id: '/community/members',
+  path: '/community/members',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsIndexRoute = EventsIndexRouteImport.update({
   id: '/events/',
   path: '/events/',
@@ -306,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/speakers': typeof AdminSpeakersRoute
   '/admin/workshops': typeof AdminWorkshopsRoute
+  '/community/members': typeof CommunityMembersRoute
   '/events/$slug': typeof EventsSlugRoute
   '/tickets/guest': typeof TicketsGuestRoute
   '/account/': typeof AccountIndexRoute
@@ -350,6 +357,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/speakers': typeof AdminSpeakersRoute
   '/admin/workshops': typeof AdminWorkshopsRoute
+  '/community/members': typeof CommunityMembersRoute
   '/events/$slug': typeof EventsSlugRoute
   '/tickets/guest': typeof TicketsGuestRoute
   '/account': typeof AccountIndexRoute
@@ -397,6 +405,7 @@ export interface FileRoutesById {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/speakers': typeof AdminSpeakersRoute
   '/admin/workshops': typeof AdminWorkshopsRoute
+  '/community/members': typeof CommunityMembersRoute
   '/events/$slug': typeof EventsSlugRoute
   '/tickets/guest': typeof TicketsGuestRoute
   '/account/': typeof AccountIndexRoute
@@ -445,6 +454,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/speakers'
     | '/admin/workshops'
+    | '/community/members'
     | '/events/$slug'
     | '/tickets/guest'
     | '/account/'
@@ -489,6 +499,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/speakers'
     | '/admin/workshops'
+    | '/community/members'
     | '/events/$slug'
     | '/tickets/guest'
     | '/account'
@@ -535,6 +546,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/speakers'
     | '/admin/workshops'
+    | '/community/members'
     | '/events/$slug'
     | '/tickets/guest'
     | '/account/'
@@ -566,6 +578,7 @@ export interface RootRouteChildren {
   MembershipRoute: typeof MembershipRoute
   PartnersRoute: typeof PartnersRoute
   RegisterRoute: typeof RegisterRoute
+  CommunityMembersRoute: typeof CommunityMembersRoute
   EventsSlugRoute: typeof EventsSlugRoute
   TicketsGuestRoute: typeof TicketsGuestRoute
   CommunityIndexRoute: typeof CommunityIndexRoute
@@ -807,6 +820,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommunityIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/community/members': {
+      id: '/community/members'
+      path: '/community/members'
+      fullPath: '/community/members'
+      preLoaderRoute: typeof CommunityMembersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events/': {
       id: '/events/'
       path: '/events'
@@ -967,6 +987,7 @@ const rootRouteChildren: RootRouteChildren = {
   MembershipRoute: MembershipRoute,
   PartnersRoute: PartnersRoute,
   RegisterRoute: RegisterRoute,
+  CommunityMembersRoute: CommunityMembersRoute,
   EventsSlugRoute: EventsSlugRoute,
   TicketsGuestRoute: TicketsGuestRoute,
   CommunityIndexRoute: CommunityIndexRoute,

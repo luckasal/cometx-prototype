@@ -528,6 +528,9 @@ export type Database = {
           id: string
           job_title: string | null
           last_name: string | null
+          public_directory_visible: boolean
+          public_directory_visibility_changed_at: string | null
+          public_directory_visibility_changed_by: string | null
           phone: string | null
           updated_at: string
         }
@@ -541,6 +544,9 @@ export type Database = {
           id: string
           job_title?: string | null
           last_name?: string | null
+          public_directory_visible?: boolean
+          public_directory_visibility_changed_at?: string | null
+          public_directory_visibility_changed_by?: string | null
           phone?: string | null
           updated_at?: string
         }
@@ -554,6 +560,9 @@ export type Database = {
           id?: string
           job_title?: string | null
           last_name?: string | null
+          public_directory_visible?: boolean
+          public_directory_visibility_changed_at?: string | null
+          public_directory_visibility_changed_by?: string | null
           phone?: string | null
           updated_at?: string
         }

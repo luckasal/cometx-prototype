@@ -55,7 +55,7 @@ function CommunityPage() {
     title: string;
     text: string;
     href?: string;
-    to?: "/media" | "/community";
+    to?: "/media" | "/community" | "/community/members";
     hash?: string;
   }[] = [
     {
@@ -79,6 +79,13 @@ function CommunityPage() {
         : "Real experiences and opinions from the people who make CometX.",
       to: "/community",
       hash: "#stories",
+    },
+    {
+      title: cs ? "Členové komunity" : "Member directory",
+      text: cs
+        ? "Profily zveřejněné týmem CometX; kontaktní údaje zůstávají soukromé."
+        : "Profiles published by the CometX team; contact details stay private.",
+      to: "/community/members",
     },
   ];
 
@@ -164,7 +171,7 @@ function CommunityPage() {
       </Section>
       <section className="border-y border-border bg-paper">
         <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {mediaLinks.map((item) =>
               item.href ? (
                 <a

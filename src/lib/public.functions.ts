@@ -126,6 +126,48 @@ export const listPartners = createServerFn({ method: "GET" }).handler(async () =
   return data ?? [];
 });
 
+export type PublicMemberProfile = {
+  name: string;
+  company: string | null;
+  jobTitle: string | null;
+  country: string | null;
+};
+
+/** Public directory returns only explicitly published profiles for current members. */
+export const listPublicMembers = createServerFn({ method: "GET" }).handler(
+  async (): Promise<PublicMemberProfile[]> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date().toISOString();
+    const { data: memberships, error: membershipError } = await supabaseAdmin
+      .from("memberships")
+      .select("user_id")
+      .eq("status", "active")
+      .lte("starts_at", now)
+      .or(`ends_at.is.null,ends_at.gt.${now}`);
+    if (membershipError) throw new Error("We could not load the public member directory.");
+    const memberIds = [...new Set((memberships ?? []).map((membership) => membership.user_id))];
+    if (memberIds.length === 0) return [];
+
+    const { data: profiles, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("first_name,last_name,company,job_title,country")
+      .eq("public_directory_visible", true)
+      .in("id", memberIds)
+      .order("last_name")
+      .order("first_name");
+    if (profileError) throw new Error("We could not load the public member directory.");
+
+    return (profiles ?? [])
+      .filter((profile) => profile.first_name?.trim() && profile.last_name?.trim())
+      .map((profile) => ({
+        name: `${profile.first_name!.trim()} ${profile.last_name!.trim()}`,
+        company: profile.company,
+        jobTitle: profile.job_title,
+        country: profile.country,
+      }));
+  },
+);
+
 export type PublicMediaItem = {
   id: string;
   title: string;
