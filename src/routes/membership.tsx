@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowDown, ArrowRight, Check, ExternalLink } from "lucide-react";
+import { ArrowDown, Check, ExternalLink } from "lucide-react";
 import {
   getMembershipPlans,
   getMembershipSavingsEvents,
@@ -68,7 +68,7 @@ function MembershipPage() {
     motivation: "",
     missingFromSubscription: "",
   });
-  const [requestedEventCount, setRequestedEventCount] = useState(2);
+  const [requestedSmallEventCount, setRequestedSmallEventCount] = useState(3);
   const fetchPlans = useServerFn(getMembershipPlans);
   const fetchSavingsEvents = useServerFn(getMembershipSavingsEvents);
   const fetchPartners = useServerFn(listPartners);
@@ -94,30 +94,49 @@ function MembershipPage() {
     queryKey: ["active-partners"],
     queryFn: () => fetchPartners(),
   });
-  const maxEventCount = 5;
-  const eventCount = Math.min(requestedEventCount, savingsEvents.length);
-  const selectedSavingsEvents = savingsEvents.slice(0, eventCount);
+  const { symposiumEvent, smallerEvents } = useMemo(
+    () => ({
+      symposiumEvent: savingsEvents.find((event) => event.eventType === "symposium"),
+      smallerEvents: savingsEvents.filter((event) => event.eventType !== "symposium"),
+    }),
+    [savingsEvents],
+  );
+  const selectedSavingsEvents = useMemo(
+    () => [
+      ...(symposiumEvent ? [symposiumEvent] : []),
+      ...smallerEvents.slice(0, requestedSmallEventCount),
+    ],
+    [requestedSmallEventCount, smallerEvents, symposiumEvent],
+  );
+  const eventCount = selectedSavingsEvents.length;
+  const hostTotal = selectedSavingsEvents.reduce((total, event) => total + event.guestPrice, 0);
   const estimateRows = useMemo(() => {
     if (!data) return [];
-    const selectedEvents = savingsEvents.slice(0, eventCount);
-    const hostTotal = selectedEvents.reduce((total, event) => total + event.guestPrice, 0);
     return data
       .filter((plan) => plan.currency.toUpperCase() === "CHF")
       .map((plan) => {
-        const memberPrices = selectedEvents.map((event) => event.memberPrices[plan.slug]);
+        const memberPrices = selectedSavingsEvents.map((event) => event.memberPrices[plan.slug]);
         const hasAllPrices = memberPrices.every((price) => price !== null && price !== undefined);
         const ticketTotal = hasAllPrices
           ? memberPrices.reduce((total, price) => total + (price ?? 0), 0)
           : null;
         return {
           plan,
-          hostTotal,
           ticketTotal,
           firstYearTotal:
             ticketTotal === null ? null : plan.annualPrice + plan.setupFee + ticketTotal,
         };
       });
-  }, [data, eventCount, savingsEvents]);
+  }, [data, selectedSavingsEvents]);
+  const bestPlanEstimate = useMemo(
+    () =>
+      estimateRows
+        .filter((row) => row.firstYearTotal !== null)
+        .sort((a, b) => (a.firstYearTotal ?? Infinity) - (b.firstYearTotal ?? Infinity))[0] ?? null,
+    [estimateRows],
+  );
+  const firstYearTotal = bestPlanEstimate?.firstYearTotal ?? null;
+  const savings = firstYearTotal === null ? null : hostTotal - firstYearTotal;
 
   const checkoutMutation = useMutation({
     mutationFn: (input: {
@@ -151,170 +170,104 @@ function MembershipPage() {
         </div>
       </section>
 
-      <section aria-labelledby="membership-savings-title" className="bg-background pb-12 sm:pb-16">
-        <div className="mx-auto grid max-w-6xl gap-8 rounded-3xl bg-muted p-5 sm:p-8 lg:grid-cols-[1fr_1fr] lg:items-center lg:gap-10 lg:p-10">
-          <div className="flex min-w-0 flex-col gap-4">
-            <p className="eyebrow text-accent">{cs ? "Rychlé srovnání" : "Quick comparison"}</p>
-            <h2
-              id="membership-savings-title"
-              className="mt-1 font-display text-3xl font-extrabold sm:text-4xl"
-            >
-              {cs
-                ? "Chodíte na akce? Členství se může vyplatit."
-                : "Attend CometX events? Membership may pay off."}
-            </h2>
-            <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
-              {cs
-                ? "Upravte počet akcí a porovnejte aktuální veřejné ceny vstupenek s cenou členství a členskými cenami."
-                : "Adjust the number of events to compare currently published public ticket prices with membership and member ticket prices."}
-            </p>
-            <p id="membership-event-count-label" className="text-sm font-semibold">
-              {cs
-                ? "Kolik zveřejněných akcí chcete navštívit?"
-                : "How many published events do you plan to attend?"}
-            </p>
-            <div
-              className="flex flex-wrap gap-2"
-              role="radiogroup"
-              aria-labelledby="membership-event-count-label"
-            >
-              {Array.from({ length: maxEventCount + 1 }, (_, count) => (
-                <label key={count} className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="membership-event-count"
-                    value={count}
-                    checked={requestedEventCount === count}
-                    onChange={() => setRequestedEventCount(count)}
-                    className="peer sr-only"
-                  />
-                  <span
-                    className={`grid size-12 place-items-center rounded-xl border text-lg font-semibold transition peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink ${requestedEventCount === count ? "border-ink bg-ink text-ink-foreground" : "border-border bg-background hover:border-foreground"}`}
-                  >
-                    {count}
-                  </span>
-                </label>
-              ))}
-            </div>
-            {requestedEventCount > savingsEvents.length && !savingsLoading && !savingsError && (
-              <p className="text-sm text-muted-foreground">
+      <section aria-labelledby="membership-calculator-title" className="bg-background pb-16">
+        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
+          <div className="flex flex-wrap items-center gap-8 rounded-[20px] bg-[#ececec] p-6 sm:gap-10 sm:p-10">
+            <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-4">
+              <h2 id="membership-calculator-title" className="font-display text-[32px] font-bold">
+                {cs ? "Kolik ušetříš?" : "How much could you save?"}
+              </h2>
+              <p className="text-base text-[#3a3939]">
                 {cs
-                  ? `Zveřejněné ceny jsou zatím dostupné pro ${savingsEvents.length} ${savingsEvents.length === 1 ? "akci" : "akce"}.`
-                  : `Published ticket prices are currently available for ${savingsEvents.length} ${savingsEvents.length === 1 ? "event" : "events"}.`}
+                  ? "Na kolik menších akcí ročně chodíš? Pokud je zveřejněné, započítáme i nejbližší SCAS."
+                  : "How many smaller events do you attend each year? If published, we include the next SCAS."}
               </p>
-            )}
-            {savingsLoading && (
-              <p className="text-sm text-muted-foreground">
-                {cs ? "Načítáme zveřejněné ceny akcí…" : "Loading published event prices…"}
-              </p>
-            )}
-            {savingsError && (
-              <p className="text-sm text-muted-foreground">
-                {cs
-                  ? "Orientační srovnání teď není dostupné. Aktuální ceny vstupenek najdete u jednotlivých akcí."
-                  : "The estimate is unavailable right now. Current ticket prices are shown on each event page."}
-              </p>
-            )}
-            {!savingsLoading && !savingsError && savingsEvents.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                {cs
-                  ? "Srovnání se zobrazí, jakmile budou zveřejněné budoucí akce s aktivními vstupenkami."
-                  : "The estimate will appear when upcoming published events have active tickets."}
-              </p>
-            )}
-          </div>
-
-          <div className="rounded-2xl bg-background p-5 sm:p-7">
-            {isLoading && <LoadingBlock label={cs ? "Načítáme plány" : "Loading plans"} />}
-            {error && <ErrorBlock error={error} />}
-            {savingsError && <ErrorBlock error={savingsError} />}
-            {savingsLoading && (
-              <LoadingBlock label={cs ? "Načítáme ceny akcí" : "Loading event prices"} />
-            )}
-            {data && savingsEvents.length > 0 && (
-              <>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl bg-muted p-4">
-                    <p className="text-sm text-muted-foreground">
-                      {cs ? "Host · nejnižší veřejná cena" : "Guest · lowest public ticket"}
-                    </p>
-                    <p className="mt-1 font-display text-2xl font-extrabold">
-                      {formatMoney(estimateRows[0]?.hostTotal ?? 0, "CHF")}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-accent p-4 text-accent-foreground">
-                    <p className="text-sm">
-                      {cs ? "Počítáme z živých cen CometX" : "Using current CometX prices"}
-                    </p>
-                    <p className="mt-1 font-display text-2xl font-extrabold">
-                      {eventCount}{" "}
-                      {cs
-                        ? eventCount === 1
-                          ? "akce"
-                          : "akcí"
-                        : eventCount === 1
-                          ? "event"
-                          : "events"}
-                    </p>
-                  </div>
-                </div>
-                {selectedSavingsEvents.length > 0 && (
-                  <ul className="mt-4 flex flex-wrap gap-2">
-                    {selectedSavingsEvents.map((event) => (
-                      <li
-                        key={event.slug}
-                        className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground"
-                      >
-                        {!cs && event.titleEn?.trim() ? event.titleEn : event.title}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="mt-5 space-y-3">
-                  {estimateRows.map(({ plan, ticketTotal, firstYearTotal, hostTotal }) => {
-                    const savings = firstYearTotal === null ? null : hostTotal - firstYearTotal;
-                    return (
-                      <div
-                        key={plan.slug}
-                        className="grid gap-2 border-t border-border pt-3 sm:grid-cols-[1fr_auto_auto] sm:items-center"
-                      >
-                        <div>
-                          <p className="font-semibold">
-                            {!cs && plan.nameEn?.trim() ? plan.nameEn : plan.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {firstYearTotal === null
-                              ? cs
-                                ? "Nelze spočítat cenu pro všechny vybrané akce"
-                                : "Price is unavailable for one or more selected events"
-                              : `${formatMoney(plan.annualPrice + plan.setupFee, plan.currency)} ${cs ? "členství v 1. roce" : "first-year membership"} + ${formatMoney(ticketTotal ?? 0, plan.currency)} ${cs ? "vstupenky" : "tickets"}`}
-                          </p>
-                        </div>
-                        <p className="font-display text-xl font-extrabold">
-                          {firstYearTotal === null
-                            ? "—"
-                            : formatMoney(firstYearTotal, plan.currency)}
-                        </p>
-                        <p className="text-xs font-semibold text-muted-foreground sm:text-right">
-                          {savings === null
-                            ? cs
-                              ? "Nelze porovnat"
-                              : "Not comparable"
-                            : savings >= 0
-                              ? `${cs ? "Rozdíl" : "Difference"}: ${formatMoney(savings, plan.currency)}`
-                              : `${cs ? "Rozdíl" : "Difference"}: −${formatMoney(Math.abs(savings), plan.currency)}`}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
+              <div
+                className="flex flex-wrap gap-[10px]"
+                role="radiogroup"
+                aria-label={cs ? "Počet menších akcí" : "Number of smaller events"}
+              >
+                {Array.from({ length: 6 }, (_, count) => (
+                  <label key={count} className="inline-flex cursor-pointer">
+                    <input
+                      type="radio"
+                      name="membership-small-event-count"
+                      value={count}
+                      checked={requestedSmallEventCount === count}
+                      onChange={() => setRequestedSmallEventCount(count)}
+                      className="peer sr-only"
+                    />
+                    <span className="grid size-12 place-items-center rounded-[10px] border-[1.5px] border-[#c9c7c4] bg-white text-[17px] font-semibold text-[#212020] transition peer-checked:border-[#212020] peer-checked:bg-[#212020] peer-checked:text-white peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#212020]">
+                      {count}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {!savingsLoading && requestedSmallEventCount > smallerEvents.length && (
+                <p className="text-sm text-[#515151]">
                   {cs
-                    ? "Orientační výpočet vychází jen z nyní zveřejněných budoucích akcí a nejnižší aktivní vstupenky. Zahrnuje roční cenu i jednorázový vstupní poplatek v 1. roce; nabídka i ceny se mohou měnit."
-                    : "Estimate uses only currently published upcoming events and each event’s lowest active ticket. It includes the annual plan price and one-time setup fee in year one; event availability and prices can change."}
+                    ? `Zatím jsou zveřejněné ceny jen pro ${smallerEvents.length} dalších akcí.`
+                    : `Published prices are currently available for ${smallerEvents.length} other events.`}
                 </p>
-              </>
-            )}
+              )}
+            </div>
+
+            <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-2 rounded-2xl bg-white p-6 sm:p-7">
+              {savingsLoading || isLoading ? (
+                <p className="text-[15px] text-[#515151]">
+                  {cs ? "Načítáme aktuální ceny…" : "Loading current prices…"}
+                </p>
+              ) : savingsError || error ? (
+                <p className="text-[15px] text-[#515151]">
+                  {cs
+                    ? "Srovnání teď není dostupné. Zkuste to prosím později."
+                    : "The comparison is unavailable right now. Please try again later."}
+                </p>
+              ) : eventCount === 0 ? (
+                <p className="text-[15px] text-[#515151]">
+                  {cs
+                    ? "Pro aktuální výběr zatím nejsou zveřejněné ceny vstupenek."
+                    : "Ticket prices for this selection have not been published yet."}
+                </p>
+              ) : !bestPlanEstimate || firstYearTotal === null ? (
+                <p className="text-[15px] text-[#515151]">
+                  {cs
+                    ? "Členské ceny nejsou zveřejněné pro všechny vybrané akce."
+                    : "Member ticket prices are not published for every selected event."}
+                </p>
+              ) : (
+                <>
+                  <p className="text-[15px] text-[#515151]">
+                    {cs ? "Lístky" : "Tickets"}: {formatMoney(hostTotal, "CHF")} ·{" "}
+                    {cs
+                      ? `${bestPlanEstimate.plan.name}, 1. rok včetně vstupenek`
+                      : `${bestPlanEstimate.plan.nameEn?.trim() || bestPlanEstimate.plan.name}, first year including tickets`}
+                    : {formatMoney(firstYearTotal, bestPlanEstimate.plan.currency)}
+                  </p>
+                  {savings !== null && savings > 0 ? (
+                    <p className="self-start rounded-lg bg-[#e1f03c] px-[10px] py-0.5 font-display text-3xl font-bold sm:text-4xl">
+                      {cs ? "Ušetříš " : "You save "}
+                      {formatMoney(savings, bestPlanEstimate.plan.currency)}
+                    </p>
+                  ) : savings === 0 ? (
+                    <p className="font-display text-2xl font-bold text-[#212020]">
+                      {cs ? "Vyjde to nastejno." : "The total comes out the same."}
+                    </p>
+                  ) : (
+                    <p className="font-display text-2xl font-bold text-[#212020]">
+                      {cs
+                        ? `Vstupenky bez členství jsou levnější o ${formatMoney(Math.abs(savings ?? 0), bestPlanEstimate.plan.currency)}.`
+                        : `Tickets without membership cost ${formatMoney(Math.abs(savings ?? 0), bestPlanEstimate.plan.currency)} less.`}
+                    </p>
+                  )}
+                </>
+              )}
+              <p className="text-[13px] text-[#515151]">
+                {cs
+                  ? "Počítáme z aktuálních cen zveřejněných akcí, členských cen vstupenek, ročního poplatku a případného vstupního poplatku."
+                  : "Uses current published event prices, member ticket prices, the annual plan price, and any setup fee."}
+              </p>
+            </div>
           </div>
         </div>
       </section>
